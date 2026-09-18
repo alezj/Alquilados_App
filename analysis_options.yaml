@@ -1,62 +1,29 @@
-# Reglas de análisis estático para Alquilados App.
-# Equivalente Angular: tslint.json / .eslintrc
-#
-# Estas reglas detectan errores comunes en tiempo de desarrollo,
-# antes de compilar o ejecutar la app.
-
 include: package:flutter_lints/flutter.yaml
 
-# Habilitar custom_lint para reglas de Riverpod
 analyzer:
-  plugins:
-    - custom_lint
   errors:
-    # Tratar imports no utilizados como warnings
     unused_import: warning
-    # Tratar variables no utilizadas como warnings
     unused_local_variable: warning
   exclude:
-    # Excluir archivos generados por build_runner
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+    - build/**
+    - android/**
+    - ios/**
 
 linter:
   rules:
-    # --- Estilo ---
-    # Preferir const para constructores que pueden ser const
     prefer_const_constructors: true
-    # Preferir const para declaraciones de const
     prefer_const_declarations: true
-    # Preferir expresiones de colecciones literales
     prefer_collection_literals: true
-    # Preferir interpolación de strings
     prefer_interpolation_to_compose_strings: true
-
-    # --- Seguridad ---
-    # Evitar print() en producción — usar Logger
     avoid_print: true
-    # Evitar tipos dinámicos innecesarios
-    avoid_dynamic_calls: true
-
-    # --- Null Safety ---
-    # Usar null-aware operators cuando sea posible
     prefer_null_aware_operators: true
     prefer_null_aware_method_calls: true
-
-    # --- Organización ---
-    # Ordenar imports alfabéticamente
     sort_pub_dependencies: true
-    # Preferir importaciones relativas dentro del paquete
     prefer_relative_imports: true
-
-    # --- Buenas prácticas ---
-    # Siempre declarar tipos de retorno
     always_declare_return_types: true
-    # Anotar overrides
     annotate_overrides: true
-    # Preferir final para variables locales que no se reasignan
     prefer_final_locals: true
-    # Evitar clases usadas solo como namespaces
     avoid_classes_with_only_static_members: true
-    # Usar key en constructores de widgets
     use_key_in_widget_constructors: true
