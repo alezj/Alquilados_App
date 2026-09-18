@@ -10,8 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:alquilados_app/main.dart';
 
 void main() {
-  testWidgets('MainApp renders Hello World', (WidgetTester tester) async {
-    await tester.pumpWidget(const MainApp());
-    expect(find.text('Hello World!'), findsOneWidget);
+  testWidgets('AlquiladosApp renders Design System Showcase', (WidgetTester tester) async {
+    await tester.pumpWidget(const AlquiladosApp());
+    expect(find.text('Alquilados — Design System'), findsOneWidget);
   });
 }

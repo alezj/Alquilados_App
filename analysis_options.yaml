@@ -26,5 +26,4 @@ linter:
     always_declare_return_types: true
     annotate_overrides: true
     prefer_final_locals: true
-    avoid_classes_with_only_static_members: true
     use_key_in_widget_constructors: true
