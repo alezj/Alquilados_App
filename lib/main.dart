@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/shared/widgets/app_button.dart';
 import 'core/shared/widgets/app_card.dart';
 import 'core/shared/widgets/app_empty.dart';
@@ -9,9 +10,10 @@ import 'core/shared/widgets/status_badge.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_typography.dart';
+import 'core/router/app_router.dart';
 
 void main() {
-  runApp(const AlquiladosApp());
+  runApp(const ProviderScope(child: AlquiladosApp()));
 }
 
 /// Widget principal de la aplicación.
@@ -27,6 +29,12 @@ class AlquiladosApp extends StatefulWidget {
 
 class _AlquiladosAppState extends State<AlquiladosApp> {
   ThemeMode _themeMode = ThemeMode.light;
+  late final router = AppRouter.create(
+    designSystemBuilder: (_) => DesignSystemShowcasePage(
+      isDarkMode: _themeMode == ThemeMode.dark,
+      onToggleTheme: _toggleTheme,
+    ),
+  );
 
   void _toggleTheme() {
     setState(() {
@@ -36,16 +44,13 @@ class _AlquiladosAppState extends State<AlquiladosApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Alquilados',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      home: DesignSystemShowcasePage(
-        isDarkMode: _themeMode == ThemeMode.dark,
-        onToggleTheme: _toggleTheme,
-      ),
+      routerConfig: router,
     );
   }
 }
@@ -78,15 +83,16 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Alquilados — Design System'),
         actions: [
           IconButton(
-            tooltip: 'Cambiar a modo ${widget.isDarkMode ? "Claro" : "Oscuro"}',
+            tooltip: 'Cambiar a modo ${isDarkMode ? "Claro" : "Oscuro"}',
             icon: Icon(
-              widget.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
             ),
             onPressed: widget.onToggleTheme,
           ),
