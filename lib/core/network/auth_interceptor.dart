@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
 import '../storage/secure_storage_service.dart';
 import '../utils/app_logger.dart';
 
@@ -8,12 +10,9 @@ import '../utils/app_logger.dart';
 /// Equivale a un `AuthInterceptor implements HttpInterceptor` en Angular
 /// que intercepta la `HttpRequest` y le hace `req.clone({ setHeaders: { Authorization: ... } })`.
 class AuthInterceptor extends QueuedInterceptor {
-  AuthInterceptor({
-    required SecureStorageService secureStorage,
-    this.onUnauthorized,
-  }) : _secureStorage = secureStorage;
+  AuthInterceptor({required this.secureStorage, this.onUnauthorized});
 
-  final SecureStorageService _secureStorage;
+  final SecureStorageService secureStorage;
 
   /// Callback ejecutado cuando el servidor responde con 401 (ej: token expirado)
   final VoidCallback? onUnauthorized;
@@ -30,12 +29,14 @@ class AuthInterceptor extends QueuedInterceptor {
     }
 
     try {
-      final token = await _secureStorage.getToken();
+      final token = await secureStorage.getToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }
     } catch (e) {
-      AppLogger.w('No se pudo adjuntar el token a la petición: ${options.path}');
+      AppLogger.w(
+        'No se pudo adjuntar el token a la petición: ${options.path}',
+      );
     }
 
     return handler.next(options);
@@ -44,7 +45,9 @@ class AuthInterceptor extends QueuedInterceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
-      AppLogger.w('Sesión expirada o no autorizada (HTTP 401) en ${err.requestOptions.path}');
+      AppLogger.w(
+        'Sesión expirada o no autorizada (HTTP 401) en ${err.requestOptions.path}',
+      );
       onUnauthorized?.call();
     }
     return handler.next(err);

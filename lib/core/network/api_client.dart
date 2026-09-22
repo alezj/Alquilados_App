@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
 import '../config/app_config.dart';
 import '../errors/error_handler.dart';
 import '../storage/secure_storage_service.dart';
@@ -21,12 +23,17 @@ class ApiClient {
     Dio? customDio,
     VoidCallback? onUnauthorized,
   }) {
-    _dio = customDio ??
+    _dio =
+        customDio ??
         Dio(
           BaseOptions(
             baseUrl: AppConfig.apiBaseUrl,
-            connectTimeout: Duration(milliseconds: AppConfig.connectTimeoutMs),
-            receiveTimeout: Duration(milliseconds: AppConfig.receiveTimeoutMs),
+            connectTimeout: const Duration(
+              milliseconds: AppConfig.connectTimeoutMs,
+            ),
+            receiveTimeout: const Duration(
+              milliseconds: AppConfig.receiveTimeoutMs,
+            ),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -47,15 +54,21 @@ class ApiClient {
       _dio.interceptors.add(
         InterceptorsWrapper(
           onRequest: (options, handler) {
-            AppLogger.d('HTTP --> ${options.method} ${options.baseUrl}${options.path}');
+            AppLogger.d(
+              'HTTP --> ${options.method} ${options.baseUrl}${options.path}',
+            );
             return handler.next(options);
           },
           onResponse: (response, handler) {
-            AppLogger.d('HTTP <-- ${response.statusCode} ${response.requestOptions.path}');
+            AppLogger.d(
+              'HTTP <-- ${response.statusCode} ${response.requestOptions.path}',
+            );
             return handler.next(response);
           },
           onError: (dioError, handler) {
-            AppLogger.w('HTTP <-- ERROR ${dioError.response?.statusCode} ${dioError.requestOptions.path}');
+            AppLogger.w(
+              'HTTP <-- ERROR ${dioError.response?.statusCode} ${dioError.requestOptions.path}',
+            );
             return handler.next(dioError);
           },
         ),

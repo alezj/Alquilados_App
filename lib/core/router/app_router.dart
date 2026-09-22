@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/propiedades/presentation/pages/propiedades_page.dart';
+import '../../features/inquilinos/presentation/pages/inquilinos_page.dart';
+import '../../features/pagos/presentation/pages/pagos_page.dart';
 import 'app_routes.dart';
 
 abstract final class AppRouter {
@@ -8,25 +11,22 @@ abstract final class AppRouter {
     return GoRouter(
       initialLocation: AppRoutes.designSystem,
       routes: [
-        GoRoute(
-          path: '/',
-          redirect: (_, __) => AppRoutes.designSystem,
-        ),
+        GoRoute(path: '/', redirect: (_, _) => AppRoutes.designSystem),
         GoRoute(
           path: AppRoutes.designSystem,
-          builder: (context, __) => designSystemBuilder(context),
+          builder: (context, _) => designSystemBuilder(context),
         ),
         GoRoute(
           path: AppRoutes.login,
-          builder: (_, __) => const PendingRoutePage(title: 'Iniciar sesión'),
+          builder: (_, _) => const PendingRoutePage(title: 'Iniciar sesión'),
         ),
         GoRoute(
           path: AppRoutes.dashboard,
-          builder: (_, __) => const PendingRoutePage(title: 'Dashboard'),
+          builder: (_, _) => const PendingRoutePage(title: 'Dashboard'),
         ),
         GoRoute(
           path: AppRoutes.propiedades,
-          builder: (_, __) => const PendingRoutePage(title: 'Propiedades'),
+          builder: (_, _) => const PropiedadesPage(),
         ),
         GoRoute(
           path: AppRoutes.propiedadDetalle,
@@ -37,7 +37,7 @@ abstract final class AppRouter {
         ),
         GoRoute(
           path: AppRoutes.inquilinos,
-          builder: (_, __) => const PendingRoutePage(title: 'Inquilinos'),
+          builder: (_, _) => const InquilinosPage(),
         ),
         GoRoute(
           path: AppRoutes.inquilinoDetalle,
@@ -46,13 +46,10 @@ abstract final class AppRouter {
             detail: 'Identificador: ${state.pathParameters['id']}',
           ),
         ),
-        GoRoute(
-          path: AppRoutes.pagos,
-          builder: (_, __) => const PendingRoutePage(title: 'Pagos'),
-        ),
+        GoRoute(path: AppRoutes.pagos, builder: (_, _) => const PagosPage()),
         GoRoute(
           path: AppRoutes.configuracion,
-          builder: (_, __) => const PendingRoutePage(title: 'Configuración'),
+          builder: (_, _) => const PendingRoutePage(title: 'Configuración'),
         ),
       ],
     );

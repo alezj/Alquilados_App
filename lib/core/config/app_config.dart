@@ -1,9 +1,5 @@
 /// Tipos de ambientes soportados por la aplicación
-enum AppEnvironment {
-  dev,
-  staging,
-  prod,
-}
+enum AppEnvironment { dev, staging, prod }
 
 /// Configuración centralizada de la aplicación Alquilados.
 ///
@@ -17,7 +13,10 @@ enum AppEnvironment {
 /// Equivale al archivo `src/environments/environment.ts`.
 abstract final class AppConfig {
   /// Ambiente actual (dev, staging, prod)
-  static const String _envString = String.fromEnvironment('APP_ENV', defaultValue: 'dev');
+  static const String _envString = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: 'dev',
+  );
 
   static AppEnvironment get environment {
     switch (_envString.toLowerCase()) {
@@ -32,11 +31,13 @@ abstract final class AppConfig {
     }
   }
 
-  /// URL Base de la API ASP.NET Core
-  /// Ejemplo dev: https://localhost:7001/api o https://10.0.2.2:7001/api en emulador
+  /// URL base de la API ASP.NET Core, incluido el prefijo `/api`.
+  ///
+  /// Backend local actual: `http://localhost:5129/api`.
+  /// En el emulador Android se debe utilizar `http://10.0.2.2:5129/api`.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:5000/api',
+    defaultValue: 'http://localhost:5129/api',
   );
 
   /// Habilitar logs en consola (se desactiva por defecto en producción)

@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../errors/app_exception.dart';
 import '../utils/app_logger.dart';
 
@@ -6,7 +7,7 @@ import '../utils/app_logger.dart';
 ///
 /// Implementación nativa:
 /// - iOS: Apple Keychain Services
-/// - Android: EncryptedSharedPreferences (AES-256 GCM)
+/// - Android: almacenamiento cifrado respaldado por Android Keystore (AES-GCM)
 ///
 /// Comparación con Angular:
 /// En la web se suele usar `localStorage` o cookies HTTP-Only.
@@ -14,11 +15,14 @@ import '../utils/app_logger.dart';
 /// NUNCA debe ir en texto plano; debe ir en el llavero seguro del OS.
 class SecureStorageService {
   SecureStorageService({FlutterSecureStorage? storage})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-              iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-            );
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(),
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock,
+            ),
+          );
 
   final FlutterSecureStorage _storage;
 
@@ -33,7 +37,9 @@ class SecureStorageService {
       await _storage.write(key: _keyToken, value: token);
     } catch (e, s) {
       AppLogger.e('Error guardando token en SecureStorage', e, s);
-      throw const StorageException(message: 'No se pudo guardar el token de autenticación');
+      throw const StorageException(
+        message: 'No se pudo guardar el token de autenticación',
+      );
     }
   }
 
@@ -53,7 +59,9 @@ class SecureStorageService {
       await _storage.write(key: _keyRefreshToken, value: refreshToken);
     } catch (e, s) {
       AppLogger.e('Error guardando refresh token en SecureStorage', e, s);
-      throw const StorageException(message: 'No se pudo guardar el refresh token');
+      throw const StorageException(
+        message: 'No se pudo guardar el refresh token',
+      );
     }
   }
 

@@ -1,37 +1,29 @@
-/// Rutas relativas centralizadas de la API ASP.NET Core.
+/// Endpoints expuestos actualmente por el backend ASP.NET Core.
 ///
-/// Principio arquitectónico:
-/// NUNCA escribir URLs hardcodeadas en datasources o servicios.
-/// Toda ruta de endpoint debe provenir de esta clase.
+/// Fuente de verdad: `backend/Controllers/BackendController.cs`.
+/// La URL base debe terminar en `/api`, por ejemplo:
+/// `http://localhost:5129/api` durante el desarrollo local.
 ///
-/// Comparación con Angular:
-/// Equivale a un archivo `api-endpoints.constants.ts`.
+/// Nota: el backend actual no expone endpoints de autenticación, detalle
+/// individual ni dashboard. Esos contratos se agregarán cuando existan en la
+/// API; no deben inferirse desde la aplicación móvil.
 abstract final class ApiEndpoints {
-  // --- Autenticación y Cuentas ---
-  static const String login = '/auth/login';
-  static const String logout = '/auth/logout';
-  static const String refreshToken = '/auth/refresh-token';
-  static const String profile = '/auth/profile';
+  static const String _backend = '/Backend';
 
-  // --- Dashboard ---
-  static const String dashboardStats = '/dashboard/stats';
+  // Consultas disponibles.
+  static const String status = '$_backend/status';
+  static const String inquilinos = '$_backend/inquilinos';
+  static const String estados = '$_backend/estados';
+  static const String pagos = '$_backend/pagos';
+  static const String propiedades = '$_backend/propiedades';
+  static const String mantenimientos = '$_backend/mantenimientos';
+  static const String alquileres = '$_backend/alquileres';
 
-  // --- Propiedades / Inmuebles ---
-  static const String propiedades = '/propiedades';
-  static String propiedadById(int id) => '/propiedades/$id';
-  static String propiedadInquilino(int id) => '/propiedades/$id/inquilino';
+  // Operaciones específicas de propiedades.
+  static String propiedadById(String id) => '$_backend/propiedades/$id';
 
-  // --- Inquilinos ---
-  static const String inquilinos = '/inquilinos';
-  static String inquilinoById(int id) => '/inquilinos/$id';
-  static String inquilinoHistorialPagos(int id) => '/inquilinos/$id/pagos';
-
-  // --- Pagos ---
-  static const String pagos = '/pagos';
-  static String pagoById(int id) => '/pagos/$id';
-  static const String registrarPago = '/pagos';
-
-  // --- Alquileres / Contratos ---
-  static const String alquileres = '/alquileres';
-  static String alquilerById(int id) => '/alquileres/$id';
+  // Operaciones genéricas permitidas por el backend para los recursos indicados.
+  static String resource(String resource) => '$_backend/$resource';
+  static String resourceById(String resource, String id) =>
+      '$_backend/$resource/$id';
 }
