@@ -1,17 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/network_providers.dart';
-import '../../data/datasources/inquilinos_remote_data_source.dart';
-import '../../data/repositories/inquilinos_repository_impl.dart';
+import '../../../sync/data/datasources/local_database_service.dart';
 import '../../domain/entities/inquilino.dart';
-import '../../domain/repositories/inquilinos_repository.dart';
 
-final inquilinosRepositoryProvider = Provider<InquilinosRepository>(
-  (ref) => InquilinosRepositoryImpl(
-    InquilinosRemoteDataSource(ref.watch(apiClientProvider)),
-  ),
-);
+final inquilinosProvider = FutureProvider<List<Inquilino>>((ref) async {
+  final database = LocalDatabaseService();
+  await database.ensureSeedData();
 
-final inquilinosProvider = FutureProvider<List<Inquilino>>(
-  (ref) => ref.watch(inquilinosRepositoryProvider).obtenerInquilinos(),
-);
+  final rows = await database.getAllRows('inquilinos');
+  return rows.map((row) {
+    return Inquilino(
+      id: row['id'] as int,
+      nombreApellido: (row['nombre_apellido'] ?? '').toString(),
+      correo: (row['correo'] ?? '').toString().isEmpty ? null : (row['correo'] ?? '').toString(),
+      fechaInicioContrato: (row['fecha_inicio_contrato'] ?? '').toString(),
+      fechaPagos: (row['fecha_pagos'] as int?) ?? 0,
+    );
+  }).toList(growable: false);
+});

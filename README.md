@@ -55,6 +55,142 @@ Estado validado actualmente:
 - Integración y builds validados para Android e iOS.
 - Pruebas de integración.
 
+## Persistencia local SQLite y sincronización manual
+
+Para la siguiente etapa del desarrollo, la aplicación no dependerá de autenticación ni de sesiones reales. Se añadirá una capa local de persistencia con SQLite para que la app pueda trabajar con datos cacheados y permitir sincronización manual desde una acción explícita del usuario.
+
+### Objetivo
+
+- Mantener la app operativa aunque la API no esté disponible o responda lentamente.
+- Guardar los datos más relevantes del negocio en una base local en formato SQLite `.db3`.
+- Permitir sincronizar la información local con la API REST cuando el usuario lo decida.
+- Preparar la arquitectura para un futuro offline más robusto, sin necesidad de reescribir la aplicación.
+
+### Archivo de base local
+
+- Nombre sugerido: `alquilados_local.db3`
+- Ubicación: directorio de la aplicación del sistema operativo, gestionado por Flutter (`getDatabasesPath` o equivalente).
+- Motor: SQLite nativo, usando `sqflite` o una capa de acceso local con abstracción para cambiar el driver si es necesario.
+
+### Tablas mínimas requeridas
+
+```sql
+CREATE TABLE propiedades (
+  id INTEGER PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  direccion TEXT,
+  estado INTEGER,
+  precio_mensual REAL,
+  notas TEXT,
+  updated_at TEXT DEFAULT (datetime('now')),
+  synced_at TEXT,
+  sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
+);
+
+CREATE TABLE inquilinos (
+  id INTEGER PRIMARY KEY,
+  nombre_apellido TEXT NOT NULL,
+  correo TEXT,
+  fecha_inicio_contrato TEXT,
+  fecha_pagos INTEGER,
+  updated_at TEXT DEFAULT (datetime('now')),
+  synced_at TEXT,
+  sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
+);
+
+CREATE TABLE pagos (
+  id INTEGER PRIMARY KEY,
+  id_inquilino TEXT,
+  fecha_pago TEXT,
+  monto REAL,
+  estado TEXT,
+  updated_at TEXT DEFAULT (datetime('now')),
+  synced_at TEXT,
+  sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
+);
+
+CREATE TABLE sync_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity_name TEXT NOT NULL,
+  action TEXT NOT NULL,
+  status TEXT NOT NULL,
+  message TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+```
+
+### Regla de negocio local
+
+- La caché local será la fuente de verdad mientras no exista sincronización.
+- Los registros que se hayan modificado se marcan con `sync_state = 'pending'`.
+- Cuando el usuario pulsa el botón de sincronización, la app:
+  1. lee la cola de pendientes;
+  2. envía los cambios a la API REST;
+  3. marca el registro como `synced` si responde correctamente;
+  4. registra un evento en `sync_log`;
+  5. muestra feedback visual en UI.
+
+### Botón de sincronización
+
+La interfaz incluirá un botón de acción en la pantalla principal o en la app bar del módulo de datos, por ejemplo:
+
+- `Sincronizar`
+- `Actualizar datos`
+- `Sincronizar ahora`
+
+Comportamiento esperado:
+
+- Si hay conexión disponible y hay registros pendientes, se ejecuta la sincronización.
+- Si no hay registros pendientes, la app muestra un estado de `Todo actualizado` o equivalente.
+- Si falla la sincronización, se conserva el registro local con `sync_state = 'error'` y se registra el error.
+- La UI debe mostrar `loading`, `success`, `error` y `empty` según el estado.
+
+### Capa de persistencia propuesta
+
+```text
+UI
+  ↓
+State / Provider
+  ↓
+Repository
+  ↓
+Local SQLite Data Source
+  ↓
+SQLite .db3
+```
+
+Y en el flujo de sincronización:
+
+```text
+UI
+  ↓
+Sync Use Case
+  ↓
+Repository
+  ↓
+Local pending rows
+  ↓
+API REST
+  ↓
+Local update status / sync_log
+```
+
+### Reglas para esta etapa
+
+- Se ignora por ahora la autenticación JWT y la protección por sesión.
+- La sincronización será manual y accionada por el usuario.
+- La API es la última fuente de verdad cuando exista conexión.
+- La app no debe bloquear la UX si la red falla; debe guardar los cambios y reintentar luego.
+
+### Siguiente implementación recomendada
+
+1. Crear la base `alquilados_local.db3` con las tablas anteriores.
+2. Implementar un `LocalDatabaseService` con `sqflite`.
+3. Añadir un `SyncRepository` y `SyncProvider`.
+4. Crear una acción de usuario en la UI con el botón `Sincronizar`.
+5. Registrar resultados en `sync_log` y marcar `sync_state`.
+6. Preparar la app para cache, reintento y evolución a modo offline.
+
 ## Fases del plan
 
 | Fase | Estado |
@@ -70,7 +206,8 @@ Estado validado actualmente:
 | 9. Propiedades | Parcial: listado y búsqueda implementados; detalle y edición pendientes |
 | 10. Inquilinos | Parcial: listado y búsqueda implementados; detalle y edición pendientes |
 | 11. Pagos | Parcial: listado implementado; detalle, estados y edición pendientes |
-| 12–14. Pruebas ampliadas y builds | Pendientes |
+| 12. SQLite local + sincronización manual | En preparación |
+| 13–14. Pruebas ampliadas y builds | Pendientes |
 
 ## Validación y dependencia pendiente
 

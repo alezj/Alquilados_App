@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'core/shared/widgets/app_button.dart';
 import 'core/shared/widgets/app_card.dart';
 import 'core/shared/widgets/app_empty.dart';
@@ -11,8 +14,14 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_typography.dart';
 import 'core/router/app_router.dart';
+import 'features/sync/data/datasources/local_database_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
+  }
+  await LocalDatabaseService().ensureSeedData();
   runApp(const ProviderScope(child: AlquiladosApp()));
 }
 

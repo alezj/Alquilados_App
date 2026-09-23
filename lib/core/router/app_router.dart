@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/app_shell.dart';
+import '../../features/login/presentation/pages/login_page.dart';
 import '../../features/propiedades/presentation/pages/propiedades_page.dart';
 import '../../features/inquilinos/presentation/pages/inquilinos_page.dart';
 import '../../features/pagos/presentation/pages/pagos_page.dart';
+import '../../features/configuracion/presentation/pages/configuracion_page.dart';
 import 'app_routes.dart';
 
 abstract final class AppRouter {
   static GoRouter create({required WidgetBuilder designSystemBuilder}) {
     return GoRouter(
-      initialLocation: AppRoutes.designSystem,
+      initialLocation: AppRoutes.login,
       routes: [
-        GoRoute(path: '/', redirect: (_, _) => AppRoutes.designSystem),
+        GoRoute(path: '/', redirect: (_, _) => AppRoutes.login),
         GoRoute(
           path: AppRoutes.designSystem,
           builder: (context, _) => designSystemBuilder(context),
         ),
         GoRoute(
           path: AppRoutes.login,
-          builder: (_, _) => const PendingRoutePage(title: 'Iniciar sesión'),
+          builder: (_, _) => const LoginPage(),
         ),
         GoRoute(
           path: AppRoutes.dashboard,
-          builder: (_, _) => const PendingRoutePage(title: 'Dashboard'),
+          builder: (_, _) => const AppShell(),
         ),
         GoRoute(
           path: AppRoutes.propiedades,
@@ -49,7 +52,7 @@ abstract final class AppRouter {
         GoRoute(path: AppRoutes.pagos, builder: (_, _) => const PagosPage()),
         GoRoute(
           path: AppRoutes.configuracion,
-          builder: (_, _) => const PendingRoutePage(title: 'Configuración'),
+          builder: (_, _) => const ConfiguracionPage(),
         ),
       ],
     );

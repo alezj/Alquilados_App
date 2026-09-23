@@ -10,8 +10,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:alquilados_app/main.dart';
 
 void main() {
-  testWidgets('AlquiladosApp renders Design System Showcase', (WidgetTester tester) async {
+  testWidgets('AlquiladosApp renders the login screen', (WidgetTester tester) async {
     await tester.pumpWidget(const AlquiladosApp());
-    expect(find.text('Alquilados — Design System'), findsOneWidget);
+    expect(find.text('Correo'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 }
