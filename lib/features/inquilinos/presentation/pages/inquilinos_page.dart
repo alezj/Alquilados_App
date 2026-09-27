@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/router/app_routes.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
@@ -66,6 +69,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: _InquilinoCard(
                             inquilino: item,
+                            onTap: () => context.push('${AppRoutes.inquilinos}/${item.id}'),
                             onEdit: () => _showEditDialog(item),
                             onDelete: () => _deleteInquilino(item.id),
                           ),
@@ -158,6 +162,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     if (!mounted) return;
                     navigator.pop();
                     ref.invalidate(inquilinosProvider);
+                    ref.invalidate(inquilinoDetalleProvider(inquilino.id));
                     messenger.showSnackBar(
                       const SnackBar(content: Text('Inquilino actualizado localmente.')),
                     );
@@ -308,15 +313,18 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
 class _InquilinoCard extends StatelessWidget {
   const _InquilinoCard({
     required this.inquilino,
+    required this.onTap,
     required this.onEdit,
     required this.onDelete,
   });
   final Inquilino inquilino;
+  final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -337,9 +345,14 @@ class _InquilinoCard extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_rounded)),
+            IconButton(
+              tooltip: 'Editar',
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_rounded),
+            ),
             const Spacer(),
             IconButton(
+              tooltip: 'Eliminar',
               onPressed: onDelete,
               icon: const Icon(Icons.delete_rounded, color: Colors.red),
             ),

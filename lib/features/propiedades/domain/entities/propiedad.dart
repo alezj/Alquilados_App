@@ -6,6 +6,8 @@ class Propiedad {
     required this.estado,
     required this.precioMensual,
     required this.notas,
+    this.syncState = 'pending',
+    this.syncedAt,
   });
 
   final int id;
@@ -14,4 +16,6 @@ class Propiedad {
   final int estado;
   final double precioMensual;
   final String notas;
+  final String syncState;
+  final String? syncedAt;
 }

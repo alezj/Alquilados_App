@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../features/app_shell.dart';
 import '../../features/login/presentation/pages/login_page.dart';
 import '../../features/propiedades/presentation/pages/propiedades_page.dart';
+import '../../features/propiedades/presentation/pages/propiedad_detalle_page.dart';
 import '../../features/inquilinos/presentation/pages/inquilinos_page.dart';
+import '../../features/inquilinos/presentation/pages/inquilino_detalle_page.dart';
 import '../../features/pagos/presentation/pages/pagos_page.dart';
+import '../../features/pagos/presentation/pages/pago_detalle_page.dart';
 import '../../features/configuracion/presentation/pages/configuracion_page.dart';
 import 'app_routes.dart';
 
@@ -33,9 +36,8 @@ abstract final class AppRouter {
         ),
         GoRoute(
           path: AppRoutes.propiedadDetalle,
-          builder: (_, state) => PendingRoutePage(
-            title: 'Detalle de propiedad',
-            detail: 'Identificador: ${state.pathParameters['id']}',
+          builder: (_, state) => PropiedadDetallePage(
+            id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
         GoRoute(
@@ -44,12 +46,17 @@ abstract final class AppRouter {
         ),
         GoRoute(
           path: AppRoutes.inquilinoDetalle,
-          builder: (_, state) => PendingRoutePage(
-            title: 'Detalle de inquilino',
-            detail: 'Identificador: ${state.pathParameters['id']}',
+          builder: (_, state) => InquilinoDetallePage(
+            id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
         GoRoute(path: AppRoutes.pagos, builder: (_, _) => const PagosPage()),
+        GoRoute(
+          path: AppRoutes.pagoDetalle,
+          builder: (_, state) => PagoDetallePage(
+            id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
+        ),
         GoRoute(
           path: AppRoutes.configuracion,
           builder: (_, _) => const ConfiguracionPage(),

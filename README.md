@@ -202,11 +202,11 @@ Local update status / sync_log
 | 5. API Client | Completada técnicamente: infraestructura creada y validada; integración real pendiente de contrato API |
 | 6. Autenticación | Pospuesta como deuda técnica para la etapa inicial |
 | 7. Routing | Parcial: rutas base creadas, faltan guards y sesión |
-| 8. Dashboard | Pendiente: no existe endpoint específico |
-| 9. Propiedades | Parcial: listado y búsqueda implementados; detalle y edición pendientes |
-| 10. Inquilinos | Parcial: listado y búsqueda implementados; detalle y edición pendientes |
+| 8. Dashboard | Completada: métricas agregadas desde SQLite |
+| 9. Propiedades | Completada: listado, búsqueda, detalle individual, creación, edición y persistencia SQLite |
+| 10. Inquilinos | Completada: listado, búsqueda, detalle individual, historial de pagos, creación, edición y persistencia SQLite |
 | 11. Pagos | Parcial: listado implementado; detalle, estados y edición pendientes |
-| 12. SQLite local + sincronización manual | En preparación |
+| 12. SQLite local + sincronización manual | Completada en capa local y sincronización manual |
 | 13–14. Pruebas ampliadas y builds | Pendientes |
 
 ## Validación y dependencia pendiente

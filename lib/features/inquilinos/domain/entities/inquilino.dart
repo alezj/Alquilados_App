@@ -5,6 +5,8 @@ class Inquilino {
     required this.correo,
     required this.fechaInicioContrato,
     required this.fechaPagos,
+    this.syncState = 'pending',
+    this.syncedAt,
   });
 
   final int id;
@@ -12,4 +14,6 @@ class Inquilino {
   final String? correo;
   final String fechaInicioContrato;
   final int fechaPagos;
+  final String syncState;
+  final String? syncedAt;
 }

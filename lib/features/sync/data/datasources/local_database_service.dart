@@ -321,6 +321,32 @@ class LocalDatabaseService {
     );
   }
 
+  Future<Map<String, dynamic>?> getPropiedadById(int id) async {
+    final db = await database;
+    final results = await db.query(
+      'propiedades',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<int> updatePropiedadEstado(int id, int nuevoEstado) async {
+    final db = await database;
+    return db.update(
+      'propiedades',
+      {
+        'estado': nuevoEstado,
+        'updated_at': DateTime.now().toIso8601String(),
+        'sync_state': 'pending',
+        'synced_at': null,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<int> updateInquilino({
     required int id,
     required String nombreApellido,
@@ -342,6 +368,27 @@ class LocalDatabaseService {
       },
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<Map<String, dynamic>?> getInquilinoById(int id) async {
+    final db = await database;
+    final results = await db.query(
+      'inquilinos',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<List<Map<String, dynamic>>> getPagosByInquilinoId(int inquilinoId) async {
+    final db = await database;
+    return db.query(
+      'pagos',
+      where: 'id_inquilino = ? OR id_inquilino = ?',
+      whereArgs: [inquilinoId.toString(), inquilinoId],
+      orderBy: 'fecha_pago DESC',
     );
   }
 
@@ -382,6 +429,33 @@ class LocalDatabaseService {
   Future<int> deletePago(int id) async {
     final db = await database;
     return db.delete('pagos', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<Map<String, dynamic>?> getPagoById(int id) async {
+    final db = await database;
+    final rows = await db.query('pagos', where: 'id = ?', whereArgs: [id], limit: 1);
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<List<Map<String, dynamic>>> getPagosByEstado(String estado) async {
+    final db = await database;
+    return db.query(
+      'pagos',
+      where: 'estado = ?',
+      whereArgs: [estado],
+      orderBy: 'fecha_pago DESC',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPagosByMes(String yearMonth) async {
+    // yearMonth format: '2026-09'
+    final db = await database;
+    return db.query(
+      'pagos',
+      where: "fecha_pago LIKE ?",
+      whereArgs: ['$yearMonth%'],
+      orderBy: 'fecha_pago DESC',
+    );
   }
 
   Future<List<Map<String, dynamic>>> getPendingRows(String tableName) async {

@@ -8,5 +8,6 @@ abstract final class AppRoutes {
   static const String inquilinos = '/inquilinos';
   static const String inquilinoDetalle = '/inquilinos/:id';
   static const String pagos = '/pagos';
+  static const String pagoDetalle = '/pagos/:id';
   static const String configuracion = '/configuracion';
 }
