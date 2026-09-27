@@ -20,7 +20,7 @@ class DashboardPage extends ConsumerWidget {
 
     return summary.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(child: Text('No pudimos cargar el resumen.')),
+      error: (error, stackTrace) => const Center(child: Text('No pudimos cargar el resumen.')),
       data: (data) {
         final stats = [
           _StatCard(title: 'Propiedades', value: '${data['totalPropiedades'] ?? 0}', subtitle: 'total'),

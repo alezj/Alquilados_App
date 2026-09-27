@@ -101,7 +101,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Editar inquilino', style: AppTypography.titleMedium),
+                const Text('Editar inquilino', style: AppTypography.titleMedium),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'Nombre y apellido',
@@ -144,6 +144,8 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                       return;
                     }
 
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(sheetContext);
                     final database = LocalDatabaseService();
                     await database.updateInquilino(
                       id: inquilino.id,
@@ -153,10 +155,10 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                       fechaPagos: fechaPagos,
                     );
 
-                    if (!context.mounted) return;
-                    Navigator.of(sheetContext).pop();
+                    if (!mounted) return;
+                    navigator.pop();
                     ref.invalidate(inquilinosProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       const SnackBar(content: Text('Inquilino actualizado localmente.')),
                     );
                   },
@@ -191,7 +193,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Nuevo inquilino', style: AppTypography.titleMedium),
+                const Text('Nuevo inquilino', style: AppTypography.titleMedium),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'Nombre y apellido',
@@ -238,6 +240,8 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                       return;
                     }
 
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(sheetContext);
                     final database = LocalDatabaseService();
                     await database.insertInquilino(
                       nombreApellido: nombre,
@@ -246,10 +250,10 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                       fechaPagos: fechaPagos,
                     );
 
-                    if (!context.mounted) return;
-                    Navigator.of(sheetContext).pop();
+                    if (!mounted) return;
+                    navigator.pop();
                     ref.invalidate(inquilinosProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       const SnackBar(content: Text('Inquilino guardado localmente.')),
                     );
                   },
@@ -282,11 +286,13 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
     );
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     await LocalDatabaseService().deleteInquilino(id);
-    if (!context.mounted) return;
+    if (!mounted) return;
     ref.invalidate(inquilinosProvider);
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(content: Text('Inquilino eliminado localmente.')),
     );
   }

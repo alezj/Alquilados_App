@@ -86,7 +86,7 @@ class PagosPage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Editar pago', style: AppTypography.titleMedium),
+                const Text('Editar pago', style: AppTypography.titleMedium),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'ID inquilino',
@@ -176,7 +176,7 @@ class PagosPage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Nuevo pago', style: AppTypography.titleMedium),
+                const Text('Nuevo pago', style: AppTypography.titleMedium),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'ID inquilino',

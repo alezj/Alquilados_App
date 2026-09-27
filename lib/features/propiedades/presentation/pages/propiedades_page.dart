@@ -136,7 +136,7 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Editar propiedad', style: AppTypography.titleMedium),
+                const Text('Editar propiedad', style: AppTypography.titleMedium),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'Nombre',
@@ -186,6 +186,8 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       return;
                     }
 
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(sheetContext);
                     final database = LocalDatabaseService();
                     await database.updatePropiedad(
                       id: propiedad.id,
@@ -196,10 +198,10 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       notas: notasController.text.trim(),
                     );
 
-                    if (!context.mounted) return;
-                    Navigator.of(sheetContext).pop();
+                    if (!mounted) return;
+                    navigator.pop();
                     ref.invalidate(propiedadesProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       const SnackBar(content: Text('Propiedad actualizada localmente.')),
                     );
                   },
@@ -235,7 +237,7 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Nueva propiedad', style: AppTypography.titleMedium),
+                const Text('Nueva propiedad', style: AppTypography.titleMedium),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'Nombre',
@@ -290,6 +292,8 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       return;
                     }
 
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(sheetContext);
                     final database = LocalDatabaseService();
                     await database.insertPropiedad(
                       nombre: nombre,
@@ -299,10 +303,10 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       notas: notasController.text.trim(),
                     );
 
-                    if (!context.mounted) return;
-                    Navigator.of(sheetContext).pop();
+                    if (!mounted) return;
+                    navigator.pop();
                     ref.invalidate(propiedadesProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       const SnackBar(content: Text('Propiedad guardada localmente.')),
                     );
                   },
@@ -335,11 +339,13 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
     );
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     await LocalDatabaseService().deletePropiedad(id);
-    if (!context.mounted) return;
+    if (!mounted) return;
     ref.invalidate(propiedadesProvider);
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(content: Text('Propiedad eliminada localmente.')),
     );
   }

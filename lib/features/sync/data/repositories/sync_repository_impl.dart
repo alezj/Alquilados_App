@@ -12,7 +12,6 @@ class SyncRepositoryImpl implements SyncRepository {
 
   @override
   Future<SyncStatus> syncNow() async {
-    final db = await _databaseService.database;
     final pendingProperties = await _databaseService.getPendingRows('propiedades');
     final pendingInquilinos = await _databaseService.getPendingRows('inquilinos');
     final pendingPagos = await _databaseService.getPendingRows('pagos');
