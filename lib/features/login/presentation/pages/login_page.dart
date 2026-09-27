@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_text_field.dart';
 
@@ -36,7 +38,7 @@ class LoginPage extends StatelessWidget {
                   AppButton(
                     text: 'Iniciar sesión',
                     onPressed: () {
-                      Navigator.of(context).pushReplacementNamed('/dashboard');
+                      context.go(AppRoutes.dashboard);
                     },
                   ),
                 ],
