@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('buildComprobantePago crea un comprobante no fiscal con los datos del pago', () {
-    final pago = Pago(
+    const pago = Pago(
       id: 42,
       idInquilino: '7',
       fechaPago: '2026-09-15',
@@ -15,7 +15,7 @@ void main() {
       syncedAt: '2026-09-15T12:00:00Z',
     );
 
-    final inquilino = Inquilino(
+    const inquilino = Inquilino(
       id: 7,
       nombreApellido: 'Ana García',
       correo: 'ana@ejemplo.com',

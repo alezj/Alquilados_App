@@ -84,3 +84,5 @@ doc/api/
 
 # Crash logs
 crash_log_*.log
+# Widget Preview related
+.widget_preview/

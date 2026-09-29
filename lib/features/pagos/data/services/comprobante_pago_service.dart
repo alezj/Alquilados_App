@@ -19,7 +19,7 @@ class ComprobantePagoService {
             children: [
               pw.Text(
                 data.titulo,
-                style: pw.TextStyle(
+                style: const pw.TextStyle(
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,
                 ),
@@ -42,7 +42,7 @@ class ComprobantePagoService {
                         width: 110,
                         child: pw.Text(
                           row['label'] ?? '',
-                          style: pw.TextStyle(
+                          style: const pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                           ),
                         ),
@@ -67,13 +67,13 @@ class ComprobantePagoService {
                   children: [
                     pw.Text(
                       'TOTAL',
-                      style: pw.TextStyle(
+                      style: const pw.TextStyle(
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
                     pw.Text(
                       data.montoFormateado,
-                      style: pw.TextStyle(
+                      style: const pw.TextStyle(
                         fontWeight: pw.FontWeight.bold,
                         fontSize: 18,
                       ),
