@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions.dart';
+import '../../../inquilinos/presentation/providers/inquilinos_provider.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
+import '../../data/services/comprobante_pago_service.dart';
+import '../../domain/entities/comprobante_pago.dart';
 import '../../domain/entities/pago.dart';
 import '../providers/pagos_provider.dart';
 
@@ -149,10 +153,18 @@ class PagoDetallePage extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
+                // ── Comprobante ─────────────────────────────────
+                AppButton(
+                  text: 'Generar comprobante',
+                  icon: Icons.receipt_long_rounded,
+                  onPressed: () => _generarComprobante(context, ref, pago),
+                ),
+                const SizedBox(height: 16),
                 // ── Eliminar ─────────────────────────────────────
                 AppButton(
                   text: 'Eliminar pago',
                   icon: Icons.delete_rounded,
+                  variant: AppButtonVariant.danger,
                   onPressed: () => _confirmDelete(context, ref, pago.id),
                 ),
               ],
@@ -266,6 +278,54 @@ class PagoDetallePage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _generarComprobante(
+    BuildContext context,
+    WidgetRef ref,
+    Pago pago,
+  ) async {
+    final inquilinoId = int.tryParse(pago.idInquilino);
+    final inquilino = inquilinoId == null
+        ? null
+        : await ref.read(inquilinoDetalleProvider(inquilinoId).future);
+
+    final comprobante = ComprobantePagoData.fromPayment(pago, inquilino);
+
+    try {
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) => Dialog(
+          insetPadding: const EdgeInsets.all(12),
+          child: SizedBox(
+            width: double.maxFinite,
+            height: MediaQuery.of(context).size.height * 0.9,
+            child: PdfPreview(
+              allowPrinting: true,
+              allowSharing: true,
+              canChangePageFormat: false,
+              canChangeOrientation: false,
+              build: (format) async =>
+                  ComprobantePagoService().generatePdfBytes(comprobante),
+            ),
+          ),
+        ),
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Comprobante listo para revisar, imprimir o compartir.'),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo generar el comprobante: $error'),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmDelete(
