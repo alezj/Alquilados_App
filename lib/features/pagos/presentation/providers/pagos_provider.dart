@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../inquilinos/domain/entities/inquilino.dart';
 
 import '../../../sync/data/datasources/local_database_service.dart';
 import '../../domain/entities/pago.dart';
