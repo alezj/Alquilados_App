@@ -1,5 +1,4 @@
 import '../../domain/entities/pago.dart';
-import '../../../inquilinos/domain/entities/inquilino.dart';
 
 
 class PagoModel extends Pago {
