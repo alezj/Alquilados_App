@@ -7,6 +7,7 @@ void main() {
     const pago = Pago(
       id: 1,
       idInquilino: '2',
+      inquilinoNombre: 'Juan Pérez',
       fechaPago: '2026-09-15',
       monto: 1500.0,
       estado: 'pagado',
@@ -24,6 +25,7 @@ void main() {
       const pagoDefault = Pago(
         id: 2,
         idInquilino: '1',
+        inquilinoNombre: 'María García',
         fechaPago: '2026-09-01',
         monto: 800.0,
       );
@@ -42,6 +44,7 @@ void main() {
       const sincronizado = Pago(
         id: 3,
         idInquilino: '5',
+        inquilinoNombre: 'Carlos López',
         fechaPago: '2026-08-01',
         monto: 2000.0,
         estado: 'pagado',
@@ -56,6 +59,7 @@ void main() {
       const pagoDecimal = Pago(
         id: 4,
         idInquilino: '3',
+        inquilinoNombre: 'Ana Martínez',
         fechaPago: '2026-09-10',
         monto: 1234.56,
       );
@@ -66,6 +70,7 @@ void main() {
       const pagoVencido = Pago(
         id: 5,
         idInquilino: '7',
+        inquilinoNombre: 'Luis Rodríguez',
         fechaPago: '2026-07-01',
         monto: 900.0,
         estado: 'vencido',
@@ -79,6 +84,7 @@ void main() {
       const pagoGratis = Pago(
         id: 6,
         idInquilino: '1',
+        inquilinoNombre: 'Pedro Sánchez',
         fechaPago: '2026-09-01',
         monto: 0,
       );
@@ -89,10 +95,12 @@ void main() {
       const pago = Pago(
         id: 7,
         idInquilino: 'INQ-999',
+        inquilinoNombre: 'Laura Fernández',
         fechaPago: '2026-09-01',
         monto: 500,
       );
       expect(pago.idInquilino, 'INQ-999');
+      expect(pago.inquilinoNombre, 'Laura Fernández');
     });
   });
 }

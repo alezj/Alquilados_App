@@ -562,7 +562,7 @@ Wrap(
         ),
         const SizedBox(width: 4),
         Text(
-          'Inquilino #${pago.idInquilino}',
+          'Inquilino #(${pago.idInquilino}) ${pago.inquilinoNombre}',
           style: AppTypography.bodySmall.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),

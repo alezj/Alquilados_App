@@ -1,15 +1,19 @@
 import '../../domain/entities/pago.dart';
+import '../../../inquilinos/domain/entities/inquilino.dart';
+
 
 class PagoModel extends Pago {
   const PagoModel({
     required super.id,
     required super.idInquilino,
+    required super.inquilinoNombre,
     required super.fechaPago,
     required super.monto,
   });
   factory PagoModel.fromJson(Map<String, dynamic> json) => PagoModel(
     id: _asInt(json['id']),
     idInquilino: json['idInquilino']?.toString() ?? '',
+    inquilinoNombre: json['inquilinoNombre']?.toString() ?? '',
     fechaPago: json['fechaPago']?.toString() ?? '',
     monto: _asDouble(json['monto']),
   );

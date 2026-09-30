@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../inquilinos/domain/entities/inquilino.dart';
 
 import '../../../sync/data/datasources/local_database_service.dart';
 import '../../domain/entities/pago.dart';
@@ -10,6 +11,7 @@ import '../../domain/entities/pago.dart';
 Pago _rowToPago(Map<String, dynamic> row) => Pago(
       id: row['id'] as int,
       idInquilino: (row['id_inquilino'] ?? '').toString(),
+      inquilinoNombre: (row['inquilino_nombre'] ?? '').toString(),
       fechaPago: (row['fecha_pago'] ?? '').toString(),
       monto: (row['monto'] as num?)?.toDouble() ?? 0,
       estado: (row['estado'] ?? 'pendiente').toString(),

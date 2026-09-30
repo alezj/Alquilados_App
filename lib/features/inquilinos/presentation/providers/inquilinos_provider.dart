@@ -49,6 +49,7 @@ final pagosDeInquilinoProvider = FutureProvider.family<List<Pago>, int>((ref, in
     return Pago(
       id: row['id'] as int,
       idInquilino: (row['id_inquilino'] ?? '').toString(),
+      inquilinoNombre: (row['inquilino_nombre'] ?? '').toString(),
       fechaPago: (row['fecha_pago'] ?? '').toString(),
       monto: (row['monto'] as num?)?.toDouble() ?? 0,
       estado: (row['estado'] ?? 'pendiente').toString(),

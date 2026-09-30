@@ -39,11 +39,11 @@ List<Pago> filtrarPagos(
 // ── Dataset de prueba ─────────────────────────────────────────────────────────
 
 const _pagos = [
-  Pago(id: 1, idInquilino: '1', fechaPago: '2026-09-15', monto: 1500, estado: 'pagado'),
-  Pago(id: 2, idInquilino: '2', fechaPago: '2026-09-20', monto: 800, estado: 'pendiente'),
-  Pago(id: 3, idInquilino: '1', fechaPago: '2026-08-15', monto: 1500, estado: 'pagado'),
-  Pago(id: 4, idInquilino: '3', fechaPago: '2026-07-10', monto: 600, estado: 'vencido'),
-  Pago(id: 5, idInquilino: '2', fechaPago: '2026-09-01', monto: 2000, estado: 'pendiente'),
+  Pago(id: 1, idInquilino: '1', inquilinoNombre: 'Juan Pérez', fechaPago: '2026-09-15', monto: 1500, estado: 'pagado'),
+  Pago(id: 2, idInquilino: '2', inquilinoNombre: 'María García', fechaPago: '2026-09-20', monto: 800, estado: 'pendiente'),
+  Pago(id: 3, idInquilino: '1', inquilinoNombre: 'Juan Pérez', fechaPago: '2026-08-15', monto: 1500, estado: 'pagado'),
+  Pago(id: 4, idInquilino: '3', inquilinoNombre: 'Carlos López', fechaPago: '2026-07-10', monto: 600, estado: 'vencido'),
+  Pago(id: 5, idInquilino: '2', inquilinoNombre: 'María García', fechaPago: '2026-09-01', monto: 2000, estado: 'pendiente'),
 ];
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

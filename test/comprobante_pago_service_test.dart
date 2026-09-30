@@ -8,6 +8,7 @@ void main() {
     const pago = Pago(
       id: 42,
       idInquilino: '7',
+      inquilinoNombre: 'Ana García',
       fechaPago: '2026-09-15',
       monto: 1250.0,
       estado: 'pagado',
