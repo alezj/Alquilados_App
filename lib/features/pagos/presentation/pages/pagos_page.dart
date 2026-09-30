@@ -548,70 +548,113 @@ class _PagoCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               // ── Detalles ──────────────────────────────────────
-              Row(
-                children: [
-                  Icon(Icons.person_rounded,
-                      size: 14,
-                      color: colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text('Inquilino #${pago.idInquilino}',
-                      style: AppTypography.bodySmall.copyWith(
-                          color: colorScheme.onSurfaceVariant)),
-                  const Spacer(),
-                  Icon(Icons.calendar_today_rounded,
-                      size: 14,
-                      color: colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text(pago.fechaPago,
-                      style: AppTypography.bodySmall.copyWith(
-                          color: colorScheme.onSurfaceVariant)),
-                ],
-              ),
+Wrap(
+  spacing: 12,
+  runSpacing: 4,
+  children: [
+    Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.person_rounded,
+          size: 14,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          'Inquilino #${pago.idInquilino}',
+          style: AppTypography.bodySmall.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    ),
+    Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.calendar_today_rounded,
+          size: 14,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          pago.fechaPago,
+          style: AppTypography.bodySmall.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    ),
+  ],
+),
+              // ── Detalles ──────────────────────────────────────
+              // Row(
+              //   children: [
+              //     Icon(Icons.person_rounded,
+              //         size: 14,
+              //         color: colorScheme.onSurfaceVariant),
+              //     const SizedBox(width: 4),
+              //     Text('Inquilino #${pago.idInquilino}',
+              //         style: AppTypography.bodySmall.copyWith(
+              //             color: colorScheme.onSurfaceVariant)),
+              //     const Spacer(),
+              //     Icon(Icons.calendar_today_rounded,
+              //         size: 14,
+              //         color: colorScheme.onSurfaceVariant),
+              //     const SizedBox(width: 4),
+              //     Text(pago.fechaPago,
+              //         style: AppTypography.bodySmall.copyWith(
+              //             color: colorScheme.onSurfaceVariant)),
+              //   ],
+              // ),
               const SizedBox(height: 10),
               // ── Acciones rápidas ──────────────────────────────
-              Row(
-                children: [
-                  _QuickAction(
-                    icon: Icons.check_circle_outline_rounded,
-                    label: 'Pagado',
-                    color: Colors.green,
-                    active: pago.estado == 'pagado',
-                    onTap: () => onEstadoChange('pagado'),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _QuickAction(
+                        icon: Icons.check_circle_outline_rounded,
+                        label: 'Pagado',
+                        color: Colors.green,
+                        active: pago.estado == 'pagado',
+                        onTap: () => onEstadoChange('pagado'),
+                      ),
+                      _QuickAction(
+                        icon: Icons.schedule_rounded,
+                        label: 'Pendiente',
+                        color: Colors.orange,
+                        active: pago.estado == 'pendiente',
+                        onTap: () => onEstadoChange('pendiente'),
+                      ),
+                      _QuickAction(
+                        icon: Icons.cancel_outlined,
+                        label: 'Vencido',
+                        color: Colors.red,
+                        active: pago.estado == 'vencido',
+                        onTap: () => onEstadoChange('vencido'),
+                      ),
+
+                      IconButton(
+                        onPressed: onEdit,
+                        icon: const Icon(Icons.edit_rounded),
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 20,
+                        tooltip: 'Editar',
+                      ),
+
+                      IconButton(
+                        onPressed: onDelete,
+                        icon: const Icon(Icons.delete_rounded),
+                        color: colorScheme.error,
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 20,
+                        tooltip: 'Eliminar',
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  _QuickAction(
-                    icon: Icons.schedule_rounded,
-                    label: 'Pendiente',
-                    color: Colors.orange,
-                    active: pago.estado == 'pendiente',
-                    onTap: () => onEstadoChange('pendiente'),
-                  ),
-                  const SizedBox(width: 8),
-                  _QuickAction(
-                    icon: Icons.cancel_outlined,
-                    label: 'Vencido',
-                    color: Colors.red,
-                    active: pago.estado == 'vencido',
-                    onTap: () => onEstadoChange('vencido'),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit_rounded),
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 20,
-                    tooltip: 'Editar',
-                  ),
-                  IconButton(
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_rounded),
-                    color: colorScheme.error,
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 20,
-                    tooltip: 'Eliminar',
-                  ),
-                ],
-              ),
             ],
           ),
         ),
