@@ -22,7 +22,8 @@ class LocalDatabaseService {
   Future<Database> _initDatabase() async {
     final path = kIsWeb
         ? 'alquilados_local.db3'
-        : '${(await getApplicationDocumentsDirectory()).path}/alquilados_local.db3';
+        : '${(await getDownloadsDirectory()).path}/alquilados_local.db3';
+        //: '${(await getApplicationDocumentsDirectory()).path}/alquilados_local.db3';
 
     return openDatabase(
       path,
