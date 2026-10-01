@@ -14,6 +14,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
 import '../../domain/entities/inquilino.dart';
 import '../providers/inquilinos_provider.dart';
+import '../../../dashboard/presentation/pages/dashboard_page.dart';
 
 class InquilinosPage extends ConsumerStatefulWidget {
   const InquilinosPage({super.key});
@@ -163,6 +164,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     navigator.pop();
                     ref.invalidate(inquilinosProvider);
                     ref.invalidate(inquilinoDetalleProvider(inquilino.id));
+                    ref.invalidate(dashboardSummaryProvider);
                     messenger.showSnackBar(
                       const SnackBar(content: Text('Inquilino actualizado localmente.')),
                     );
@@ -258,6 +260,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     if (!mounted) return;
                     navigator.pop();
                     ref.invalidate(inquilinosProvider);
+                    ref.invalidate(dashboardSummaryProvider);
                     messenger.showSnackBar(
                       const SnackBar(content: Text('Inquilino guardado localmente.')),
                     );
@@ -297,6 +300,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
     await LocalDatabaseService().deleteInquilino(id);
     if (!mounted) return;
     ref.invalidate(inquilinosProvider);
+    ref.invalidate(dashboardSummaryProvider);
     messenger.showSnackBar(
       const SnackBar(content: Text('Inquilino eliminado localmente.')),
     );

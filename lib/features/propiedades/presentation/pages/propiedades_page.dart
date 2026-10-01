@@ -16,6 +16,7 @@ import '../../../sync/data/datasources/local_database_service.dart';
 import '../../../sync/presentation/providers/sync_provider.dart';
 import '../../domain/entities/propiedad.dart';
 import '../providers/propiedades_provider.dart';
+import '../../../dashboard/presentation/pages/dashboard_page.dart';
 
 class PropiedadesPage extends ConsumerStatefulWidget {
   const PropiedadesPage({super.key});
@@ -219,6 +220,7 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                         navigator.pop();
                         ref.invalidate(propiedadesProvider);
                         ref.invalidate(propiedadDetalleProvider(propiedad.id));
+                        ref.invalidate(dashboardSummaryProvider);
                         messenger.showSnackBar(
                           const SnackBar(content: Text('Propiedad actualizada localmente.')),
                         );
@@ -339,6 +341,7 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                         if (!mounted) return;
                         navigator.pop();
                         ref.invalidate(propiedadesProvider);
+                        ref.invalidate(dashboardSummaryProvider);
                         messenger.showSnackBar(
                           const SnackBar(content: Text('Propiedad guardada localmente.')),
                         );
@@ -380,6 +383,7 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
     await LocalDatabaseService().deletePropiedad(id);
     if (!mounted) return;
     ref.invalidate(propiedadesProvider);
+    ref.invalidate(dashboardSummaryProvider);
     messenger.showSnackBar(
       const SnackBar(content: Text('Propiedad eliminada localmente.')),
     );
