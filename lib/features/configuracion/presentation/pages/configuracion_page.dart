@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
@@ -62,6 +63,25 @@ class ConfiguracionPage extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+        FutureBuilder<PackageInfo>(
+          future: PackageInfo.fromPlatform(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return const Center(child: Text('Error al obtener la información de la aplicación.'));
+            } else if (snapshot.hasData) {
+              final packageInfo = snapshot.data!;
+              return ListTile(
+                leading: const Icon(Icons.info_rounded),
+                title: const Text('Versión de la aplicación'),
+                subtitle: Text('${packageInfo.version}+${packageInfo.buildNumber}'),
+              );
+            } else {
+              return const SizedBox.shrink();
+            }
+          },
         ),
       ],
     );
