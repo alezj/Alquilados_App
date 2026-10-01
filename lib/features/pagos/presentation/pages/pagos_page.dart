@@ -41,7 +41,7 @@ class _PagosPageState extends ConsumerState<PagosPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pagos'),
+        title: const Text('Pagos y facturas'),
         actions: [
           IconButton(
             tooltip: 'Nuevo pago',
