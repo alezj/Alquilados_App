@@ -84,37 +84,46 @@ class _PagosPageState extends ConsumerState<PagosPage> {
             ),
           ),
           // ── Filtro por mes ────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_month_rounded, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    filtro.yearMonth != null
-                        ? 'Mes: ${filtro.yearMonth}'
-                        : 'Todos los meses',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+           Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    const Icon(
+                      Icons.calendar_month_rounded,
+                      size: 18,
                     ),
-                  ),
+
+                    Text(
+                      filtro.yearMonth != null
+                          ? 'Mes: ${filtro.yearMonth}'
+                          : 'Todos los meses',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+
+                    TextButton(
+                      onPressed: () => _seleccionarMes(context),
+                      child: const Text('Filtrar mes'),
+                    ),
+
+                    if (filtro.yearMonth != null)
+                      IconButton(
+                        tooltip: 'Quitar filtro de mes',
+                        onPressed: () => ref
+                            .read(pagosFiltroProvider.notifier)
+                            .setYearMonth(null),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                        ),
+                      ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () => _seleccionarMes(context),
-                  child: const Text('Filtrar mes'),
-                ),
-                if (filtro.yearMonth != null)
-                  IconButton(
-                    tooltip: 'Quitar filtro de mes',
-                    onPressed: () => ref
-                        .read(pagosFiltroProvider.notifier)
-                        .setYearMonth(null),
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                  ),
-              ],
-            ),
-          ),
+              ),
           const Divider(height: 1),
           // ── Lista de pagos ────────────────────────────────────────
           Expanded(
@@ -174,30 +183,42 @@ class _PagosPageState extends ConsumerState<PagosPage> {
     ];
 
     final selected = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Selecciona un mes',
-                  style: AppTypography.titleMedium),
-            ),
-            ...meses.map(
-              (m) {
-                final key =
-                    '${m.year.toString().padLeft(4, '0')}-${m.month.toString().padLeft(2, '0')}';
-                return ListTile(
-                  title: Text(_formatMes(m)),
-                  onTap: () => Navigator.of(ctx).pop(key),
-                );
-              },
-            ),
-          ],
+  context: context,
+  isScrollControlled: true,
+  builder: (ctx) => SafeArea(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'Selecciona un mes',
+            style: AppTypography.titleMedium,
+          ),
         ),
-      ),
-    );
+
+        Flexible(
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: meses.length,
+            itemBuilder: (context, index) {
+              final m = meses[index];
+
+              final key =
+                  '${m.year.toString().padLeft(4, '0')}-'
+                  '${m.month.toString().padLeft(2, '0')}';
+
+              return ListTile(
+                title: Text(_formatMes(m)),
+                onTap: () => Navigator.of(ctx).pop(key),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  ),
+);
 
     if (selected != null) {
       ref.read(pagosFiltroProvider.notifier).setYearMonth(selected);
