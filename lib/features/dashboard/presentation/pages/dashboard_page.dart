@@ -47,31 +47,37 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             title: 'Propiedades',
             value: '${data['totalPropiedades'] ?? 0}',
             subtitle: 'total',
+            route: AppRoutes.propiedades,
           ),
           _StatCard(
             title: 'Ocupadas',
             value: '${data['ocupadas'] ?? 0}',
             subtitle: 'alquiladas',
+            route: AppRoutes.propiedades,
           ),
           _StatCard(
             title: 'Disponibles',
             value: '${data['disponibles'] ?? 0}',
             subtitle: 'libres',
+            route: AppRoutes.propiedades,
           ),
           _StatCard(
             title: 'Alquileres',
             value: '${data['alquileresActivos'] ?? 0}',
             subtitle: 'activos',
+            route: AppRoutes.alquileres,
           ),
           _StatCard(
             title: 'Pagos pendientes',
             value: '${data['pagosPendientes'] ?? 0}',
             subtitle: 'por revisar',
+            route: AppRoutes.pagos,
           ),
           _StatCard(
             title: 'Inquilinos',
             value: '${data['inquilinos'] ?? 0}',
             subtitle: 'activos',
+            route: AppRoutes.inquilinos,
           ),
         ];
 
@@ -114,24 +120,38 @@ class _StatCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.subtitle,
+    this.route,
   });
 
   final String title;
   final String value;
   final String subtitle;
+  final String? route;
 
   @override
   Widget build(BuildContext context) {
     return AppCard(
+      onTap: route != null
+          ? () => context.push(route!)
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: AppTypography.labelMedium),
+          Text(
+            title,
+            style: AppTypography.labelMedium,
+          ),
           const SizedBox(height: 10),
-          Text(value, style: AppTypography.displayMedium),
+          Text(
+            value,
+            style: AppTypography.displayMedium,
+          ),
           const SizedBox(height: 4),
-          Text(subtitle, style: AppTypography.bodySmall),
+          Text(
+            subtitle,
+            style: AppTypography.bodySmall,
+          ),
         ],
       ),
     );
