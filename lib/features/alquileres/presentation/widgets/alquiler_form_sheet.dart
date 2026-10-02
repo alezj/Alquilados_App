@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_text_field.dart';
@@ -231,11 +232,11 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
 
 debugPrint('PROPIEDAD: $propiedad');
   debugPrint('PRECIO MENSUAL: ${propiedad['precio_mensual']}');
-  
-    final precioMensual = propiedad['precio_mensual'] as double?;
+
+    final precioMensual = _currency(propiedad['precio_mensual']);
 
     if (precioMensual != null) {
-      _montoPagoController.text = precioMensual.toStringAsFixed(2);
+      _montoPagoController.text = precioMensual;
     }
   }
 },
@@ -343,4 +344,10 @@ debugPrint('PROPIEDAD: $propiedad');
       ),
     );
   }
+
+  String _currency(double amount) {
+    final format = NumberFormat.currency(locale: 'es_DO', symbol: 'RD\$', decimalDigits: 2);
+    return format.format(amount);
+  }
+
 }
