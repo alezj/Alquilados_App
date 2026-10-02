@@ -221,10 +221,24 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                         ),
                     ],
                     onChanged: (value) {
-                      if (value != null) {
-                        _propiedadController.value = value;
-                      }
-                    },
+  if (value != null) {
+    _propiedadController.value = value;
+
+    final propiedad = _propiedades.firstWhere(
+      (item) => (item['id'] as int?) == value,
+      orElse: () => <String, dynamic>{},
+    );
+
+debugPrint('PROPIEDAD: $propiedad');
+  debugPrint('PRECIO MENSUAL: ${propiedad['precio_mensual']}');
+  
+    final precioMensual = propiedad['precio_mensual'] as double?;
+
+    if (precioMensual != null) {
+      _montoPagoController.text = precioMensual.toStringAsFixed(2);
+    }
+  }
+},
                   );
                 },
               ),
