@@ -35,6 +35,11 @@ class AppCard extends StatelessWidget {
       ),
     );
 
+    final card = Padding(
+      padding: padding,
+      child: child,
+    );
+
     if (onTap != null) {
       return Material(
         color: cardColor,
@@ -42,21 +47,16 @@ class AppCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Padding(
-            padding: padding,
-            child: child,
-          ),
+          child: card,
         ),
       );
     }
 
-    return Container(
-      decoration: ShapeDecoration(
-        color: cardColor,
-        shape: shape,
-      ),
-      padding: padding,
-      child: child,
+    return Material(
+      color: cardColor,
+      shape: shape,
+      clipBehavior: Clip.antiAlias,
+      child: card,
     );
   }
 }

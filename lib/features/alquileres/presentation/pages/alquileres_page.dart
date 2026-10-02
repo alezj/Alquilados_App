@@ -11,7 +11,11 @@ import '../../../../core/shared/widgets/app_loading.dart';
 import '../../../../core/shared/widgets/app_text_field.dart';
 import '../../../../core/shared/widgets/status_badge.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../dashboard/presentation/pages/dashboard_page.dart';
+import '../../../sync/data/datasources/local_database_service.dart';
+import '../../domain/entities/alquiler.dart';
 import '../providers/alquileres_provider.dart';
+import '../widgets/alquiler_form_sheet.dart';
 
 class AlquileresPage extends ConsumerStatefulWidget {
   const AlquileresPage({super.key});
@@ -32,11 +36,7 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
         actions: [
           IconButton(
             tooltip: 'Nuevo alquiler',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Próximamente: creación de alquileres.')),
-              );
-            },
+            onPressed: () => _openAlquilerSheet(context),
             icon: const Icon(Icons.add_rounded),
           ),
         ],
@@ -119,7 +119,21 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
                                             style: AppTypography.titleSmall,
                                           ),
                                         ),
-                                        StatusBadge.fromString(alquiler.estado),
+                                        Row(
+                                          children: [
+                                            IconButton(
+                                              tooltip: 'Editar alquiler',
+                                              icon: const Icon(Icons.edit_rounded, size: 18),
+                                              onPressed: () => _openAlquilerSheet(context, alquiler: alquiler),
+                                            ),
+                                            IconButton(
+                                              tooltip: 'Eliminar alquiler',
+                                              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                              onPressed: () => _deleteAlquiler(alquiler.id),
+                                            ),
+                                            StatusBadge.fromString(alquiler.estado),
+                                          ],
+                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 8),
@@ -142,7 +156,7 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Importe: ${_currency(alquiler.importe)}',
+                                      'Monto a pagar: ${_currency(alquiler.montoPago)}',
                                       style: AppTypography.currencyMedium,
                                     ),
                                   ],
@@ -157,6 +171,60 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _openAlquilerSheet(BuildContext context, {Alquiler? alquiler}) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => AlquilerFormSheet(alquiler: alquiler),
+    );
+
+    if (result == true) {
+      ref.invalidate(alquileresProvider);
+      ref.invalidate(dashboardSummaryProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              alquiler == null ? 'Alquiler creado localmente.' : 'Alquiler actualizado localmente.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAlquiler(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar alquiler'),
+        content: const Text('¿Deseas eliminar este alquiler localmente?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    await LocalDatabaseService().deleteAlquiler(id);
+    ref.invalidate(alquileresProvider);
+    ref.invalidate(dashboardSummaryProvider);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Alquiler eliminado localmente.')),
     );
   }
 

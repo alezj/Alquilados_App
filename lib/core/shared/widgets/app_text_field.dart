@@ -26,9 +26,11 @@ class AppTextField extends StatefulWidget {
     this.validator,
     this.onChanged,
     this.onSubmitted,
+    this.onTap,
     this.enabled = true,
     this.maxLines = 1,
     this.autofillHints,
+    this.readOnly = false,
   });
 
   final TextEditingController? controller;
@@ -42,9 +44,11 @@ class AppTextField extends StatefulWidget {
   final FormFieldValidator<String>? validator;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final GestureTapCallback? onTap;
   final bool enabled;
   final int maxLines;
   final Iterable<String>? autofillHints;
+  final bool readOnly;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -83,7 +87,9 @@ class _AppTextFieldState extends State<AppTextField> {
           validator: widget.validator,
           onChanged: widget.onChanged,
           onFieldSubmitted: widget.onSubmitted,
+          onTap: widget.onTap,
           enabled: widget.enabled,
+          readOnly: widget.readOnly,
           maxLines: widget.maxLines,
           autofillHints: widget.autofillHints,
           style: AppTypography.bodyLarge,

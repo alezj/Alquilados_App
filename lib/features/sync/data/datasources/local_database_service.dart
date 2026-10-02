@@ -29,6 +29,9 @@ class LocalDatabaseService {
         fecha_inicio TEXT NOT NULL,
         fecha_fin TEXT,
         importe REAL NOT NULL,
+        montoPago REAL NOT NULL DEFAULT 0,
+        cantidadDepositos INTEGER NOT NULL DEFAULT 0,
+        diaPago INTEGER NOT NULL DEFAULT 1,
         estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
@@ -36,6 +39,10 @@ class LocalDatabaseService {
       )
     ''');
 
+    await _addColumnIfNotExists(db, 'alquileres', 'montoPago', 'REAL DEFAULT 0');
+    await db.rawUpdate('UPDATE alquileres SET montoPago = importe WHERE montoPago IS NULL OR montoPago = 0');
+    await _addColumnIfNotExists(db, 'alquileres', 'cantidadDepositos', 'INTEGER DEFAULT 0');
+    await _addColumnIfNotExists(db, 'alquileres', 'diaPago', 'INTEGER DEFAULT 1');
     await _addColumnIfNotExists(db, 'pagos', 'id_alquiler', 'INTEGER');
     await _addColumnIfNotExists(db, 'pagos', 'alquiler_id', 'INTEGER');
     await _addColumnIfNotExists(db, 'pagos', 'periodo', 'TEXT');
@@ -48,7 +55,7 @@ class LocalDatabaseService {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 4,
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
     );
@@ -106,6 +113,9 @@ class LocalDatabaseService {
         fecha_inicio TEXT NOT NULL,
         fecha_fin TEXT,
         importe REAL NOT NULL,
+        montoPago REAL NOT NULL DEFAULT 0,
+        cantidadDepositos INTEGER NOT NULL DEFAULT 0,
+        diaPago INTEGER NOT NULL DEFAULT 1,
         estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
@@ -135,6 +145,9 @@ class LocalDatabaseService {
           fecha_inicio TEXT NOT NULL,
           fecha_fin TEXT,
           importe REAL NOT NULL,
+          montoPago REAL NOT NULL DEFAULT 0,
+          cantidadDepositos INTEGER NOT NULL DEFAULT 0,
+          diaPago INTEGER NOT NULL DEFAULT 1,
           estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
           updated_at TEXT DEFAULT (datetime('now')),
           synced_at TEXT,
@@ -145,6 +158,16 @@ class LocalDatabaseService {
       await _addColumnIfNotExists(db, 'pagos', 'id_alquiler', 'INTEGER');
       await _addColumnIfNotExists(db, 'pagos', 'alquiler_id', 'INTEGER');
       await _addColumnIfNotExists(db, 'pagos', 'periodo', 'TEXT');
+    }
+
+    if (oldVersion < 3) {
+      await _addColumnIfNotExists(db, 'alquileres', 'montoPago', 'REAL DEFAULT 0');
+      await db.rawUpdate('UPDATE alquileres SET montoPago = importe WHERE montoPago IS NULL OR montoPago = 0');
+    }
+
+    if (oldVersion < 4) {
+      await _addColumnIfNotExists(db, 'alquileres', 'cantidadDepositos', 'INTEGER DEFAULT 0');
+      await _addColumnIfNotExists(db, 'alquileres', 'diaPago', 'INTEGER DEFAULT 1');
     }
   }
 
@@ -249,6 +272,9 @@ class LocalDatabaseService {
         'fecha_inicio': '2026-09-01',
         'fecha_fin': '2027-08-31',
         'importe': 25000.0,
+        'montoPago': 22000.0,
+        'cantidadDepositos': 2,
+        'diaPago': 15,
         'estado': 'Activo',
         'sync_state': 'synced',
         'synced_at': DateTime.now().toIso8601String(),
@@ -261,6 +287,9 @@ class LocalDatabaseService {
         'fecha_inicio': '2026-09-15',
         'fecha_fin': '2027-09-14',
         'importe': 35000.0,
+        'montoPago': 33000.0,
+        'cantidadDepositos': 1,
+        'diaPago': 20,
         'estado': 'Activo',
         'sync_state': 'synced',
         'synced_at': DateTime.now().toIso8601String(),
@@ -436,10 +465,14 @@ class LocalDatabaseService {
     required String fechaInicio,
     String? fechaFin,
     required double importe,
+    double? montoPago,
+    int cantidadDepositos = 0,
+    int diaPago = 1,
     required String estado,
   }) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
+    final pago = montoPago ?? importe;
 
     return db.insert('alquileres', {
       'propiedad_id': propiedadId,
@@ -447,11 +480,49 @@ class LocalDatabaseService {
       'fecha_inicio': fechaInicio,
       'fecha_fin': fechaFin,
       'importe': importe,
+      'montoPago': pago,
+      'cantidadDepositos': cantidadDepositos,
+      'diaPago': diaPago,
       'estado': estado,
       'updated_at': now,
       'sync_state': 'pending',
       'synced_at': null,
     });
+  }
+
+  Future<int> updateAlquiler({
+    required int id,
+    required int propiedadId,
+    required int inquilinoId,
+    required String fechaInicio,
+    String? fechaFin,
+    required double importe,
+    double? montoPago,
+    int cantidadDepositos = 0,
+    int diaPago = 1,
+    required String estado,
+  }) async {
+    final db = await database;
+    final pago = montoPago ?? importe;
+    return db.update(
+      'alquileres',
+      {
+        'propiedad_id': propiedadId,
+        'inquilino_id': inquilinoId,
+        'fecha_inicio': fechaInicio,
+        'fecha_fin': fechaFin,
+        'importe': importe,
+        'montoPago': pago,
+        'cantidadDepositos': cantidadDepositos,
+        'diaPago': diaPago,
+        'estado': estado,
+        'updated_at': DateTime.now().toIso8601String(),
+        'sync_state': 'pending',
+        'synced_at': null,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<int> updatePropiedad({
@@ -628,6 +699,11 @@ class LocalDatabaseService {
   Future<int> deletePropiedad(int id) async {
     final db = await database;
     return db.delete('propiedades', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteAlquiler(int id) async {
+    final db = await database;
+    return db.delete('alquileres', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> deleteInquilino(int id) async {
