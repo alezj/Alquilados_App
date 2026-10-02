@@ -3,6 +3,8 @@ abstract final class AppRoutes {
   static const String login = '/login';
   static const String dashboard = '/dashboard';
   static const String app = '/app';
+  static const String alquileres = '/alquileres';
+  static const String alquilerDetalle = '/alquileres/:id';
   static const String propiedades = '/propiedades';
   static const String propiedadDetalle = '/propiedades/:id';
   static const String inquilinos = '/inquilinos';

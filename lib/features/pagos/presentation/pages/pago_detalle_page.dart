@@ -292,6 +292,8 @@ class PagoDetallePage extends ConsumerWidget {
 
     final comprobante = ComprobantePagoData.fromPayment(pago, inquilino);
 
+    if (!context.mounted) return;
+
     try {
       await showDialog(
         context: context,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
@@ -22,8 +23,23 @@ class ConfiguracionPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Configuración', style: AppTypography.titleMedium),
-              const SizedBox(height: 8),
+              const Text('Acciones', style: AppTypography.titleMedium),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.home_rounded),
+                title: const Text('Propiedades'),
+                subtitle: const Text('Gestionar inmuebles y disponibilidad.'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/propiedades'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.people_rounded),
+                title: const Text('Inquilinos'),
+                subtitle: const Text('Consultar y administrar ocupantes.'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/inquilinos'),
+              ),
+              const Divider(height: 1),
               const ListTile(
                 leading: Icon(Icons.sync_rounded),
                 title: Text('Sincronización local'),

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/alquileres/presentation/pages/alquiler_detalle_page.dart';
+import '../../features/alquileres/presentation/pages/alquileres_page.dart';
 import '../../features/app_shell.dart';
-import '../../features/login/presentation/pages/login_page.dart';
-import '../../features/propiedades/presentation/pages/propiedades_page.dart';
-import '../../features/propiedades/presentation/pages/propiedad_detalle_page.dart';
-import '../../features/inquilinos/presentation/pages/inquilinos_page.dart';
-import '../../features/inquilinos/presentation/pages/inquilino_detalle_page.dart';
-import '../../features/pagos/presentation/pages/pagos_page.dart';
-import '../../features/pagos/presentation/pages/pago_detalle_page.dart';
 import '../../features/configuracion/presentation/pages/configuracion_page.dart';
+import '../../features/inquilinos/presentation/pages/inquilino_detalle_page.dart';
+import '../../features/inquilinos/presentation/pages/inquilinos_page.dart';
+import '../../features/login/presentation/pages/login_page.dart';
+import '../../features/pagos/presentation/pages/pago_detalle_page.dart';
+import '../../features/pagos/presentation/pages/pagos_page.dart';
+import '../../features/propiedades/presentation/pages/propiedad_detalle_page.dart';
+import '../../features/propiedades/presentation/pages/propiedades_page.dart';
 import 'app_routes.dart';
 
 abstract final class AppRouter {
@@ -29,6 +31,16 @@ abstract final class AppRouter {
         GoRoute(
           path: AppRoutes.dashboard,
           builder: (_, _) => const AppShell(),
+        ),
+        GoRoute(
+          path: AppRoutes.alquileres,
+          builder: (_, _) => const AlquileresPage(),
+        ),
+        GoRoute(
+          path: AppRoutes.alquilerDetalle,
+          builder: (_, state) => AlquilerDetallePage(
+            id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          ),
         ),
         GoRoute(
           path: AppRoutes.propiedades,
