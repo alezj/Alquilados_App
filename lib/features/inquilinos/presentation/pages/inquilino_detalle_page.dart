@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
@@ -22,10 +23,34 @@ class InquilinoDetallePage extends ConsumerStatefulWidget {
   final int id;
 
   @override
-  ConsumerState<InquilinoDetallePage> createState() => _InquilinoDetallePageState();
+  ConsumerState<InquilinoDetallePage> createState() =>
+      _InquilinoDetallePageState();
 }
 
 class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
+  Future<void> _pickDate(TextEditingController controller) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(controller.text) ?? now,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    controller.text = picked.toIso8601String().split('T').first;
+  }
+
+  String _currency(double amount) => NumberFormat.currency(
+    locale: 'es_DO',
+    symbol: 'RD\$',
+    decimalDigits: 2,
+  ).format(amount);
+
+  double _parseCurrency(String text) {
+    final clean = text.replaceAll(RegExp(r'[^0-9.]'), '');
+    return double.tryParse(clean) ?? 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final detalleAsync = ref.watch(inquilinoDetalleProvider(widget.id));
@@ -47,13 +72,17 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
           ),
           IconButton(
             tooltip: 'Eliminar',
-            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.error,
+            ),
             onPressed: () => _confirmDelete(widget.id),
           ),
         ],
       ),
       body: detalleAsync.when(
-        loading: () => const AppLoading(message: 'Cargando datos del inquilino...'),
+        loading: () =>
+            const AppLoading(message: 'Cargando datos del inquilino...'),
         error: (error, _) => AppError(
           title: 'Error al cargar inquilino',
           message: 'No pudimos obtener la información del inquilino.',
@@ -112,7 +141,10 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Datos de contacto y contrato', style: AppTypography.titleSmall),
+                    const Text(
+                      'Datos de contacto y contrato',
+                      style: AppTypography.titleSmall,
+                    ),
                     const SizedBox(height: 14),
                     _buildInfoRow(
                       icon: Icons.email_outlined,
@@ -146,9 +178,13 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Historial de pagos', style: AppTypography.titleSmall),
+                        const Text(
+                          'Historial de pagos',
+                          style: AppTypography.titleSmall,
+                        ),
                         TextButton.icon(
-                          onPressed: () => _showRegisterPaymentDialog(inquilino),
+                          onPressed: () =>
+                              _showRegisterPaymentDialog(inquilino),
                           icon: const Icon(Icons.add_rounded, size: 18),
                           label: const Text('Nuevo pago'),
                         ),
@@ -173,7 +209,9 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                             child: Center(
                               child: Text(
                                 'No hay pagos registrados para este inquilino.',
-                                style: TextStyle(color: AppColors.textSecondaryLight),
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryLight,
+                                ),
                               ),
                             ),
                           );
@@ -181,7 +219,8 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
 
                         return Column(
                           children: pagos.map((pago) {
-                            final isPagado = pago.estado.toLowerCase() == 'pagado';
+                            final isPagado =
+                                pago.estado.toLowerCase() == 'pagado';
                             return Container(
                               margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.all(12),
@@ -198,12 +237,15 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                                     isPagado
                                         ? Icons.check_circle_rounded
                                         : Icons.pending_actions_rounded,
-                                    color: isPagado ? AppColors.success : AppColors.warning,
+                                    color: isPagado
+                                        ? AppColors.success
+                                        : AppColors.warning,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           pago.monto.toCurrency(),
@@ -243,12 +285,20 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () => _confirmDelete(inquilino.id),
-                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                label: const Text('Eliminar inquilino', style: TextStyle(color: AppColors.error)),
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.error,
+                ),
+                label: const Text(
+                  'Eliminar inquilino',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.error),
                   minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -307,10 +357,18 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
   }
 
   Future<void> _showEditDialog(Inquilino inquilino) async {
-    final nombreController = TextEditingController(text: inquilino.nombreApellido);
-    final correoController = TextEditingController(text: inquilino.correo ?? '');
-    final fechaInicioController = TextEditingController(text: inquilino.fechaInicioContrato);
-    final fechaPagosController = TextEditingController(text: inquilino.fechaPagos.toString());
+    final nombreController = TextEditingController(
+      text: inquilino.nombreApellido,
+    );
+    final correoController = TextEditingController(
+      text: inquilino.correo ?? '',
+    );
+    final fechaInicioController = TextEditingController(
+      text: inquilino.fechaInicioContrato,
+    );
+    final fechaPagosController = TextEditingController(
+      text: inquilino.fechaPagos.toString(),
+    );
 
     await showModalBottomSheet(
       context: context,
@@ -328,7 +386,10 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Editar inquilino', style: AppTypography.titleMedium),
+                const Text(
+                  'Editar inquilino',
+                  style: AppTypography.titleMedium,
+                ),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'Nombre y apellido',
@@ -347,6 +408,8 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                   label: 'Fecha inicio de contrato (AAAA-MM-DD)',
                   prefixIcon: Icons.calendar_today_rounded,
                   controller: fechaInicioController,
+                  readOnly: true,
+                  onTap: () => _pickDate(fechaInicioController),
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
@@ -361,11 +424,17 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                   onPressed: () async {
                     final nombre = nombreController.text.trim();
                     final fechaInicio = fechaInicioController.text.trim();
-                    final fechaPagos = int.tryParse(fechaPagosController.text.trim()) ?? inquilino.fechaPagos;
+                    final fechaPagos =
+                        int.tryParse(fechaPagosController.text.trim()) ??
+                        inquilino.fechaPagos;
 
                     if (nombre.isEmpty || fechaInicio.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nombre y fecha de inicio son obligatorios.')),
+                        const SnackBar(
+                          content: Text(
+                            'Nombre y fecha de inicio son obligatorios.',
+                          ),
+                        ),
                       );
                       return;
                     }
@@ -376,7 +445,9 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     await database.updateInquilino(
                       id: inquilino.id,
                       nombreApellido: nombre,
-                      correo: correoController.text.trim().isEmpty ? null : correoController.text.trim(),
+                      correo: correoController.text.trim().isEmpty
+                          ? null
+                          : correoController.text.trim(),
                       fechaInicioContrato: fechaInicio,
                       fechaPagos: fechaPagos,
                     );
@@ -386,7 +457,9 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     ref.invalidate(inquilinosProvider);
                     ref.invalidate(inquilinoDetalleProvider(widget.id));
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('Inquilino actualizado con éxito.')),
+                      const SnackBar(
+                        content: Text('Inquilino actualizado con éxito.'),
+                      ),
                     );
                   },
                 ),
@@ -399,7 +472,16 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
   }
 
   Future<void> _showRegisterPaymentDialog(Inquilino inquilino) async {
-    final montoController = TextEditingController();
+    final alquiler = await LocalDatabaseService()
+        .getAlquilerActivoByInquilinoId(inquilino.id);
+    if (!mounted) return;
+    final monto =
+        (alquiler?['montoPago'] as num?)?.toDouble() ??
+        (alquiler?['importe'] as num?)?.toDouble() ??
+        0;
+    final montoController = TextEditingController(
+      text: monto > 0 ? _currency(monto) : '',
+    );
     final fechaController = TextEditingController(
       text: DateTime.now().toIso8601String().split('T')[0],
     );
@@ -423,13 +505,18 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Registrar pago para ${inquilino.nombreApellido}', style: AppTypography.titleMedium),
+                    Text(
+                      'Registrar pago para ${inquilino.nombreApellido}',
+                      style: AppTypography.titleMedium,
+                    ),
                     const SizedBox(height: 16),
                     AppTextField(
                       label: 'Monto a pagar',
-                      hint: '1500.0',
+                      hint: 'RD\$1,500.00',
                       prefixIcon: Icons.attach_money_rounded,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       controller: montoController,
                     ),
                     const SizedBox(height: 12),
@@ -437,6 +524,8 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                       label: 'Fecha de pago (AAAA-MM-DD)',
                       prefixIcon: Icons.calendar_today_rounded,
                       controller: fechaController,
+                      readOnly: true,
+                      onTap: () => _pickDate(fechaController),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -444,11 +533,19 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                       decoration: InputDecoration(
                         labelText: 'Estado del pago',
                         prefixIcon: const Icon(Icons.info_outline_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'pagado', child: Text('Pagado')),
-                        DropdownMenuItem(value: 'pendiente', child: Text('Pendiente')),
+                        DropdownMenuItem(
+                          value: 'pagado',
+                          child: Text('Pagado'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'pendiente',
+                          child: Text('Pendiente'),
+                        ),
                       ],
                       onChanged: (val) {
                         if (val != null) {
@@ -460,12 +557,16 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     AppButton(
                       text: 'Registrar pago',
                       onPressed: () async {
-                        final monto = double.tryParse(montoController.text.trim()) ?? 0;
+                        final monto = _parseCurrency(
+                          montoController.text.trim(),
+                        );
                         final fecha = fechaController.text.trim();
 
                         if (monto <= 0 || fecha.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Ingresa un monto válido y fecha.')),
+                            const SnackBar(
+                              content: Text('Ingresa un monto válido y fecha.'),
+                            ),
                           );
                           return;
                         }
@@ -483,7 +584,9 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                         navigator.pop();
                         ref.invalidate(pagosDeInquilinoProvider(widget.id));
                         messenger.showSnackBar(
-                          const SnackBar(content: Text('Pago registrado correctamente.')),
+                          const SnackBar(
+                            content: Text('Pago registrado correctamente.'),
+                          ),
                         );
                       },
                     ),
@@ -502,7 +605,9 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminar inquilino'),
-        content: const Text('¿Estás seguro de que deseas eliminar este inquilino? Esta acción no se puede deshacer.'),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar este inquilino? Esta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -524,9 +629,8 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
     ref.invalidate(inquilinosProvider);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Inquilino eliminado.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Inquilino eliminado.')));
     context.pop();
   }
 }

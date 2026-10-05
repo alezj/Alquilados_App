@@ -23,6 +23,18 @@ class InquilinosPage extends ConsumerStatefulWidget {
 }
 
 class _InquilinosPageState extends ConsumerState<InquilinosPage> {
+  Future<void> _pickDate(TextEditingController controller) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(controller.text) ?? now,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    controller.text = picked.toIso8601String().split('T').first;
+  }
+
   String _query = '';
 
   @override
@@ -70,7 +82,9 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: _InquilinoCard(
                             inquilino: item,
-                            onTap: () => context.push('${AppRoutes.inquilinos}/${item.id}'),
+                            onTap: () => context.push(
+                              '${AppRoutes.inquilinos}/${item.id}',
+                            ),
                             onEdit: () => _showEditDialog(item),
                             onDelete: () => _deleteInquilino(item.id),
                           ),
@@ -85,10 +99,18 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
   }
 
   Future<void> _showEditDialog(Inquilino inquilino) async {
-    final nombreController = TextEditingController(text: inquilino.nombreApellido);
-    final correoController = TextEditingController(text: inquilino.correo ?? '');
-    final fechaInicioController = TextEditingController(text: inquilino.fechaInicioContrato);
-    final fechaPagosController = TextEditingController(text: inquilino.fechaPagos.toString());
+    final nombreController = TextEditingController(
+      text: inquilino.nombreApellido,
+    );
+    final correoController = TextEditingController(
+      text: inquilino.correo ?? '',
+    );
+    final fechaInicioController = TextEditingController(
+      text: inquilino.fechaInicioContrato,
+    );
+    final fechaPagosController = TextEditingController(
+      text: inquilino.fechaPagos.toString(),
+    );
 
     await showModalBottomSheet(
       context: context,
@@ -106,7 +128,10 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Editar inquilino', style: AppTypography.titleMedium),
+                const Text(
+                  'Editar inquilino',
+                  style: AppTypography.titleMedium,
+                ),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'Nombre y apellido',
@@ -125,6 +150,8 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                   label: 'Fecha inicio contrato',
                   prefixIcon: Icons.calendar_month_rounded,
                   controller: fechaInicioController,
+                  readOnly: true,
+                  onTap: () => _pickDate(fechaInicioController),
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
@@ -140,11 +167,17 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     final nombre = nombreController.text.trim();
                     final correo = correoController.text.trim();
                     final fechaInicio = fechaInicioController.text.trim();
-                    final fechaPagos = int.tryParse(fechaPagosController.text.trim()) ?? inquilino.fechaPagos;
+                    final fechaPagos =
+                        int.tryParse(fechaPagosController.text.trim()) ??
+                        inquilino.fechaPagos;
 
                     if (nombre.isEmpty || fechaInicio.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nombre y fecha de inicio son obligatorios.')),
+                        const SnackBar(
+                          content: Text(
+                            'Nombre y fecha de inicio son obligatorios.',
+                          ),
+                        ),
                       );
                       return;
                     }
@@ -166,7 +199,9 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     ref.invalidate(inquilinoDetalleProvider(inquilino.id));
                     ref.invalidate(dashboardSummaryProvider);
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('Inquilino actualizado localmente.')),
+                      const SnackBar(
+                        content: Text('Inquilino actualizado localmente.'),
+                      ),
                     );
                   },
                 ),
@@ -222,6 +257,8 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                   hint: '2026-01-15',
                   prefixIcon: Icons.calendar_month_rounded,
                   controller: fechaInicioController,
+                  readOnly: true,
+                  onTap: () => _pickDate(fechaInicioController),
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
@@ -238,11 +275,16 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     final nombre = nombreController.text.trim();
                     final correo = correoController.text.trim();
                     final fechaInicio = fechaInicioController.text.trim();
-                    final fechaPagos = int.tryParse(fechaPagosController.text.trim()) ?? 1;
+                    final fechaPagos =
+                        int.tryParse(fechaPagosController.text.trim()) ?? 1;
 
                     if (nombre.isEmpty || fechaInicio.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nombre y fecha de inicio son obligatorios.')),
+                        const SnackBar(
+                          content: Text(
+                            'Nombre y fecha de inicio son obligatorios.',
+                          ),
+                        ),
                       );
                       return;
                     }
@@ -262,7 +304,9 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     ref.invalidate(inquilinosProvider);
                     ref.invalidate(dashboardSummaryProvider);
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('Inquilino guardado localmente.')),
+                      const SnackBar(
+                        content: Text('Inquilino guardado localmente.'),
+                      ),
                     );
                   },
                 ),

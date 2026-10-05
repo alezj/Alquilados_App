@@ -20,6 +20,8 @@ El MVP actual permite administrar la operación básica de inmuebles y contratos
   - resumen financiero y pagos relacionados.
 - Pagos: listado con nombre del inquilino, búsqueda por nombre o ID, filtro por estado, edición, cambio de estado y eliminación.
 - Creación de pagos mediante selección de inquilino; el monto se carga desde el alquiler activo (`montoPago`, usando `importe` como respaldo).
+- Los sheets de creación y edición permiten seleccionar fechas desde un calendario.
+- Los montos y precios se muestran con formato monetario `RD$` y se convierten correctamente antes de guardarse.
 - Generación de comprobantes de pago no fiscales en PDF.
 - Navegación mediante rutas y navegación inferior.
 - Tema claro y oscuro, con una pantalla de validación del sistema de diseño.
@@ -140,6 +142,7 @@ La app ya incluye la base técnica operativa para gestión inmobiliaria y el mó
 - Persistencia local con SQLite en `LocalDatabaseService`.
 - Módulo de propiedades con listado, detalle y estado local.
 - Módulo de inquilinos con edición y consulta local.
+- Formularios de propiedades, inquilinos, pagos y alquileres con calendario para fechas y formato monetario `RD$` para montos y precios.
 - Módulo de pagos con:
   - listado,
   - nombre del inquilino asociado,
@@ -149,6 +152,7 @@ La app ya incluye la base técnica operativa para gestión inmobiliaria y el mó
   - cambio de estado,
   - eliminación,
   - creación mediante selector de inquilinos y carga automática del monto del alquiler activo,
+  - selección de fecha desde calendario y monto con formato monetario `RD$`,
   - comprobante no fiscal.
 - Módulo de alquileres con:
   - listado,

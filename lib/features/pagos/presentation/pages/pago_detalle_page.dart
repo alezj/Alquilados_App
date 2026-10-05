@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
@@ -32,8 +33,7 @@ class PagoDetallePage extends ConsumerWidget {
                     ? const SizedBox.shrink()
                     : IconButton(
                         tooltip: 'Editar pago',
-                        onPressed: () =>
-                            _showEditSheet(context, ref, pago),
+                        onPressed: () => _showEditSheet(context, ref, pago),
                         icon: const Icon(Icons.edit_rounded),
                       ),
               ) ??
@@ -78,8 +78,10 @@ class PagoDetallePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 // ── Información del pago ─────────────────────────
-                const Text('Información del pago',
-                    style: AppTypography.labelSmall),
+                const Text(
+                  'Información del pago',
+                  style: AppTypography.labelSmall,
+                ),
                 const SizedBox(height: 8),
                 _SectionCard(
                   children: [
@@ -176,13 +178,13 @@ class PagoDetallePage extends ConsumerWidget {
   }
 
   Future<void> _showEditSheet(
-      BuildContext context, WidgetRef ref, Pago pago) async {
-    final idInquilinoController =
-        TextEditingController(text: pago.idInquilino);
-    final fechaPagoController =
-        TextEditingController(text: pago.fechaPago);
-    final montoController =
-        TextEditingController(text: pago.monto.toString());
+    BuildContext context,
+    WidgetRef ref,
+    Pago pago,
+  ) async {
+    final idInquilinoController = TextEditingController(text: pago.idInquilino);
+    final fechaPagoController = TextEditingController(text: pago.fechaPago);
+    final montoController = TextEditingController(text: _currency(pago.monto));
     String estadoSeleccionado = pago.estado;
 
     await showModalBottomSheet(
@@ -222,6 +224,8 @@ class PagoDetallePage extends ConsumerWidget {
                     border: OutlineInputBorder(),
                     hintText: '2026-09-15',
                   ),
+                  readOnly: true,
+                  onTap: () => _pickDate(context, fechaPagoController),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -232,7 +236,8 @@ class PagoDetallePage extends ConsumerWidget {
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true),
+                    decimal: true,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -245,16 +250,18 @@ class PagoDetallePage extends ConsumerWidget {
                   items: ['pendiente', 'pagado', 'vencido']
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
-                  onChanged: (v) =>
-                      setState(() => estadoSeleccionado = v ?? estadoSeleccionado),
+                  onChanged: (v) => setState(
+                    () => estadoSeleccionado = v ?? estadoSeleccionado,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 AppButton(
                   text: 'Guardar cambios',
                   onPressed: () async {
-                    final monto =
-                        double.tryParse(montoController.text.trim()) ??
-                            pago.monto;
+                    final monto = _parseCurrency(
+                      montoController.text.trim(),
+                      fallback: pago.monto,
+                    );
                     await LocalDatabaseService().updatePago(
                       id: pago.id,
                       idInquilino: idInquilinoController.text.trim(),
@@ -268,7 +275,8 @@ class PagoDetallePage extends ConsumerWidget {
                     ref.invalidate(pagosProvider);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Pago actualizado localmente.')),
+                        content: Text('Pago actualizado localmente.'),
+                      ),
                     );
                   },
                 ),
@@ -278,6 +286,32 @@ class PagoDetallePage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _pickDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(controller.text) ?? now,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    controller.text = picked.toIso8601String().split('T').first;
+  }
+
+  String _currency(double amount) => NumberFormat.currency(
+    locale: 'es_DO',
+    symbol: 'RD\$',
+    decimalDigits: 2,
+  ).format(amount);
+
+  double _parseCurrency(String text, {required double fallback}) {
+    final clean = text.replaceAll(RegExp(r'[^0-9.]'), '');
+    return double.tryParse(clean) ?? fallback;
   }
 
   Future<void> _generarComprobante(
@@ -317,35 +351,41 @@ class PagoDetallePage extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Comprobante listo para revisar, imprimir o compartir.'),
+          content: Text(
+            'Comprobante listo para revisar, imprimir o compartir.',
+          ),
         ),
       );
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No se pudo generar el comprobante: $error'),
-        ),
+        SnackBar(content: Text('No se pudo generar el comprobante: $error')),
       );
     }
   }
 
   Future<void> _confirmDelete(
-      BuildContext context, WidgetRef ref, int pagoId) async {
+    BuildContext context,
+    WidgetRef ref,
+    int pagoId,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar pago'),
-        content: const Text('¿Deseas eliminar este pago? Esta acción no se puede deshacer.'),
+        content: const Text(
+          '¿Deseas eliminar este pago? Esta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancelar')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: FilledButton.styleFrom(
-                  backgroundColor: Colors.red),
-              child: const Text('Eliminar')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
         ],
       ),
     );
@@ -354,9 +394,8 @@ class PagoDetallePage extends ConsumerWidget {
     if (!context.mounted) return;
     ref.invalidate(pagosProvider);
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pago eliminado.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Pago eliminado.')));
   }
 }
 
@@ -405,9 +444,12 @@ class _InfoRow extends StatelessWidget {
           Icon(icon, size: 18, color: colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(label,
-                style: AppTypography.bodySmall
-                    .copyWith(color: colorScheme.onSurfaceVariant)),
+            child: Text(
+              label,
+              style: AppTypography.bodySmall.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
           Text(value, style: AppTypography.bodyMedium),
         ],
@@ -429,8 +471,10 @@ class _EstadoChip extends StatelessWidget {
     };
     return Chip(
       avatar: Icon(icon, color: color, size: 18),
-      label: Text(estado.toUpperCase(),
-          style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+      label: Text(
+        estado.toUpperCase(),
+        style: TextStyle(color: color, fontWeight: FontWeight.bold),
+      ),
       backgroundColor: color.withAlpha(25),
       side: BorderSide(color: color.withAlpha(80)),
     );
@@ -461,7 +505,9 @@ class _EstadoButton extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? color.withAlpha(30) : colorScheme.surfaceContainerLow,
+          color: isActive
+              ? color.withAlpha(30)
+              : colorScheme.surfaceContainerLow,
           border: Border.all(
             color: isActive ? color : colorScheme.outlineVariant,
             width: isActive ? 2 : 1,

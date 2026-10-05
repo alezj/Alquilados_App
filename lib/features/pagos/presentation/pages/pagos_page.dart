@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_empty.dart';
@@ -84,46 +85,40 @@ class _PagosPageState extends ConsumerState<PagosPage> {
             ),
           ),
           // ── Filtro por mes ────────────────────────────────────────
-           Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    const Icon(
-                      Icons.calendar_month_rounded,
-                      size: 18,
-                    ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                const Icon(Icons.calendar_month_rounded, size: 18),
 
-                    Text(
-                      filtro.yearMonth != null
-                          ? 'Mes: ${filtro.yearMonth}'
-                          : 'Todos los meses',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-
-                    TextButton(
-                      onPressed: () => _seleccionarMes(context),
-                      child: const Text('Filtrar mes'),
-                    ),
-
-                    if (filtro.yearMonth != null)
-                      IconButton(
-                        tooltip: 'Quitar filtro de mes',
-                        onPressed: () => ref
-                            .read(pagosFiltroProvider.notifier)
-                            .setYearMonth(null),
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          size: 18,
-                        ),
-                      ),
-                  ],
+                Text(
+                  filtro.yearMonth != null
+                      ? 'Mes: ${filtro.yearMonth}'
+                      : 'Todos los meses',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+
+                TextButton(
+                  onPressed: () => _seleccionarMes(context),
+                  child: const Text('Filtrar mes'),
+                ),
+
+                if (filtro.yearMonth != null)
+                  IconButton(
+                    tooltip: 'Quitar filtro de mes',
+                    onPressed: () => ref
+                        .read(pagosFiltroProvider.notifier)
+                        .setYearMonth(null),
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                  ),
+              ],
+            ),
+          ),
           const Divider(height: 1),
           // ── Lista de pagos ────────────────────────────────────────
           Expanded(
@@ -145,16 +140,12 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: items.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 10),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (_, i) => _PagoCard(
                           pago: items[i],
-                          onTap: () => context
-                              .push('/pagos/${items[i].id}'),
-                          onEdit: () =>
-                              _showEditSheet(context, items[i]),
-                          onDelete: () =>
-                              _confirmDelete(context, items[i].id),
+                          onTap: () => context.push('/pagos/${items[i].id}'),
+                          onEdit: () => _showEditSheet(context, items[i]),
+                          onDelete: () => _confirmDelete(context, items[i].id),
                           onEstadoChange: (estado) =>
                               _cambiarEstado(items[i], estado),
                         ),
@@ -168,57 +159,56 @@ class _PagosPageState extends ConsumerState<PagosPage> {
   }
 
   String _labelEstado(FiltroEstadoPago opcion) => switch (opcion) {
-        FiltroEstadoPago.todos => 'Todos',
-        FiltroEstadoPago.pendiente => 'Pendientes',
-        FiltroEstadoPago.pagado => 'Pagados',
-        FiltroEstadoPago.vencido => 'Vencidos',
-      };
+    FiltroEstadoPago.todos => 'Todos',
+    FiltroEstadoPago.pendiente => 'Pendientes',
+    FiltroEstadoPago.pagado => 'Pagados',
+    FiltroEstadoPago.vencido => 'Vencidos',
+  };
 
   Future<void> _seleccionarMes(BuildContext context) async {
     final now = DateTime.now();
     // Generar últimos 12 meses
     final meses = [
-      for (int i = 0; i < 12; i++)
-        DateTime(now.year, now.month - i, 1),
+      for (int i = 0; i < 12; i++) DateTime(now.year, now.month - i, 1),
     ];
 
     final selected = await showModalBottomSheet<String>(
-  context: context,
-  isScrollControlled: true,
-  builder: (ctx) => SafeArea(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Selecciona un mes',
-            style: AppTypography.titleMedium,
-          ),
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Selecciona un mes',
+                style: AppTypography.titleMedium,
+              ),
+            ),
+
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: meses.length,
+                itemBuilder: (context, index) {
+                  final m = meses[index];
+
+                  final key =
+                      '${m.year.toString().padLeft(4, '0')}-'
+                      '${m.month.toString().padLeft(2, '0')}';
+
+                  return ListTile(
+                    title: Text(_formatMes(m)),
+                    onTap: () => Navigator.of(ctx).pop(key),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-
-        Flexible(
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: meses.length,
-            itemBuilder: (context, index) {
-              final m = meses[index];
-
-              final key =
-                  '${m.year.toString().padLeft(4, '0')}-'
-                  '${m.month.toString().padLeft(2, '0')}';
-
-              return ListTile(
-                title: Text(_formatMes(m)),
-                onTap: () => Navigator.of(ctx).pop(key),
-              );
-            },
-          ),
-        ),
-      ],
-    ),
-  ),
-);
+      ),
+    );
 
     if (selected != null) {
       ref.read(pagosFiltroProvider.notifier).setYearMonth(selected);
@@ -227,10 +217,43 @@ class _PagosPageState extends ConsumerState<PagosPage> {
 
   String _formatMes(DateTime d) {
     const meses = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
     ];
     return '${meses[d.month - 1]} ${d.year}';
+  }
+
+  Future<void> _pickPagoDate(TextEditingController controller) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(controller.text) ?? now,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    controller.text = picked.toIso8601String().split('T').first;
+  }
+
+  String _currency(double amount) => NumberFormat.currency(
+    locale: 'es_DO',
+    symbol: 'RD\$',
+    decimalDigits: 2,
+  ).format(amount);
+
+  double _parseCurrency(String text, {double fallback = 0}) {
+    final clean = text.replaceAll(RegExp(r'[^0-9.]'), '');
+    return double.tryParse(clean) ?? fallback;
   }
 
   Future<void> _cambiarEstado(Pago pago, String nuevoEstado) async {
@@ -284,24 +307,22 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                   hint: const Text('Selecciona un inquilino'),
                   items: inquilinos.map((inquilino) {
                     final id = inquilino['id'] as int;
-                    final nombre =
-                        (inquilino['nombre_apellido'] ?? '').toString();
-                    return DropdownMenuItem(
-                      value: id,
-                      child: Text(nombre),
-                    );
+                    final nombre = (inquilino['nombre_apellido'] ?? '')
+                        .toString();
+                    return DropdownMenuItem(value: id, child: Text(nombre));
                   }).toList(),
                   onChanged: (id) async {
                     if (id == null) return;
-                    final alquiler =
-                        await database.getAlquilerActivoByInquilinoId(id);
+                    final alquiler = await database
+                        .getAlquilerActivoByInquilinoId(id);
                     if (!ctx.mounted) return;
                     setState(() {
                       idInquilinoSeleccionado = id;
-                      final monto = (alquiler?['montoPago'] as num?)?.toDouble() ??
+                      final monto =
+                          (alquiler?['montoPago'] as num?)?.toDouble() ??
                           (alquiler?['importe'] as num?)?.toDouble() ??
                           0;
-                      montoCtrl.text = monto > 0 ? monto.toString() : '';
+                      montoCtrl.text = monto > 0 ? _currency(monto) : '';
                     });
                   },
                 ),
@@ -311,14 +332,17 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                   hint: '2026-09-23',
                   prefixIcon: Icons.calendar_month_rounded,
                   controller: fechaPagoCtrl,
+                  readOnly: true,
+                  onTap: () => _pickPagoDate(fechaPagoCtrl),
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
                   label: 'Monto',
                   hint: '1650.00',
                   prefixIcon: Icons.attach_money_rounded,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   controller: montoCtrl,
                 ),
                 const SizedBox(height: 12),
@@ -333,21 +357,20 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
                   onChanged: (v) => setState(
-                      () => estadoSeleccionado = v ?? estadoSeleccionado),
+                    () => estadoSeleccionado = v ?? estadoSeleccionado,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 AppButton(
                   text: 'Guardar pago',
                   onPressed: () async {
                     final fechaPago = fechaPagoCtrl.text.trim();
-                    final monto =
-                        double.tryParse(montoCtrl.text.trim()) ?? 0;
+                    final monto = _parseCurrency(montoCtrl.text.trim());
 
                     if (idInquilinoSeleccionado == null || fechaPago.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content:
-                              Text('Inquilino y fecha son obligatorios.'),
+                          content: Text('Inquilino y fecha son obligatorios.'),
                         ),
                       );
                       return;
@@ -364,7 +387,8 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                     ref.invalidate(pagosProvider);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Pago guardado localmente.')),
+                        content: Text('Pago guardado localmente.'),
+                      ),
                     );
                   },
                 ),
@@ -377,12 +401,9 @@ class _PagosPageState extends ConsumerState<PagosPage> {
   }
 
   Future<void> _showEditSheet(BuildContext context, Pago pago) async {
-    final idInquilinoCtrl =
-        TextEditingController(text: pago.idInquilino);
-    final fechaPagoCtrl =
-        TextEditingController(text: pago.fechaPago);
-    final montoCtrl =
-        TextEditingController(text: pago.monto.toString());
+    final idInquilinoCtrl = TextEditingController(text: pago.idInquilino);
+    final fechaPagoCtrl = TextEditingController(text: pago.fechaPago);
+    final montoCtrl = TextEditingController(text: _currency(pago.monto));
     String estadoSeleccionado = pago.estado;
 
     await showModalBottomSheet(
@@ -415,13 +436,16 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                   label: 'Fecha de pago',
                   prefixIcon: Icons.calendar_month_rounded,
                   controller: fechaPagoCtrl,
+                  readOnly: true,
+                  onTap: () => _pickPagoDate(fechaPagoCtrl),
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
                   label: 'Monto',
                   prefixIcon: Icons.attach_money_rounded,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   controller: montoCtrl,
                 ),
                 const SizedBox(height: 12),
@@ -436,14 +460,17 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
                   onChanged: (v) => setState(
-                      () => estadoSeleccionado = v ?? estadoSeleccionado),
+                    () => estadoSeleccionado = v ?? estadoSeleccionado,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 AppButton(
                   text: 'Actualizar pago',
                   onPressed: () async {
-                    final monto =
-                        double.tryParse(montoCtrl.text.trim()) ?? pago.monto;
+                    final monto = _parseCurrency(
+                      montoCtrl.text.trim(),
+                      fallback: pago.monto,
+                    );
                     await LocalDatabaseService().updatePago(
                       id: pago.id,
                       idInquilino: idInquilinoCtrl.text.trim(),
@@ -456,7 +483,8 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                     ref.invalidate(pagosProvider);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Pago actualizado localmente.')),
+                        content: Text('Pago actualizado localmente.'),
+                      ),
                     );
                   },
                 ),
@@ -473,17 +501,17 @@ class _PagosPageState extends ConsumerState<PagosPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar pago'),
-        content:
-            const Text('¿Deseas eliminar este pago localmente?'),
+        content: const Text('¿Deseas eliminar este pago localmente?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancelar')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: FilledButton.styleFrom(
-                  backgroundColor: Colors.red),
-              child: const Text('Eliminar')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
         ],
       ),
     );
@@ -542,7 +570,9 @@ class _PagoCard extends StatelessWidget {
       _ => (Colors.orange, Icons.schedule_rounded),
     };
 
-    debugPrint('Inquilino: ${pago.idInquilino}, Nombre: ${pago.inquilinoNombre}');
+    debugPrint(
+      'Inquilino: ${pago.idInquilino}, Nombre: ${pago.inquilinoNombre}',
+    );
     debugPrint('Pago: $pago');
 
     return Card(
@@ -570,18 +600,18 @@ class _PagoCard extends StatelessWidget {
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: estadoColor.withAlpha(25),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: estadoColor.withAlpha(80)),
+                      border: Border.all(color: estadoColor.withAlpha(80)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(estadoIcon,
-                            size: 14, color: estadoColor),
+                        Icon(estadoIcon, size: 14, color: estadoColor),
                         const SizedBox(width: 4),
                         Text(
                           pago.estado.toUpperCase(),
@@ -598,46 +628,46 @@ class _PagoCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               // ── Detalles ──────────────────────────────────────
-Wrap(
-  spacing: 12,
-  runSpacing: 4,
-  children: [
-    Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.person_rounded,
-          size: 14,
-          color: colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          'Inquilino #(${pago.idInquilino}) ${pago.inquilinoNombre}',
-          style: AppTypography.bodySmall.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    ),
-    Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.calendar_today_rounded,
-          size: 14,
-          color: colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          pago.fechaPago,
-          style: AppTypography.bodySmall.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    ),
-  ],
-),
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.person_rounded,
+                        size: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Inquilino #(${pago.idInquilino}) ${pago.inquilinoNombre}',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        pago.fechaPago,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
 
               // ── Detalles ──────────────────────────────────────
               // Row(
@@ -661,51 +691,51 @@ Wrap(
               // ),
               const SizedBox(height: 10),
               // ── Acciones rápidas ──────────────────────────────
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      _QuickAction(
-                        icon: Icons.check_circle_outline_rounded,
-                        label: 'Pagado',
-                        color: Colors.green,
-                        active: pago.estado == 'pagado',
-                        onTap: () => onEstadoChange('pagado'),
-                      ),
-                      _QuickAction(
-                        icon: Icons.schedule_rounded,
-                        label: 'Pendiente',
-                        color: Colors.orange,
-                        active: pago.estado == 'pendiente',
-                        onTap: () => onEstadoChange('pendiente'),
-                      ),
-                      _QuickAction(
-                        icon: Icons.cancel_outlined,
-                        label: 'Vencido',
-                        color: Colors.red,
-                        active: pago.estado == 'vencido',
-                        onTap: () => onEstadoChange('vencido'),
-                      ),
-
-                      IconButton(
-                        onPressed: onEdit,
-                        icon: const Icon(Icons.edit_rounded),
-                        visualDensity: VisualDensity.compact,
-                        iconSize: 20,
-                        tooltip: 'Editar',
-                      ),
-
-                      IconButton(
-                        onPressed: onDelete,
-                        icon: const Icon(Icons.delete_rounded),
-                        color: colorScheme.error,
-                        visualDensity: VisualDensity.compact,
-                        iconSize: 20,
-                        tooltip: 'Eliminar',
-                      ),
-                    ],
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _QuickAction(
+                    icon: Icons.check_circle_outline_rounded,
+                    label: 'Pagado',
+                    color: Colors.green,
+                    active: pago.estado == 'pagado',
+                    onTap: () => onEstadoChange('pagado'),
                   ),
+                  _QuickAction(
+                    icon: Icons.schedule_rounded,
+                    label: 'Pendiente',
+                    color: Colors.orange,
+                    active: pago.estado == 'pendiente',
+                    onTap: () => onEstadoChange('pendiente'),
+                  ),
+                  _QuickAction(
+                    icon: Icons.cancel_outlined,
+                    label: 'Vencido',
+                    color: Colors.red,
+                    active: pago.estado == 'vencido',
+                    onTap: () => onEstadoChange('vencido'),
+                  ),
+
+                  IconButton(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_rounded),
+                    visualDensity: VisualDensity.compact,
+                    iconSize: 20,
+                    tooltip: 'Editar',
+                  ),
+
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_rounded),
+                    color: colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                    iconSize: 20,
+                    tooltip: 'Eliminar',
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -738,9 +768,7 @@ class _QuickAction extends StatelessWidget {
         decoration: BoxDecoration(
           color: active ? color.withAlpha(30) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: active ? color : Colors.transparent,
-          ),
+          border: Border.all(color: active ? color : Colors.transparent),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -752,8 +780,7 @@ class _QuickAction extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 color: active ? color : Colors.grey,
-                fontWeight:
-                    active ? FontWeight.bold : FontWeight.normal,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],

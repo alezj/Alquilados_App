@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
@@ -16,13 +17,25 @@ import '../../../sync/data/datasources/local_database_service.dart';
 import '../../domain/entities/propiedad.dart';
 import '../providers/propiedades_provider.dart';
 
+String _currency(double amount) => NumberFormat.currency(
+  locale: 'es_DO',
+  symbol: 'RD\$',
+  decimalDigits: 2,
+).format(amount);
+
+double _parseCurrency(String text, {double fallback = 0}) {
+  final clean = text.replaceAll(RegExp(r'[^0-9.]'), '');
+  return double.tryParse(clean) ?? fallback;
+}
+
 class PropiedadDetallePage extends ConsumerStatefulWidget {
   const PropiedadDetallePage({super.key, required this.id});
 
   final int id;
 
   @override
-  ConsumerState<PropiedadDetallePage> createState() => _PropiedadDetallePageState();
+  ConsumerState<PropiedadDetallePage> createState() =>
+      _PropiedadDetallePageState();
 }
 
 class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
@@ -46,13 +59,17 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
           ),
           IconButton(
             tooltip: 'Eliminar',
-            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.error,
+            ),
             onPressed: () => _confirmDelete(widget.id),
           ),
         ],
       ),
       body: detalleAsync.when(
-        loading: () => const AppLoading(message: 'Cargando detalles de la propiedad...'),
+        loading: () =>
+            const AppLoading(message: 'Cargando detalles de la propiedad...'),
         error: (error, _) => AppError(
           title: 'Error al cargar la propiedad',
           message: 'No pudimos obtener la información del inmueble.',
@@ -122,7 +139,10 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Cambio rápido de estado', style: AppTypography.titleSmall),
+                    const Text(
+                      'Cambio rápido de estado',
+                      style: AppTypography.titleSmall,
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
@@ -164,7 +184,10 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Información Económica', style: AppTypography.titleSmall),
+                    const Text(
+                      'Información Económica',
+                      style: AppTypography.titleSmall,
+                    ),
                     const SizedBox(height: 14),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -172,14 +195,22 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                         const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Renta mensual', style: AppTypography.labelMedium),
+                            Text(
+                              'Renta mensual',
+                              style: AppTypography.labelMedium,
+                            ),
                             SizedBox(height: 4),
-                            Text('Cobro recurrente', style: AppTypography.bodySmall),
+                            Text(
+                              'Cobro recurrente',
+                              style: AppTypography.bodySmall,
+                            ),
                           ],
                         ),
                         Text(
                           propiedad.precioMensual.toCurrency(),
-                          style: AppTypography.currencyMedium.copyWith(color: AppColors.primary),
+                          style: AppTypography.currencyMedium.copyWith(
+                            color: AppColors.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -187,7 +218,10 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Ingreso anual estimado', style: AppTypography.bodyMedium),
+                        const Text(
+                          'Ingreso anual estimado',
+                          style: AppTypography.bodyMedium,
+                        ),
                         Text(
                           (propiedad.precioMensual * 12).toCurrency(),
                           style: AppTypography.titleSmall,
@@ -208,7 +242,11 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 22),
+                        const Icon(
+                          Icons.location_on_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -230,12 +268,13 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Notas y Observaciones', style: AppTypography.titleSmall),
+                    const Text(
+                      'Notas y Observaciones',
+                      style: AppTypography.titleSmall,
+                    ),
                     const SizedBox(height: 12),
                     Text(
-                      propiedad.notas.isNotEmpty
-                          ? propiedad.notas
-                          : 'No hay notas adicionales registradas para este inmueble.',
+                      propiedad.notas.isNotEmpty ? propiedad.notas : 'No hay notas adicionales registradas para este inmueble.',
                       style: AppTypography.bodyMedium.copyWith(
                         color: propiedad.notas.isNotEmpty
                             ? null
@@ -256,12 +295,20 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () => _confirmDelete(propiedad.id),
-                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                label: const Text('Eliminar propiedad', style: TextStyle(color: AppColors.error)),
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.error,
+                ),
+                label: const Text(
+                  'Eliminar propiedad',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.error),
                   minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -293,7 +340,10 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
       ),
       onSelected: (selected) async {
         if (!selected || isSelected) return;
-        await LocalDatabaseService().updatePropiedadEstado(widget.id, estadoValor);
+        await LocalDatabaseService().updatePropiedadEstado(
+          widget.id,
+          estadoValor,
+        );
         ref.invalidate(propiedadDetalleProvider(widget.id));
         ref.invalidate(propiedadesProvider);
 
@@ -306,12 +356,15 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
   }
 
   StatusBadge _estadoBadge(int estado) => switch (estado) {
-        1 => const StatusBadge(label: 'Disponible', type: StatusBadgeType.success),
-        2 => const StatusBadge(label: 'Alquilada', type: StatusBadgeType.info),
-        3 => const StatusBadge(label: 'Mantenimiento', type: StatusBadgeType.warning),
-        4 => const StatusBadge(label: 'Inactiva', type: StatusBadgeType.neutral),
-        _ => StatusBadge(label: 'Estado $estado', type: StatusBadgeType.neutral),
-      };
+    1 => const StatusBadge(label: 'Disponible', type: StatusBadgeType.success),
+    2 => const StatusBadge(label: 'Alquilada', type: StatusBadgeType.info),
+    3 => const StatusBadge(
+      label: 'Mantenimiento',
+      type: StatusBadgeType.warning,
+    ),
+    4 => const StatusBadge(label: 'Inactiva', type: StatusBadgeType.neutral),
+    _ => StatusBadge(label: 'Estado $estado', type: StatusBadgeType.neutral),
+  };
 
   Widget _syncBadge(String syncState) {
     if (syncState == 'synced') {
@@ -330,8 +383,12 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
 
   Future<void> _showEditDialog(Propiedad propiedad) async {
     final nombreController = TextEditingController(text: propiedad.nombre);
-    final direccionController = TextEditingController(text: propiedad.direccion);
-    final precioController = TextEditingController(text: propiedad.precioMensual.toString());
+    final direccionController = TextEditingController(
+      text: propiedad.direccion,
+    );
+    final precioController = TextEditingController(
+      text: _currency(propiedad.precioMensual),
+    );
     final notasController = TextEditingController(text: propiedad.notas);
     int selectedEstado = propiedad.estado;
 
@@ -353,7 +410,10 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Editar propiedad', style: AppTypography.titleMedium),
+                    const Text(
+                      'Editar propiedad',
+                      style: AppTypography.titleMedium,
+                    ),
                     const SizedBox(height: 16),
                     AppTextField(
                       label: 'Nombre de la propiedad',
@@ -372,12 +432,17 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                       decoration: InputDecoration(
                         labelText: 'Estado del inmueble',
                         prefixIcon: const Icon(Icons.info_outline_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       items: const [
                         DropdownMenuItem(value: 1, child: Text('Disponible')),
                         DropdownMenuItem(value: 2, child: Text('Alquilada')),
-                        DropdownMenuItem(value: 3, child: Text('Mantenimiento')),
+                        DropdownMenuItem(
+                          value: 3,
+                          child: Text('Mantenimiento'),
+                        ),
                         DropdownMenuItem(value: 4, child: Text('Inactiva')),
                       ],
                       onChanged: (val) {
@@ -390,7 +455,9 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                     AppTextField(
                       label: 'Precio mensual',
                       prefixIcon: Icons.attach_money_rounded,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       controller: precioController,
                     ),
                     const SizedBox(height: 12),
@@ -406,11 +473,18 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                       onPressed: () async {
                         final nombre = nombreController.text.trim();
                         final direccion = direccionController.text.trim();
-                        final precio = double.tryParse(precioController.text.trim()) ?? propiedad.precioMensual;
+                        final precio = _parseCurrency(
+                          precioController.text.trim(),
+                          fallback: propiedad.precioMensual,
+                        );
 
                         if (nombre.isEmpty || direccion.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nombre y dirección son obligatorios.')),
+                            const SnackBar(
+                              content: Text(
+                                'Nombre y dirección son obligatorios.',
+                              ),
+                            ),
                           );
                           return;
                         }
@@ -432,7 +506,9 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                         ref.invalidate(propiedadDetalleProvider(widget.id));
                         ref.invalidate(propiedadesProvider);
                         messenger.showSnackBar(
-                          const SnackBar(content: Text('Propiedad actualizada con éxito.')),
+                          const SnackBar(
+                            content: Text('Propiedad actualizada con éxito.'),
+                          ),
                         );
                       },
                     ),
@@ -451,7 +527,9 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminar propiedad'),
-        content: const Text('¿Estás seguro de que deseas eliminar esta propiedad? Esta acción no se puede deshacer.'),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar esta propiedad? Esta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -473,9 +551,8 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
     ref.invalidate(propiedadesProvider);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Propiedad eliminada.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Propiedad eliminada.')));
     context.pop();
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_button.dart';
@@ -17,6 +18,17 @@ import '../../../sync/presentation/providers/sync_provider.dart';
 import '../../domain/entities/propiedad.dart';
 import '../providers/propiedades_provider.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
+
+String _currency(double amount) => NumberFormat.currency(
+  locale: 'es_DO',
+  symbol: 'RD\$',
+  decimalDigits: 2,
+).format(amount);
+
+double _parseCurrency(String text, {double fallback = 0}) {
+  final clean = text.replaceAll(RegExp(r'[^0-9.]'), '');
+  return double.tryParse(clean) ?? fallback;
+}
 
 class PropiedadesPage extends ConsumerStatefulWidget {
   const PropiedadesPage({super.key});
@@ -48,12 +60,16 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
             onPressed: () async {
               await ref.read(syncStateProvider.notifier).syncNow();
               final syncResult = ref.read(syncStateProvider);
-              final result = syncResult.hasValue ? syncResult.requireValue : null;
+              final result = syncResult.hasValue
+                  ? syncResult.requireValue
+                  : null;
               if (!context.mounted) return;
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(result?.message ?? 'Sincronización finalizada.'),
+                  content: Text(
+                    result?.message ?? 'Sincronización finalizada.',
+                  ),
                 ),
               );
             },
@@ -103,7 +119,9 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _PropiedadCard(
                         propiedad: propiedad,
-                        onTap: () => context.push('${AppRoutes.propiedades}/${propiedad.id}'),
+                        onTap: () => context.push(
+                          '${AppRoutes.propiedades}/${propiedad.id}',
+                        ),
                         onEdit: () => _showEditDialog(propiedad),
                         onDelete: () => _deletePropiedad(propiedad.id),
                       ),
@@ -119,8 +137,12 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
 
   Future<void> _showEditDialog(Propiedad propiedad) async {
     final nombreController = TextEditingController(text: propiedad.nombre);
-    final direccionController = TextEditingController(text: propiedad.direccion);
-    final precioController = TextEditingController(text: propiedad.precioMensual.toString());
+    final direccionController = TextEditingController(
+      text: propiedad.direccion,
+    );
+    final precioController = TextEditingController(
+      text: _currency(propiedad.precioMensual),
+    );
     final notasController = TextEditingController(text: propiedad.notas);
     int selectedEstado = propiedad.estado;
 
@@ -142,7 +164,10 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Editar propiedad', style: AppTypography.titleMedium),
+                    const Text(
+                      'Editar propiedad',
+                      style: AppTypography.titleMedium,
+                    ),
                     const SizedBox(height: 16),
                     AppTextField(
                       label: 'Nombre',
@@ -161,12 +186,17 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       decoration: InputDecoration(
                         labelText: 'Estado del inmueble',
                         prefixIcon: const Icon(Icons.info_outline_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       items: const [
                         DropdownMenuItem(value: 1, child: Text('Disponible')),
                         DropdownMenuItem(value: 2, child: Text('Alquilada')),
-                        DropdownMenuItem(value: 3, child: Text('Mantenimiento')),
+                        DropdownMenuItem(
+                          value: 3,
+                          child: Text('Mantenimiento'),
+                        ),
                         DropdownMenuItem(value: 4, child: Text('Inactiva')),
                       ],
                       onChanged: (val) {
@@ -179,7 +209,9 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                     AppTextField(
                       label: 'Precio mensual',
                       prefixIcon: Icons.attach_money_rounded,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       controller: precioController,
                     ),
                     const SizedBox(height: 12),
@@ -195,11 +227,18 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       onPressed: () async {
                         final nombre = nombreController.text.trim();
                         final direccion = direccionController.text.trim();
-                        final precio = double.tryParse(precioController.text.trim()) ?? propiedad.precioMensual;
+                        final precio = _parseCurrency(
+                          precioController.text.trim(),
+                          fallback: propiedad.precioMensual,
+                        );
 
                         if (nombre.isEmpty || direccion.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nombre y dirección son obligatorios.')),
+                            const SnackBar(
+                              content: Text(
+                                'Nombre y dirección son obligatorios.',
+                              ),
+                            ),
                           );
                           return;
                         }
@@ -222,7 +261,9 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                         ref.invalidate(propiedadDetalleProvider(propiedad.id));
                         ref.invalidate(dashboardSummaryProvider);
                         messenger.showSnackBar(
-                          const SnackBar(content: Text('Propiedad actualizada localmente.')),
+                          const SnackBar(
+                            content: Text('Propiedad actualizada localmente.'),
+                          ),
                         );
                       },
                     ),
@@ -239,7 +280,7 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
   Future<void> _showCreateDialog() async {
     final nombreController = TextEditingController();
     final direccionController = TextEditingController();
-    final precioController = TextEditingController(text: '0');
+    final precioController = TextEditingController(text: _currency(0));
     final notasController = TextEditingController();
     int selectedEstado = 1;
 
@@ -261,7 +302,10 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Nueva propiedad', style: AppTypography.titleMedium),
+                    const Text(
+                      'Nueva propiedad',
+                      style: AppTypography.titleMedium,
+                    ),
                     const SizedBox(height: 16),
                     AppTextField(
                       label: 'Nombre',
@@ -282,12 +326,17 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       decoration: InputDecoration(
                         labelText: 'Estado inicial',
                         prefixIcon: const Icon(Icons.info_outline_rounded),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       items: const [
                         DropdownMenuItem(value: 1, child: Text('Disponible')),
                         DropdownMenuItem(value: 2, child: Text('Alquilada')),
-                        DropdownMenuItem(value: 3, child: Text('Mantenimiento')),
+                        DropdownMenuItem(
+                          value: 3,
+                          child: Text('Mantenimiento'),
+                        ),
                         DropdownMenuItem(value: 4, child: Text('Inactiva')),
                       ],
                       onChanged: (val) {
@@ -301,7 +350,9 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       label: 'Precio mensual',
                       hint: '1650',
                       prefixIcon: Icons.attach_money_rounded,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       controller: precioController,
                     ),
                     const SizedBox(height: 12),
@@ -318,11 +369,17 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                       onPressed: () async {
                         final nombre = nombreController.text.trim();
                         final direccion = direccionController.text.trim();
-                        final precio = double.tryParse(precioController.text.trim()) ?? 0;
+                        final precio = _parseCurrency(
+                          precioController.text.trim(),
+                        );
 
                         if (nombre.isEmpty || direccion.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nombre y dirección son obligatorios.')),
+                            const SnackBar(
+                              content: Text(
+                                'Nombre y dirección son obligatorios.',
+                              ),
+                            ),
                           );
                           return;
                         }
@@ -343,7 +400,9 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
                         ref.invalidate(propiedadesProvider);
                         ref.invalidate(dashboardSummaryProvider);
                         messenger.showSnackBar(
-                          const SnackBar(content: Text('Propiedad guardada localmente.')),
+                          const SnackBar(
+                            content: Text('Propiedad guardada localmente.'),
+                          ),
                         );
                       },
                     ),

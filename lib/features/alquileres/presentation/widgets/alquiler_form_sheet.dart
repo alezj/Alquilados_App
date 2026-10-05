@@ -37,8 +37,11 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     if (widget.alquiler != null) {
       _propiedadController.value = widget.alquiler!.propiedadId;
       _inquilinoController.value = widget.alquiler!.inquilinoId;
-      _montoPagoController.text = _currency(_toDouble(widget.alquiler!.montoPago));
-      _cantidadDepositosController.text = widget.alquiler!.cantidadDepositos.toString();
+      _montoPagoController.text = _currency(
+        _toDouble(widget.alquiler!.montoPago),
+      );
+      _cantidadDepositosController.text = widget.alquiler!.cantidadDepositos
+          .toString();
       _diaPagoController.text = widget.alquiler!.diaPago.toString();
       _fechaInicioController.text = widget.alquiler!.fechaInicio;
       _fechaFinController.text = widget.alquiler!.fechaFin ?? '';
@@ -76,7 +79,11 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
   }
 
   String _currency(double amount) {
-    final format = NumberFormat.currency(locale: 'es_DO', symbol: 'RD\$', decimalDigits: 2);
+    final format = NumberFormat.currency(
+      locale: 'es_DO',
+      symbol: 'RD\$',
+      decimalDigits: 2,
+    );
     return format.format(amount);
   }
 
@@ -100,13 +107,16 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.tryParse(isInicio
-              ? (_fechaInicioController.text.isNotEmpty
-                  ? _fechaInicioController.text
-                  : now.toIso8601String())
-              : (_fechaFinController.text.isNotEmpty
-                  ? _fechaFinController.text
-                  : now.toIso8601String())) ??
+      initialDate:
+          DateTime.tryParse(
+            isInicio
+                ? (_fechaInicioController.text.isNotEmpty
+                      ? _fechaInicioController.text
+                      : now.toIso8601String())
+                : (_fechaFinController.text.isNotEmpty
+                      ? _fechaFinController.text
+                      : now.toIso8601String()),
+          ) ??
           now,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
@@ -128,7 +138,8 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     final propiedadId = _propiedadController.value;
     final inquilinoId = _inquilinoController.value;
     final montoPago = _parseCurrency(_montoPagoController.text.trim());
-    final cantidadDepositos = int.tryParse(_cantidadDepositosController.text.trim()) ?? 0;
+    final cantidadDepositos =
+        int.tryParse(_cantidadDepositosController.text.trim()) ?? 0;
     final diaPago = int.tryParse(_diaPagoController.text.trim()) ?? 1;
     final fechaInicio = _fechaInicioController.text.trim();
     final fechaFin = _fechaFinController.text.trim();
@@ -149,7 +160,9 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     }
 
     if (cantidadDepositos < 0 || diaPago < 1 || diaPago > 31) {
-      _showMessage('La cantidad de depósitos debe ser 0 o mayor y el día de pago debe estar entre 1 y 31.');
+      _showMessage(
+        'La cantidad de depósitos debe ser 0 o mayor y el día de pago debe estar entre 1 y 31.',
+      );
       return;
     }
 
@@ -192,9 +205,8 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -212,7 +224,9 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.alquiler == null ? 'Nuevo alquiler' : 'Editar alquiler';
+    final title = widget.alquiler == null
+        ? 'Nuevo alquiler'
+        : 'Editar alquiler';
 
     return Padding(
       padding: EdgeInsets.only(
@@ -238,7 +252,10 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                 valueListenable: _propiedadController,
                 builder: (_, propiedadId, _) {
                   return DropdownButtonFormField<int>(
-                    initialValue: _propiedades.any((item) => (item['id'] as int?) == propiedadId)
+                    initialValue:
+                        _propiedades.any(
+                          (item) => (item['id'] as int?) == propiedadId,
+                        )
                         ? propiedadId
                         : null,
                     decoration: const InputDecoration(
@@ -249,7 +266,9 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                       for (final propiedad in _propiedades)
                         DropdownMenuItem<int>(
                           value: (propiedad['id'] as int?) ?? 0,
-                          child: Text((propiedad['nombre'] ?? 'Propiedad') as String),
+                          child: Text(
+                            (propiedad['nombre'] ?? 'Propiedad') as String,
+                          ),
                         ),
                     ],
                     onChanged: (value) {
@@ -266,7 +285,10 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                 valueListenable: _inquilinoController,
                 builder: (_, inquilinoId, _) {
                   return DropdownButtonFormField<int>(
-                    initialValue: _inquilinos.any((item) => (item['id'] as int?) == inquilinoId)
+                    initialValue:
+                        _inquilinos.any(
+                          (item) => (item['id'] as int?) == inquilinoId,
+                        )
                         ? inquilinoId
                         : null,
                     decoration: const InputDecoration(
@@ -277,7 +299,10 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                       for (final inquilino in _inquilinos)
                         DropdownMenuItem<int>(
                           value: (inquilino['id'] as int?) ?? 0,
-                          child: Text((inquilino['nombre_apellido'] ?? 'Inquilino') as String),
+                          child: Text(
+                            (inquilino['nombre_apellido'] ?? 'Inquilino')
+                                as String,
+                          ),
                         ),
                     ],
                     onChanged: (value) {
@@ -309,28 +334,40 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                 controller: _montoPagoController,
                 label: 'Monto a pagar por el inquilino',
                 prefixIcon: Icons.attach_money_rounded,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
               const SizedBox(height: 12),
               AppTextField(
                 controller: _cantidadDepositosController,
                 label: 'Cantidad de depósitos',
                 prefixIcon: Icons.numbers_rounded,
-                keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: false,
+                ),
               ),
               const SizedBox(height: 12),
               AppTextField(
                 controller: _diaPagoController,
                 label: 'Día de pago',
                 prefixIcon: Icons.calendar_today_rounded,
-                keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: false,
+                ),
               ),
               const SizedBox(height: 12),
               ValueListenableBuilder<String>(
                 valueListenable: _estadoController,
                 builder: (_, estado, _) {
                   return DropdownButtonFormField<String>(
-                    initialValue: ['Activo', 'Finalizado', 'Pendiente', 'Cancelado'].contains(estado)
+                    initialValue:
+                        [
+                          'Activo',
+                          'Finalizado',
+                          'Pendiente',
+                          'Cancelado',
+                        ].contains(estado)
                         ? estado
                         : 'Activo',
                     decoration: const InputDecoration(
@@ -339,9 +376,18 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                     ),
                     items: const [
                       DropdownMenuItem(value: 'Activo', child: Text('Activo')),
-                      DropdownMenuItem(value: 'Finalizado', child: Text('Finalizado')),
-                      DropdownMenuItem(value: 'Pendiente', child: Text('Pendiente')),
-                      DropdownMenuItem(value: 'Cancelado', child: Text('Cancelado')),
+                      DropdownMenuItem(
+                        value: 'Finalizado',
+                        child: Text('Finalizado'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Pendiente',
+                        child: Text('Pendiente'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Cancelado',
+                        child: Text('Cancelado'),
+                      ),
                     ],
                     onChanged: (value) {
                       if (value != null) {
@@ -353,7 +399,9 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
               ),
               const SizedBox(height: 20),
               AppButton(
-                text: widget.alquiler == null ? 'Guardar alquiler' : 'Actualizar alquiler',
+                text: widget.alquiler == null
+                    ? 'Guardar alquiler'
+                    : 'Actualizar alquiler',
                 onPressed: _save,
               ),
             ],
