@@ -1,5 +1,131 @@
 # Alquilados App
 
+Aplicación Flutter para la gestión local de alquileres, propiedades, inquilinos y pagos. El proyecto sigue un enfoque **local-first**: SQLite es la fuente de verdad y la aplicación puede operar sin una API remota.
+## Estado del proyecto
+
+El MVP actual permite administrar la operación básica de inmuebles y contratos desde una interfaz Material 3. La autenticación, el backend remoto y la sincronización con servidor todavía están pendientes.
+
+## Funcionalidades
+
+- Dashboard con resumen de propiedades, inquilinos y alquileres.
+- Propiedades: listado, detalle y estado local.
+- Inquilinos: creación, edición y consulta local.
+- Alquileres:
+  - listado y búsqueda por propiedad, inquilino o estado;
+  - filtros por estado;
+  - creación, edición, detalle y eliminación de contratos;
+  - propiedad e inquilino asociados;
+  - importe, monto acordado, depósitos y día mensual de pago;
+  - validación del día de pago entre 1 y 31;
+  - resumen financiero y pagos relacionados.
+- Pagos: listado, filtro por estado, edición, cambio de estado y eliminación.
+- Generación de comprobantes de pago no fiscales en PDF.
+- Navegación mediante rutas y navegación inferior.
+- Tema claro y oscuro, con una pantalla de validación del sistema de diseño.
+- Datos semilla para facilitar las pruebas locales.
+
+## Requisitos
+
+- Flutter compatible con Dart `^3.13.3`.
+- Android SDK para ejecutar en Android.
+- Xcode para ejecutar en iOS o macOS.
+- Chrome para ejecutar la versión Web.
+
+Comprueba la instalación con:
+
+```powershell
+flutter doctor
+```
+
+## Instalación y ejecución
+
+Desde la raíz del proyecto:
+
+```powershell
+flutter pub get
+flutter run
+```
+
+Para elegir una plataforma concreta:
+
+```powershell
+flutter devices
+flutter run -d chrome
+flutter run -d windows
+```
+
+La aplicación inicia en la pantalla de login. El flujo de autenticación real aún no está conectado a un servicio remoto.
+
+## Pruebas y análisis
+
+Ejecuta el análisis estático y las pruebas con:
+
+```powershell
+flutter analyze
+flutter test
+```
+
+Las pruebas actuales cubren el renderizado inicial de la pantalla de login, modelos de dominio, utilidades y la generación de comprobantes de pago.
+
+## Arquitectura
+
+La estructura principal está organizada por capas y funcionalidades:
+
+- `lib/core/`: configuración, errores, red, rutas, almacenamiento, tema, utilidades y widgets compartidos.
+- `lib/features/`: módulos `dashboard`, `propiedades`, `inquilinos`, `pagos`, `alquileres`, `sync`, `configuracion` y `login`.
+- `lib/features/sync/data/datasources/local_database_service.dart`: conexión, creación y migración de la base local.
+- `lib/features/alquileres/`: entidad, providers, listado, formulario y detalle de alquileres.
+
+Las dependencias principales son:
+
+- `flutter_riverpod` para el estado;
+- `go_router` para la navegación;
+- `sqflite` y `sqflite_common_ffi_web` para SQLite en plataformas nativas y Web;
+- `dio` para la futura comunicación HTTP;
+- `pdf` y `printing` para comprobantes.
+
+## Persistencia local
+
+La base de datos contiene, entre otras, las tablas:
+
+- `propiedades`
+- `inquilinos`
+- `pagos`
+- `alquileres`
+- `sync_log`
+
+La aplicación crea la base automáticamente y aplica migraciones incrementales. En plataformas nativas utiliza el archivo `alquilados_local.db3` dentro del directorio devuelto por `path_provider`. En Web se utiliza almacenamiento web con ese mismo nombre lógico; no se crea un archivo normal en la carpeta del proyecto.
+
+La tabla `alquileres` relaciona propiedad e inquilino y almacena fechas de vigencia, importe, monto de pago, cantidad de depósitos, día de pago y estado.
+
+## Rutas principales
+
+- `/login`: pantalla inicial.
+- `/dashboard`: panel principal.
+- `/alquileres`: listado de alquileres.
+- `/alquileres/:id`: detalle de un alquiler.
+- `/propiedades` y `/propiedades/:id`: propiedades y detalle.
+- `/inquilinos` y `/inquilinos/:id`: inquilinos y detalle.
+- `/pagos` y `/pagos/:id`: pagos y detalle.
+- `/configuracion`: configuración.
+
+## Trabajo pendiente
+
+- Autenticación real y control de sesión.
+- Backend/API remota y sincronización con servidor.
+- Contratos REST formales y manejo de conflictos de sincronización.
+- Validaciones de negocio avanzadas.
+- Facturación fiscal o tributaria legal.
+- Distribución y despliegue productivo.
+
+## Principios del proyecto
+
+- Priorizar una experiencia local funcional sin depender de una API no estabilizada.
+- Mantener compatibilidad con los módulos existentes.
+- Reutilizar la estructura por funcionalidades y la lógica local compartida.
+- Avanzar de forma incremental sin romper la operación anterior.
+# Alquilados App
+
 Aplicación Flutter para la gestión local de alquileres, propiedades, inquilinos y pagos. El proyecto sigue un enfoque local-first con SQLite como fuente de verdad, y está estructurado con `Flutter + Riverpod + GoRouter + SQLite`.
 
 ## Estado actual
