@@ -459,6 +459,32 @@ class LocalDatabaseService {
     });
   }
 
+  Future<List<Map<String, dynamic>>> getPagosConDetalles() async {
+    final db = await database;
+    await ensureDatabaseReady();
+    return db.rawQuery('''
+      SELECT p.*, i.nombre_apellido AS inquilino_nombre
+      FROM pagos p
+      LEFT JOIN inquilinos i ON i.id = CAST(p.id_inquilino AS INTEGER)
+      ORDER BY p.fecha_pago DESC, p.id DESC
+    ''');
+  }
+
+  Future<Map<String, dynamic>?> getAlquilerActivoByInquilinoId(
+    int inquilinoId,
+  ) async {
+    final db = await database;
+    await ensureDatabaseReady();
+    final rows = await db.query(
+      'alquileres',
+      where: 'inquilino_id = ? AND estado = ?',
+      whereArgs: [inquilinoId, 'Activo'],
+      orderBy: 'fecha_inicio DESC, id DESC',
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
   Future<int> insertAlquiler({
     required int propiedadId,
     required int inquilinoId,
@@ -719,6 +745,18 @@ class LocalDatabaseService {
   Future<Map<String, dynamic>?> getPagoById(int id) async {
     final db = await database;
     final rows = await db.query('pagos', where: 'id = ?', whereArgs: [id], limit: 1);
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<Map<String, dynamic>?> getPagoByIdConDetalle(int id) async {
+    final db = await database;
+    final rows = await db.rawQuery('''
+      SELECT p.*, i.nombre_apellido AS inquilino_nombre
+      FROM pagos p
+      LEFT JOIN inquilinos i ON i.id = CAST(p.id_inquilino AS INTEGER)
+      WHERE p.id = ?
+      LIMIT 1
+    ''', [id]);
     return rows.isEmpty ? null : rows.first;
   }
 

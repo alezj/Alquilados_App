@@ -26,7 +26,7 @@ Pago _rowToPago(Map<String, dynamic> row) => Pago(
 final pagosProvider = FutureProvider<List<Pago>>((ref) async {
   final database = LocalDatabaseService();
   await database.ensureSeedData();
-  final rows = await database.getAllRows('pagos');
+  final rows = await database.getPagosConDetalles();
   return rows.map(_rowToPago).toList(growable: false);
 });
 
@@ -34,7 +34,7 @@ final pagosProvider = FutureProvider<List<Pago>>((ref) async {
 final pagoDetalleProvider =
     FutureProvider.family<Pago?, int>((ref, id) async {
   final database = LocalDatabaseService();
-  final row = await database.getPagoById(id);
+  final row = await database.getPagoByIdConDetalle(id);
   return row == null ? null : _rowToPago(row);
 });
 
@@ -126,6 +126,7 @@ final pagosFiltradosProvider = FutureProvider<List<Pago>>((ref) async {
         .where(
           (p) =>
               p.idInquilino.toLowerCase().contains(q) ||
+              p.inquilinoNombre.toLowerCase().contains(q) ||
               p.monto.toString().contains(q) ||
               p.estado.toLowerCase().contains(q),
         )

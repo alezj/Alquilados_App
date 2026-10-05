@@ -18,7 +18,8 @@ El MVP actual permite administrar la operación básica de inmuebles y contratos
   - importe, monto acordado, depósitos y día mensual de pago;
   - validación del día de pago entre 1 y 31;
   - resumen financiero y pagos relacionados.
-- Pagos: listado, filtro por estado, edición, cambio de estado y eliminación.
+- Pagos: listado con nombre del inquilino, búsqueda por nombre o ID, filtro por estado, edición, cambio de estado y eliminación.
+- Creación de pagos mediante selección de inquilino; el monto se carga desde el alquiler activo (`montoPago`, usando `importe` como respaldo).
 - Generación de comprobantes de pago no fiscales en PDF.
 - Navegación mediante rutas y navegación inferior.
 - Tema claro y oscuro, con una pantalla de validación del sistema de diseño.
@@ -141,10 +142,13 @@ La app ya incluye la base técnica operativa para gestión inmobiliaria y el mó
 - Módulo de inquilinos con edición y consulta local.
 - Módulo de pagos con:
   - listado,
+  - nombre del inquilino asociado,
+  - búsqueda por nombre o ID del inquilino,
   - filtro por estado,
   - edición local,
   - cambio de estado,
   - eliminación,
+  - creación mediante selector de inquilinos y carga automática del monto del alquiler activo,
   - comprobante no fiscal.
 - Módulo de alquileres con:
   - listado,
@@ -195,6 +199,8 @@ La tabla `alquileres` incluye, entre otros, estos campos:
 - `cantidadDepositos`: cantidad de depósitos.
 - `diaPago`: día del mes previsto para el pago (entre 1 y 31 en el formulario).
 - `estado`: estado del alquiler.
+
+Al crear un pago, la aplicación permite seleccionar el inquilino por nombre. A continuación consulta su alquiler activo y utiliza `montoPago` como monto mensual; si no está definido, utiliza `importe`. Los pagos existentes muestran también el nombre del inquilino mediante la relación con la tabla `inquilinos`.
 
 ## Módulo de alquileres
 

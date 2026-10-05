@@ -245,11 +245,14 @@ class _PagosPageState extends ConsumerState<PagosPage> {
   }
 
   Future<void> _showCreateSheet(BuildContext context) async {
-    final idInquilinoCtrl = TextEditingController();
+    final database = LocalDatabaseService();
+    final inquilinos = await database.getAllRows('inquilinos');
+    if (!context.mounted) return;
     final fechaPagoCtrl = TextEditingController(
       text: DateTime.now().toIso8601String().substring(0, 10),
     );
     final montoCtrl = TextEditingController();
+    int? idInquilinoSeleccionado;
     String estadoSeleccionado = 'pendiente';
 
     await showModalBottomSheet(
@@ -271,12 +274,36 @@ class _PagosPageState extends ConsumerState<PagosPage> {
               children: [
                 const Text('Nuevo pago', style: AppTypography.titleMedium),
                 const SizedBox(height: 16),
-                AppTextField(
-                  label: 'ID inquilino',
-                  hint: '1',
-                  prefixIcon: Icons.person_rounded,
-                  keyboardType: TextInputType.number,
-                  controller: idInquilinoCtrl,
+                DropdownButtonFormField<int>(
+                  initialValue: idInquilinoSeleccionado,
+                  decoration: const InputDecoration(
+                    labelText: 'Inquilino',
+                    prefixIcon: Icon(Icons.person_rounded),
+                    border: OutlineInputBorder(),
+                  ),
+                  hint: const Text('Selecciona un inquilino'),
+                  items: inquilinos.map((inquilino) {
+                    final id = inquilino['id'] as int;
+                    final nombre =
+                        (inquilino['nombre_apellido'] ?? '').toString();
+                    return DropdownMenuItem(
+                      value: id,
+                      child: Text(nombre),
+                    );
+                  }).toList(),
+                  onChanged: (id) async {
+                    if (id == null) return;
+                    final alquiler =
+                        await database.getAlquilerActivoByInquilinoId(id);
+                    if (!ctx.mounted) return;
+                    setState(() {
+                      idInquilinoSeleccionado = id;
+                      final monto = (alquiler?['montoPago'] as num?)?.toDouble() ??
+                          (alquiler?['importe'] as num?)?.toDouble() ??
+                          0;
+                      montoCtrl.text = monto > 0 ? monto.toString() : '';
+                    });
+                  },
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
@@ -312,23 +339,22 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                 AppButton(
                   text: 'Guardar pago',
                   onPressed: () async {
-                    final idInquilino = idInquilinoCtrl.text.trim();
                     final fechaPago = fechaPagoCtrl.text.trim();
                     final monto =
                         double.tryParse(montoCtrl.text.trim()) ?? 0;
 
-                    if (idInquilino.isEmpty || fechaPago.isEmpty) {
+                    if (idInquilinoSeleccionado == null || fechaPago.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content:
-                              Text('ID de inquilino y fecha son obligatorios.'),
+                              Text('Inquilino y fecha son obligatorios.'),
                         ),
                       );
                       return;
                     }
 
                     await LocalDatabaseService().insertPago(
-                      idInquilino: idInquilino,
+                      idInquilino: idInquilinoSeleccionado.toString(),
                       fechaPago: fechaPago,
                       monto: monto,
                       estado: estadoSeleccionado,
@@ -516,6 +542,9 @@ class _PagoCard extends StatelessWidget {
       _ => (Colors.orange, Icons.schedule_rounded),
     };
 
+    debugPrint('Inquilino: ${pago.idInquilino}, Nombre: ${pago.inquilinoNombre}');
+    debugPrint('Pago: $pago');
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -609,6 +638,7 @@ Wrap(
     ),
   ],
 ),
+
               // ── Detalles ──────────────────────────────────────
               // Row(
               //   children: [
