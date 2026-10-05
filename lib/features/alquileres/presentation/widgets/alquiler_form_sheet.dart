@@ -37,7 +37,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     if (widget.alquiler != null) {
       _propiedadController.value = widget.alquiler!.propiedadId;
       _inquilinoController.value = widget.alquiler!.inquilinoId;
-      _montoPagoController.text = widget.alquiler!.montoPago.toString();
+      _montoPagoController.text = _currency(_toDouble(widget.alquiler!.montoPago));
       _cantidadDepositosController.text = widget.alquiler!.cantidadDepositos.toString();
       _diaPagoController.text = widget.alquiler!.diaPago.toString();
       _fechaInicioController.text = widget.alquiler!.fechaInicio;
@@ -62,7 +62,38 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
       if (_inquilinoController.value == 0 && _inquilinos.isNotEmpty) {
         _inquilinoController.value = (_inquilinos.first['id'] as int?) ?? 0;
       }
+
+      // Solo al crear: al editar se respeta el monto ya guardado
+      if (widget.alquiler == null) {
+        _aplicarPrecioMensual(_propiedadController.value);
+      }
     });
+  }
+
+  double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  String _currency(double amount) {
+    final format = NumberFormat.currency(locale: 'es_DO', symbol: 'RD\$', decimalDigits: 2);
+    return format.format(amount);
+  }
+
+  double? _parseCurrency(String text) {
+    // Deja solo dígitos y punto decimal: "RD$25,000.00" -> "25000.00"
+    final clean = text.replaceAll(RegExp(r'[^0-9.]'), '');
+    return double.tryParse(clean);
+  }
+
+  void _aplicarPrecioMensual(int propiedadId) {
+    final propiedad = _propiedades.firstWhere(
+      (item) => (item['id'] as int?) == propiedadId,
+      orElse: () => <String, dynamic>{},
+    );
+
+    final precio = _toDouble(propiedad['precio_mensual']);
+    _montoPagoController.text = precio > 0 ? _currency(precio) : '';
   }
 
   Future<void> _pickDate({required bool isInicio}) async {
@@ -96,7 +127,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
   Future<void> _save() async {
     final propiedadId = _propiedadController.value;
     final inquilinoId = _inquilinoController.value;
-    final montoPago = double.tryParse(_montoPagoController.text.trim());
+    final montoPago = _parseCurrency(_montoPagoController.text.trim());
     final cantidadDepositos = int.tryParse(_cantidadDepositosController.text.trim()) ?? 0;
     final diaPago = int.tryParse(_diaPagoController.text.trim()) ?? 1;
     final fechaInicio = _fechaInicioController.text.trim();
@@ -222,24 +253,11 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                         ),
                     ],
                     onChanged: (value) {
-  if (value != null) {
-    _propiedadController.value = value;
-
-    final propiedad = _propiedades.firstWhere(
-      (item) => (item['id'] as int?) == value,
-      orElse: () => <String, dynamic>{},
-    );
-
-debugPrint('PROPIEDAD: $propiedad');
-  debugPrint('PRECIO MENSUAL: ${propiedad['precio_mensual']}');
-
-    final precioMensual = _currency(propiedad['precio_mensual']);
-
-    if (precioMensual != null) {
-      _montoPagoController.text = precioMensual;
-    }
-  }
-},
+                      if (value != null) {
+                        _propiedadController.value = value;
+                        _aplicarPrecioMensual(value);
+                      }
+                    },
                   );
                 },
               ),
@@ -344,10 +362,4 @@ debugPrint('PROPIEDAD: $propiedad');
       ),
     );
   }
-
-  String _currency(double amount) {
-    final format = NumberFormat.currency(locale: 'es_DO', symbol: 'RD\$', decimalDigits: 2);
-    return format.format(amount);
-  }
-
 }
