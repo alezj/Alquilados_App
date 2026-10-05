@@ -7,6 +7,7 @@ El MVP actual permite administrar la operación básica de inmuebles y contratos
 
 ## Funcionalidades
 
+
 - Dashboard con resumen de propiedades, inquilinos y alquileres.
 - Propiedades: listado, detalle y estado local.
 - Inquilinos: creación, edición y consulta local.
