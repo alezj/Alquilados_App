@@ -249,7 +249,7 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
   }
 
   String _currency(double amount) {
-    final format = NumberFormat.currency(locale: 'es_DO', symbol: 'RD\$', decimalDigits: 2);
+    final format = NumberFormat.currency(locale: 'en_US', symbol: 'RD\$', decimalDigits: 2);
     return format.format(amount);
   }
 }

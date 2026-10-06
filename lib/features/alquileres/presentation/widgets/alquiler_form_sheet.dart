@@ -80,9 +80,10 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
 
   String _currency(double amount) {
     final format = NumberFormat.currency(
-      locale: 'es_DO',
+      locale: 'en_US',
+      //locale: 'es_DO',
       symbol: 'RD\$',
-      decimalDigits: 2,
+      decimalDigits: 0,
     );
     return format.format(amount);
   }

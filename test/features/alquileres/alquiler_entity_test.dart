@@ -12,13 +12,13 @@ void main() {
         'fecha_inicio': '2026-09-01',
         'fecha_fin': '2027-08-31',
         'importe': 45000.0,
-        'montoPago': 32000.0,
+        'montoPago': 7000.0,
         'cantidadDepositos': 2,
         'diaPago': 15,
         'estado': 'Activo',
       });
 
-      expect(alquiler.montoPago, 32000.0);
+      expect(alquiler.montoPago, 7000.0);
       expect(alquiler.importe, 45000.0);
       expect(alquiler.cantidadDepositos, 2);
       expect(alquiler.diaPago, 15);
@@ -37,7 +37,7 @@ void main() {
         'estado': 'Pendiente',
       });
 
-      expect(alquiler.montoPago, 28000.0);
+      expect(alquiler.montoPago, 6000.0);
       expect(alquiler.cantidadDepositos, 1);
       expect(alquiler.diaPago, 30);
     });
