@@ -94,6 +94,10 @@ class PagoDetallePage extends ConsumerWidget {
                       icon: Icons.person_rounded,
                       label: 'Inquilino ID',
                       value: pago.idInquilino,
+                    ),_InfoRow(
+                      icon: Icons.person_rounded,
+                      label: 'Inquilino',
+                      value: pago.inquilinoNombre,
                     ),
                     _InfoRow(
                       icon: Icons.calendar_month_rounded,
@@ -304,7 +308,7 @@ class PagoDetallePage extends ConsumerWidget {
   }
 
   String _currency(double amount) => NumberFormat.currency(
-    locale: 'es_DO',
+    locale: 'es_US',
     symbol: 'RD\$',
     decimalDigits: 2,
   ).format(amount);
