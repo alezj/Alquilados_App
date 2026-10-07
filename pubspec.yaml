@@ -1,7 +1,7 @@
 name: alquilados_app
 description: "Aplicación móvil de gestión de alquileres e inmuebles"
 publish_to: 'none'
-version: 0.2.0+1
+version: 0.2.1+1
 
 environment:
   sdk: ^3.13.3

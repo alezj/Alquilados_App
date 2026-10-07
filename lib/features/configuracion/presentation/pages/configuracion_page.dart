@@ -68,11 +68,11 @@ class ConfiguracionPage extends ConsumerWidget {
                 ),
               ),
 
-              
+              // Boton de cerrar sesión
               const Divider(height: 1),
               const ListTile(
-                leading: Icon(Icons.sync_rounded),
-                title: Text('Cerrar sesion'),
+                leading: Icon(Icons.logout_rounded),
+                title: Text('Cerrar sesión'),
                 subtitle: Text('Cerrar la sesión actual de la aplicación.'),
               ),
               Padding(
