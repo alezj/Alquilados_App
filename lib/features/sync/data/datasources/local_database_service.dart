@@ -5,7 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class LocalDatabaseService {
-  static final LocalDatabaseService _instance = LocalDatabaseService._internal();
+  static final LocalDatabaseService _instance =
+      LocalDatabaseService._internal();
 
   factory LocalDatabaseService() => _instance;
 
@@ -39,13 +40,43 @@ class LocalDatabaseService {
       )
     ''');
 
-    await _addColumnIfNotExists(db, 'alquileres', 'montoPago', 'REAL DEFAULT 0');
-    await db.rawUpdate('UPDATE alquileres SET montoPago = importe WHERE montoPago IS NULL OR montoPago = 0');
-    await _addColumnIfNotExists(db, 'alquileres', 'cantidadDepositos', 'INTEGER DEFAULT 0');
-    await _addColumnIfNotExists(db, 'alquileres', 'diaPago', 'INTEGER DEFAULT 1');
+    await _addColumnIfNotExists(
+      db,
+      'alquileres',
+      'montoPago',
+      'REAL DEFAULT 0',
+    );
+    await db.rawUpdate(
+      'UPDATE alquileres SET montoPago = importe WHERE montoPago IS NULL OR montoPago = 0',
+    );
+    await _addColumnIfNotExists(
+      db,
+      'alquileres',
+      'cantidadDepositos',
+      'INTEGER DEFAULT 0',
+    );
+    await _addColumnIfNotExists(
+      db,
+      'alquileres',
+      'diaPago',
+      'INTEGER DEFAULT 1',
+    );
     await _addColumnIfNotExists(db, 'pagos', 'id_alquiler', 'INTEGER');
     await _addColumnIfNotExists(db, 'pagos', 'alquiler_id', 'INTEGER');
     await _addColumnIfNotExists(db, 'pagos', 'periodo', 'TEXT');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS mantenimientos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        propiedad_id INTEGER NOT NULL,
+        descripcion TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        costo REAL NOT NULL DEFAULT 0,
+        estado TEXT NOT NULL DEFAULT 'Pendiente',
+        updated_at TEXT DEFAULT (datetime('now')),
+        synced_at TEXT,
+        sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
+      )
+    ''');
   }
 
   Future<Database> _initDatabase() async {
@@ -55,7 +86,7 @@ class LocalDatabaseService {
 
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
     );
@@ -124,6 +155,20 @@ class LocalDatabaseService {
     ''');
 
     await db.execute('''
+      CREATE TABLE mantenimientos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        propiedad_id INTEGER NOT NULL,
+        descripcion TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        costo REAL NOT NULL DEFAULT 0,
+        estado TEXT NOT NULL DEFAULT 'Pendiente',
+        updated_at TEXT DEFAULT (datetime('now')),
+        synced_at TEXT,
+        sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
+      )
+    ''');
+
+    await db.execute('''
       CREATE TABLE sync_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         entity_name TEXT NOT NULL,
@@ -135,7 +180,11 @@ class LocalDatabaseService {
     ''');
   }
 
-  Future<void> _upgradeSchema(Database db, int oldVersion, int newVersion) async {
+  Future<void> _upgradeSchema(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
     if (oldVersion < 2) {
       await db.execute('''
         CREATE TABLE IF NOT EXISTS alquileres (
@@ -161,21 +210,63 @@ class LocalDatabaseService {
     }
 
     if (oldVersion < 3) {
-      await _addColumnIfNotExists(db, 'alquileres', 'montoPago', 'REAL DEFAULT 0');
-      await db.rawUpdate('UPDATE alquileres SET montoPago = importe WHERE montoPago IS NULL OR montoPago = 0');
+      await _addColumnIfNotExists(
+        db,
+        'alquileres',
+        'montoPago',
+        'REAL DEFAULT 0',
+      );
+      await db.rawUpdate(
+        'UPDATE alquileres SET montoPago = importe WHERE montoPago IS NULL OR montoPago = 0',
+      );
     }
 
     if (oldVersion < 4) {
-      await _addColumnIfNotExists(db, 'alquileres', 'cantidadDepositos', 'INTEGER DEFAULT 0');
-      await _addColumnIfNotExists(db, 'alquileres', 'diaPago', 'INTEGER DEFAULT 1');
+      await _addColumnIfNotExists(
+        db,
+        'alquileres',
+        'cantidadDepositos',
+        'INTEGER DEFAULT 0',
+      );
+      await _addColumnIfNotExists(
+        db,
+        'alquileres',
+        'diaPago',
+        'INTEGER DEFAULT 1',
+      );
+    }
+
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS mantenimientos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          propiedad_id INTEGER NOT NULL,
+          descripcion TEXT NOT NULL,
+          fecha TEXT NOT NULL,
+          costo REAL NOT NULL DEFAULT 0,
+          estado TEXT NOT NULL DEFAULT 'Pendiente',
+          updated_at TEXT DEFAULT (datetime('now')),
+          synced_at TEXT,
+          sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
+        )
+      ''');
     }
   }
 
-  Future<void> _addColumnIfNotExists(Database db, String tableName, String columnName, String definition) async {
+  Future<void> _addColumnIfNotExists(
+    Database db,
+    String tableName,
+    String columnName,
+    String definition,
+  ) async {
     final columns = await db.rawQuery('PRAGMA table_info($tableName)');
-    final exists = columns.any((column) => (column['name'] as String?) == columnName);
+    final exists = columns.any(
+      (column) => (column['name'] as String?) == columnName,
+    );
     if (!exists) {
-      await db.execute('ALTER TABLE $tableName ADD COLUMN $columnName $definition');
+      await db.execute(
+        'ALTER TABLE $tableName ADD COLUMN $columnName $definition',
+      );
     }
   }
 
@@ -327,15 +418,24 @@ class LocalDatabaseService {
         'synced_at': null,
       });
     } else {
-      final existingRows = await db.query('pagos', where: 'id_alquiler IS NULL AND alquiler_id IS NULL');
+      final existingRows = await db.query(
+        'pagos',
+        where: 'id_alquiler IS NULL AND alquiler_id IS NULL',
+      );
       for (final row in existingRows) {
         final id = row['id'] as int;
         final inquilinoId = row['id_inquilino'];
-        final alquilerId = inquilinoId == '1' ? 1 : (inquilinoId == '2' ? 2 : null);
+        final alquilerId = inquilinoId == '1'
+            ? 1
+            : (inquilinoId == '2' ? 2 : null);
         if (alquilerId != null) {
           await db.update(
             'pagos',
-            {'id_alquiler': alquilerId, 'alquiler_id': alquilerId, 'periodo': 'Mensual'},
+            {
+              'id_alquiler': alquilerId,
+              'alquiler_id': alquilerId,
+              'periodo': 'Mensual',
+            },
             where: 'id = ?',
             whereArgs: [id],
           );
@@ -353,33 +453,57 @@ class LocalDatabaseService {
     final db = await database;
     await ensureDatabaseReady();
 
-    final totalPropiedades = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM propiedades'),
-    ) ?? 0;
+    final totalPropiedades =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM propiedades'),
+        ) ??
+        0;
 
-    final ocupadas = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM propiedades WHERE estado = 2'),
-    ) ?? 0;
+    final ocupadas =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM propiedades WHERE estado = 2',
+          ),
+        ) ??
+        0;
 
-    final disponibles = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM propiedades WHERE estado = 1'),
-    ) ?? 0;
+    final disponibles =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM propiedades WHERE estado = 1',
+          ),
+        ) ??
+        0;
 
-    final inquilinos = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM inquilinos'),
-    ) ?? 0;
+    final inquilinos =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM inquilinos'),
+        ) ??
+        0;
 
-    final alquileresActivos = Sqflite.firstIntValue(
-      await db.rawQuery("SELECT COUNT(*) FROM alquileres WHERE estado = 'Activo'"),
-    ) ?? 0;
+    final alquileresActivos =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM alquileres WHERE estado = 'Activo'",
+          ),
+        ) ??
+        0;
 
-    final pagosPendientes = Sqflite.firstIntValue(
-      await db.rawQuery("SELECT COUNT(*) FROM pagos WHERE estado = 'pendiente'"),
-    ) ?? 0;
+    final pagosPendientes =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM pagos WHERE estado = 'pendiente'",
+          ),
+        ) ??
+        0;
 
-    final pagosRealizados = Sqflite.firstIntValue(
-      await db.rawQuery("SELECT COUNT(*) FROM pagos WHERE estado = 'pagado'"),
-    ) ?? 0;
+    final pagosRealizados =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM pagos WHERE estado = 'pagado'",
+          ),
+        ) ??
+        0;
 
     return {
       'totalPropiedades': totalPropiedades,
@@ -603,6 +727,70 @@ class LocalDatabaseService {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getMantenimientosByPropiedadId(
+    int propiedadId,
+  ) async {
+    final db = await database;
+    await ensureDatabaseReady();
+    return db.query(
+      'mantenimientos',
+      where: 'propiedad_id = ?',
+      whereArgs: [propiedadId],
+      orderBy: 'fecha DESC, id DESC',
+    );
+  }
+
+  Future<int> insertMantenimiento({
+    required int propiedadId,
+    required String descripcion,
+    required String fecha,
+    required double costo,
+    required String estado,
+  }) async {
+    final db = await database;
+    return db.insert('mantenimientos', {
+      'propiedad_id': propiedadId,
+      'descripcion': descripcion,
+      'fecha': fecha,
+      'costo': costo,
+      'estado': estado,
+      'updated_at': DateTime.now().toIso8601String(),
+      'sync_state': 'pending',
+      'synced_at': null,
+    });
+  }
+
+  Future<int> updateMantenimiento({
+    required int id,
+    required int propiedadId,
+    required String descripcion,
+    required String fecha,
+    required double costo,
+    required String estado,
+  }) async {
+    final db = await database;
+    return db.update(
+      'mantenimientos',
+      {
+        'propiedad_id': propiedadId,
+        'descripcion': descripcion,
+        'fecha': fecha,
+        'costo': costo,
+        'estado': estado,
+        'updated_at': DateTime.now().toIso8601String(),
+        'sync_state': 'pending',
+        'synced_at': null,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteMantenimiento(int id) async {
+    final db = await database;
+    return db.delete('mantenimientos', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<int> updateInquilino({
     required int id,
     required String nombreApellido,
@@ -653,18 +841,23 @@ class LocalDatabaseService {
   Future<Map<String, dynamic>?> getAlquilerById(int id) async {
     final db = await database;
     await ensureDatabaseReady();
-    final results = await db.rawQuery('''
+    final results = await db.rawQuery(
+      '''
       SELECT a.*, p.nombre AS propiedad_nombre, i.nombre_apellido AS inquilino_nombre
       FROM alquileres a
       LEFT JOIN propiedades p ON p.id = a.propiedad_id
       LEFT JOIN inquilinos i ON i.id = a.inquilino_id
       WHERE a.id = ?
       LIMIT 1
-    ''', [id]);
+    ''',
+      [id],
+    );
     return results.isEmpty ? null : results.first;
   }
 
-  Future<List<Map<String, dynamic>>> getPagosByInquilinoId(int inquilinoId) async {
+  Future<List<Map<String, dynamic>>> getPagosByInquilinoId(
+    int inquilinoId,
+  ) async {
     final db = await database;
     return db.query(
       'pagos',
@@ -674,7 +867,10 @@ class LocalDatabaseService {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getPagosByAlquilerId(int alquilerId, {int? inquilinoId}) async {
+  Future<List<Map<String, dynamic>>> getPagosByAlquilerId(
+    int alquilerId, {
+    int? inquilinoId,
+  }) async {
     final db = await database;
     await ensureDatabaseReady();
 
@@ -744,19 +940,27 @@ class LocalDatabaseService {
 
   Future<Map<String, dynamic>?> getPagoById(int id) async {
     final db = await database;
-    final rows = await db.query('pagos', where: 'id = ?', whereArgs: [id], limit: 1);
+    final rows = await db.query(
+      'pagos',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
     return rows.isEmpty ? null : rows.first;
   }
 
   Future<Map<String, dynamic>?> getPagoByIdConDetalle(int id) async {
     final db = await database;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT p.*, i.nombre_apellido AS inquilino_nombre
       FROM pagos p
       LEFT JOIN inquilinos i ON i.id = CAST(p.id_inquilino AS INTEGER)
       WHERE p.id = ?
       LIMIT 1
-    ''', [id]);
+    ''',
+      [id],
+    );
     return rows.isEmpty ? null : rows.first;
   }
 
@@ -783,11 +987,7 @@ class LocalDatabaseService {
 
   Future<List<Map<String, dynamic>>> getPendingRows(String tableName) async {
     final db = await database;
-    return db.query(
-      tableName,
-      where: 'sync_state = ?',
-      whereArgs: ['pending'],
-    );
+    return db.query(tableName, where: 'sync_state = ?', whereArgs: ['pending']);
   }
 
   Future<void> logSync(
@@ -810,10 +1010,7 @@ class LocalDatabaseService {
     final db = await database;
     await db.update(
       tableName,
-      {
-        'sync_state': 'synced',
-        'synced_at': DateTime.now().toIso8601String(),
-      },
+      {'sync_state': 'synced', 'synced_at': DateTime.now().toIso8601String()},
       where: 'id = ?',
       whereArgs: [id],
     );
