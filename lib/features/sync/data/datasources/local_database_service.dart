@@ -740,6 +740,22 @@ class LocalDatabaseService {
     );
   }
 
+  Future<int> countMantenimientosPendientesByPropiedadId(
+    int propiedadId,
+  ) async {
+    final db = await database;
+    await ensureDatabaseReady();
+    final result = await db.rawQuery(
+      '''
+      SELECT COUNT(1) AS cantidad
+      FROM mantenimientos
+      WHERE propiedad_id = ? AND estado IN (?, ?)
+      ''',
+      [propiedadId, 'Pendiente', 'En proceso'],
+    );
+    return (result.first['cantidad'] as int?) ?? 0;
+  }
+
   Future<int> insertMantenimiento({
     required int propiedadId,
     required String descripcion,

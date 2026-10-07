@@ -11,6 +11,7 @@ import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
 import '../../../../core/shared/widgets/app_text_field.dart';
 import '../../../../core/shared/widgets/status_badge.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
@@ -638,6 +639,7 @@ class _PropiedadesPageState extends ConsumerState<PropiedadesPage> {
         ),
       ),
     );
+    if (mounted) setState(() {});
   }
 
   Future<bool> _showMantenimientoForm(
@@ -851,10 +853,71 @@ class _PropiedadCard extends StatelessWidget {
             ],
           ),
           const Divider(height: 24),
-          const Text('Renta mensual', style: AppTypography.labelMedium),
-          Text(
-            propiedad.precioMensual.toCurrency(),
-            style: AppTypography.currencyMedium,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Renta mensual',
+                      style: AppTypography.labelMedium,
+                    ),
+                    Text(
+                      propiedad.precioMensual.toCurrency(),
+                      style: AppTypography.currencyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              FutureBuilder<int>(
+                future: LocalDatabaseService()
+                    .countMantenimientosPendientesByPropiedadId(propiedad.id),
+                builder: (context, snapshot) {
+                  final cantidad = snapshot.data ?? 0;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Mantenimientos',
+                        style: AppTypography.labelMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                           // Icons.build_circle_outlined,
+                            icon: Icon(
+                              Icons.build_circle_outlined,
+                              size: 18,
+                              color: cantidad > 0
+                                  ? AppColors.warning
+                                  : Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                            ),
+                            onPressed: onMaintenance,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            cantidad.toString(),
+                            style: AppTypography.titleMedium.copyWith(
+                              color: cantidad > 0
+                                  ? AppColors.warning
+                                  : Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
           if (propiedad.notas.isNotEmpty) ...[
             const SizedBox(height: 10),
