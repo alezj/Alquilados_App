@@ -67,6 +67,23 @@ class ConfiguracionPage extends ConsumerWidget {
                   },
                 ),
               ),
+
+              
+              const Divider(height: 1),
+              const ListTile(
+                leading: Icon(Icons.sync_rounded),
+                title: Text('Cerrar sesion'),
+                subtitle: Text('Cerrar la sesión actual de la aplicación.'),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: AppButton(
+                  text: 'Cerrar sesión',
+                  icon: Icons.logout_rounded,
+                  isLoading: syncState.isLoading,
+                  onPressed: () => context.push('/login'),
+                ),
+              ),
               ListTile(
                 leading: const Icon(Icons.info_outline_rounded),
                 title: const Text('Estado'),
