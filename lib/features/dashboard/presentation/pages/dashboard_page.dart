@@ -35,12 +35,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final summary = ref.watch(dashboardSummaryProvider);
 
     return summary.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(),
-      ),
-      error: (error, stackTrace) => const Center(
-        child: Text('No pudimos cargar el resumen.'),
-      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stackTrace) =>
+          const Center(child: Text('No pudimos cargar el resumen.')),
       data: (data) {
         final stats = [
           _StatCard(
@@ -85,14 +82,34 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              AppCard(
-                onTap: () => context.push(AppRoutes.alquileres),
-                child: const ListTile(
-                  leading: Icon(Icons.home_work_rounded),
-                  title: Text('Alquileres'),
-                  subtitle: Text('Ver contratos activos, pendientes y finalizados.'),
-                  trailing: Icon(Icons.arrow_forward_rounded),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppCard(
+                      onTap: () => context.push(AppRoutes.alquileres),
+                      child: const ListTile(
+                        leading: Icon(Icons.home_work_rounded),
+                        title: Text('Alquileres'),
+                        subtitle: Text(
+                          'Ver contratos activos, pendientes y finalizados.',
+                        ),
+                        trailing: Icon(Icons.arrow_forward_rounded),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: AppCard(
+                      onTap: () => context.push(AppRoutes.pagos),
+                      child: const ListTile(
+                        leading: Icon(Icons.payment_rounded),
+                        title: Text('Pagos'),
+                        subtitle: Text('Ver pagos pendientes y realizados.'),
+                        trailing: Icon(Icons.arrow_forward_rounded),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -131,27 +148,16 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      onTap: route != null
-          ? () => context.push(route!)
-          : null,
+      onTap: route != null ? () => context.push(route!) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: AppTypography.labelMedium,
-          ),
+          Text(title, style: AppTypography.labelMedium),
           const SizedBox(height: 10),
-          Text(
-            value,
-            style: AppTypography.displayMedium,
-          ),
+          Text(value, style: AppTypography.displayMedium),
           const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: AppTypography.bodySmall,
-          ),
+          Text(subtitle, style: AppTypography.bodySmall),
         ],
       ),
     );
