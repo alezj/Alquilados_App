@@ -78,6 +78,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
         ];
 
+        final isMobile = MediaQuery.sizeOf(context).width < 600;
+
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -87,13 +89,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   Expanded(
                     child: AppCard(
                       onTap: () => context.push(AppRoutes.alquileres),
-                      child: const ListTile(
-                        leading: Icon(Icons.home_work_rounded),
-                        title: Text('Alquileres'),
-                        subtitle: Text(
-                          'Ver contratos activos, pendientes y finalizados.',
-                        ),
-                        trailing: Icon(Icons.arrow_forward_rounded),
+                      child: ListTile(
+                        leading: const Icon(Icons.home_work_rounded),
+                        title: const Text('Alquileres'),
+                        subtitle: isMobile
+                            ? null
+                            : const Text(
+                                'Ver contratos activos, pendientes y finalizados.',
+                              ),
+                        trailing: const Icon(Icons.arrow_forward_rounded),
                       ),
                     ),
                   ),
@@ -101,11 +105,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   Expanded(
                     child: AppCard(
                       onTap: () => context.push(AppRoutes.pagos),
-                      child: const ListTile(
-                        leading: Icon(Icons.payment_rounded),
-                        title: Text('Pagos'),
-                        subtitle: Text('Ver pagos pendientes y realizados.'),
-                        trailing: Icon(Icons.arrow_forward_rounded),
+                      child: ListTile(
+                        leading: const Icon(Icons.payment_rounded),
+                        title: const Text('Pagos'),
+                        subtitle: isMobile
+                            ? null
+                            : const Text('Ver pagos pendientes y realizados.'),
+                        trailing: const Icon(Icons.arrow_forward_rounded),
                       ),
                     ),
                   ),
