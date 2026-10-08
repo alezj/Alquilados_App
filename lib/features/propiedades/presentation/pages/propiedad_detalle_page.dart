@@ -18,7 +18,7 @@ import '../../domain/entities/propiedad.dart';
 import '../providers/propiedades_provider.dart';
 
 String _currency(double amount) => NumberFormat.currency(
-  locale: 'es_DO',
+  locale: 'es_US',
   symbol: 'RD\$',
   decimalDigits: 2,
 ).format(amount);

@@ -41,7 +41,7 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
   }
 
   String _currency(double amount) => NumberFormat.currency(
-    locale: 'es_DO',
+    locale: 'es_US',
     symbol: 'RD\$',
     decimalDigits: 2,
   ).format(amount);
