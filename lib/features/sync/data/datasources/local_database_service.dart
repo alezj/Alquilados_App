@@ -1006,6 +1006,22 @@ class LocalDatabaseService {
     return db.query(tableName, where: 'sync_state = ?', whereArgs: ['pending']);
   }
 
+  Future<void> upsertSyncedRow(
+    String tableName,
+    Map<String, dynamic> values,
+  ) async {
+    final db = await database;
+    await db.insert(
+      tableName,
+      {
+        ...values,
+        'sync_state': 'synced',
+        'synced_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
   Future<void> logSync(
     String entityName,
     String action,

@@ -3,7 +3,7 @@
 Aplicación Flutter para la gestión local de alquileres, propiedades, inquilinos y pagos. El proyecto sigue un enfoque **local-first**: SQLite es la fuente de verdad y la aplicación puede operar sin una API remota.
 ## Estado del proyecto
 
-El MVP actual permite administrar la operación básica de inmuebles y contratos desde una interfaz Material 3. La autenticación, el backend remoto y la sincronización con servidor todavía están pendientes.
+El MVP actual permite administrar la operación básica de inmuebles y contratos desde una interfaz Material 3, con sincronización remota configurable.
 
 ## Funcionalidades
 
@@ -57,7 +57,7 @@ flutter run -d chrome
 flutter run -d windows
 ```
 
-La aplicación inicia en la pantalla de login. El flujo de autenticación real aún no está conectado a un servicio remoto.
+La aplicación inicia en la pantalla de login. La sincronización usa la API configurada mediante `API_BASE_URL` y, por defecto, el túnel de desarrollo publicado en Swagger.
 
 ## Pruebas y análisis
 
@@ -84,7 +84,7 @@ Las dependencias principales son:
 - `flutter_riverpod` para el estado;
 - `go_router` para la navegación;
 - `sqflite` y `sqflite_common_ffi_web` para SQLite en plataformas nativas y Web;
-- `dio` para la futura comunicación HTTP;
+- `dio` para la comunicación HTTP y la sincronización remota;
 - `pdf` y `printing` para comprobantes.
 
 ## Persistencia local
@@ -115,7 +115,7 @@ La tabla `alquileres` relaciona propiedad e inquilino y almacena fechas de vigen
 ## Trabajo pendiente
 
 - Autenticación real y control de sesión.
-- Backend/API remota y sincronización con servidor.
+- Manejo de conflictos de sincronización.
 - Contratos REST formales y manejo de conflictos de sincronización.
 - Validaciones de negocio avanzadas.
 - Facturación fiscal o tributaria legal.

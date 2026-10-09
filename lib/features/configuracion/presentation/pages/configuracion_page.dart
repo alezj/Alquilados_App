@@ -106,10 +106,13 @@ class ConfiguracionPage extends ConsumerWidget {
               return const Center(child: Text('Error al obtener la información de la aplicación.'));
             } else if (snapshot.hasData) {
               final packageInfo = snapshot.data!;
-              return ListTile(
-                leading: const Icon(Icons.info_rounded),
-                title: const Text('Versión de la aplicación'),
-                subtitle: Text('${packageInfo.version}+${packageInfo.buildNumber}'),
+              return Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  leading: const Icon(Icons.info_rounded),
+                  title: const Text('Versión de la aplicación'),
+                  subtitle: Text('${packageInfo.version}+${packageInfo.buildNumber}'),
+                ),
               );
             } else {
               return const SizedBox.shrink();

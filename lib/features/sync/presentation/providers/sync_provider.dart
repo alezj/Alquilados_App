@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../../../../core/network/network_providers.dart';
 import '../../data/datasources/local_database_service.dart';
 import '../../data/repositories/sync_repository_impl.dart';
 import '../../domain/entities/sync_status.dart';
@@ -10,7 +11,10 @@ final localDatabaseServiceProvider = Provider<LocalDatabaseService>((ref) {
 });
 
 final syncRepositoryProvider = Provider<SyncRepository>((ref) {
-  return SyncRepositoryImpl(ref.watch(localDatabaseServiceProvider));
+  return SyncRepositoryImpl(
+    ref.watch(localDatabaseServiceProvider),
+    ref.watch(apiClientProvider),
+  );
 });
 
 final syncStateProvider = StateNotifierProvider<SyncController, AsyncValue<SyncStatus>>((ref) {

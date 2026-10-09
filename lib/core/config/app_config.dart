@@ -37,7 +37,7 @@ abstract final class AppConfig {
   /// En el emulador Android se debe utilizar `http://10.0.2.2:5129/api`.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:5129/api',
+    defaultValue: 'https://s6spkpbq-5129.use2.devtunnels.ms/api',
   );
 
   /// Habilitar logs en consola (se desactiva por defecto en producción)

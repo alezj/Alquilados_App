@@ -1,12 +1,11 @@
 /// Endpoints expuestos actualmente por el backend ASP.NET Core.
 ///
-/// Fuente de verdad: `backend/Controllers/BackendController.cs`.
+/// Fuente de verdad: el documento OpenAPI publicado por el backend.
 /// La URL base debe terminar en `/api`, por ejemplo:
 /// `http://localhost:5129/api` durante el desarrollo local.
 ///
-/// Nota: el backend actual no expone endpoints de autenticación, detalle
-/// individual ni dashboard. Esos contratos se agregarán cuando existan en la
-/// API; no deben inferirse desde la aplicación móvil.
+/// Las colecciones se sincronizan desde `SyncRepositoryImpl`, que también usa
+/// las operaciones genéricas de escritura expuestas por `Backend`.
 abstract final class ApiEndpoints {
   static const String _backend = '/Backend';
 
