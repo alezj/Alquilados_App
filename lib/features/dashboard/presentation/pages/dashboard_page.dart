@@ -104,13 +104,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: AppCard(
-                      onTap: () => context.push(AppRoutes.pagos),
+                      onTap: () => context.push(
+                        '${AppRoutes.pagos}?openCreate=true',
+                      ),
                       child: ListTile(
                         leading: const Icon(Icons.payment_rounded),
                         title: const Text('Pagos'),
                         subtitle: isMobile
                             ? null
-                            : const Text('Ver pagos pendientes y realizados.'),
+                            : const Text('Crear pago'),
                         trailing: const Icon(Icons.arrow_forward_rounded),
                       ),
                     ),

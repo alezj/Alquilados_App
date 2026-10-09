@@ -62,7 +62,13 @@ abstract final class AppRouter {
             id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
           ),
         ),
-        GoRoute(path: AppRoutes.pagos, builder: (_, _) => const PagosPage()),
+        GoRoute(
+          path: AppRoutes.pagos,
+          builder: (_, state) => PagosPage(
+            openCreateSheet:
+                state.uri.queryParameters['openCreate'] == 'true',
+          ),
+        ),
         GoRoute(
           path: AppRoutes.pagoDetalle,
           builder: (_, state) => PagoDetallePage(

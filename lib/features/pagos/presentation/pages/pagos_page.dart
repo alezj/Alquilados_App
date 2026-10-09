@@ -19,7 +19,9 @@ import '../providers/pagos_provider.dart';
 // ──────────────────────────────────────────────────────────────────────────────
 
 class PagosPage extends ConsumerStatefulWidget {
-  const PagosPage({super.key});
+  const PagosPage({super.key, this.openCreateSheet = false});
+
+  final bool openCreateSheet;
 
   @override
   ConsumerState<PagosPage> createState() => _PagosPageState();
@@ -27,6 +29,16 @@ class PagosPage extends ConsumerStatefulWidget {
 
 class _PagosPageState extends ConsumerState<PagosPage> {
   final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openCreateSheet) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showCreateSheet(context);
+      });
+    }
+  }
 
   @override
   void dispose() {
