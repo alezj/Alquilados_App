@@ -80,7 +80,7 @@ class ConfiguracionPage extends ConsumerWidget {
                 child: AppButton(
                   text: 'Cerrar sesión',
                   icon: Icons.logout_rounded,
-                  isLoading: syncState.isLoading,
+                 // isLoading: syncState.isLoading, // Deshabilitado para el botón de cerrar sesión
                   onPressed: () => context.push('/login'),
                 ),
               ),
