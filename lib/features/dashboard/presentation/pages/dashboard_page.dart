@@ -78,7 +78,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
         ];
 
-        final isMobile = MediaQuery.sizeOf(context).width < 600;
+        final isMobile = MediaQuery.sizeOf(context).width < 600; // variable tamaño móvil
+        final isMobileSmall = MediaQuery.sizeOf(context).width < 400; // variable tamaño móvil pequeño
 
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -91,12 +92,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       onTap: () => context.push(AppRoutes.alquileres),
                       child: ListTile(
                         leading: const Icon(Icons.home_work_rounded),
-                        title: const Text('Alquileres'),
-                        subtitle: isMobile
-                            ? null
-                            : const Text(
-                                'Ver contratos activos, pendientes y finalizados.',
-                              ),
+                        title: isMobileSmall ? null : const Text('Alquileres'), // si es móvil pequeño
+                        subtitle: isMobile ? null : const Text('Ver contratos activos, pendientes y finalizados.'), // si es móvil
                         trailing: const Icon(Icons.arrow_forward_rounded),
                       ),
                     ),
@@ -109,7 +106,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       ),
                       child: ListTile(
                         leading: const Icon(Icons.payment_rounded),
-                        title: const Text('Pagos'),
+                        title: isMobileSmall ? null : const Text('Pagos'),
                         subtitle: isMobile
                             ? null
                             : const Text('Crear pago'),
