@@ -33,6 +33,7 @@ class LocalDatabaseService {
         montoPago REAL NOT NULL DEFAULT 0,
         cantidadDepositos INTEGER NOT NULL DEFAULT 0,
         diaPago INTEGER NOT NULL DEFAULT 1,
+        cantidadMeses INTEGER NOT NULL DEFAULT 0,
         estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
@@ -60,6 +61,12 @@ class LocalDatabaseService {
       'alquileres',
       'diaPago',
       'INTEGER DEFAULT 1',
+    );
+    await _addColumnIfNotExists(
+      db,
+      'alquileres',
+      'cantidadMeses',
+      'INTEGER DEFAULT 0',
     );
     await _addColumnIfNotExists(db, 'pagos', 'id_alquiler', 'INTEGER');
     await _addColumnIfNotExists(db, 'pagos', 'alquiler_id', 'INTEGER');
