@@ -1,284 +1,181 @@
 # Alquilados App
 
-Aplicación Flutter para la gestión local de alquileres, propiedades, inquilinos y pagos. El proyecto sigue un enfoque **local-first**: SQLite es la fuente de verdad y la aplicación puede operar sin una API remota.
-## Estado del proyecto
+> **Aplicación móvil Flutter para la gestión de alquileres, propiedades, inquilinos y pagos.**  
+> Versión actual: `0.3.4+1` · Dart `^3.13.3` · Estrategia: **local-first con SQLite**
 
-El MVP actual permite administrar la operación básica de inmuebles y contratos desde una interfaz Material 3, con sincronización remota configurable.
+---
 
-## Funcionalidades
+## ¿Qué es esta app?
 
-- Dashboard con resumen de propiedades, inquilinos y alquileres.
-- Propiedades: listado, detalle y estado local.
-- Inquilinos: creación, edición y consulta local.
-- Alquileres:
-  - listado y búsqueda por propiedad, inquilino o estado;
-  - filtros por estado;
-  - creación, edición, detalle y eliminación de contratos;
-  - propiedad e inquilino asociados;
-  - importe, monto acordado, depósitos y día mensual de pago;
-  - validación del día de pago entre 1 y 31;
-  - resumen financiero y pagos relacionados.
-- Pagos: listado con nombre del inquilino, búsqueda por nombre o ID, filtro por estado, edición, cambio de estado y eliminación.
-- Creación de pagos mediante selección de inquilino; el monto se carga desde el alquiler activo (`montoPago`, usando `importe` como respaldo).
-- Los sheets de creación y edición permiten seleccionar fechas desde un calendario.
-- Los montos y precios se muestran con formato monetario `RD$` y se convierten correctamente antes de guardarse.
-- Generación de comprobantes de pago no fiscales en PDF.
-- Navegación mediante rutas y navegación inferior.
-- Tema claro y oscuro, con una pantalla de validación del sistema de diseño.
-- Datos semilla para facilitar las pruebas locales.
+Alquilados es una herramienta de administración inmobiliaria pensada para propietarios o gestores de inmuebles que necesitan controlar contratos de alquiler, inquilinos y cobros desde su teléfono, **sin depender de una conexión a internet**. La información vive en el dispositivo (SQLite) y existe una capa de sincronización remota configurable para cuando el backend esté disponible.
 
-## Requisitos
+---
 
-- Flutter compatible con Dart `^3.13.3`.
-- Android SDK para ejecutar en Android.
-- Xcode para ejecutar en iOS o macOS.
-- Chrome para ejecutar la versión Web.
+## Stack técnico
 
-Comprueba la instalación con:
+| Capa | Tecnología |
+|---|---|
+| UI / Framework | Flutter + Material 3 |
+| Estado | `flutter_riverpod` |
+| Navegación | `go_router` |
+| Base de datos local | `sqflite` (nativo) + `sqflite_common_ffi_web` (web) |
+| HTTP / Sync | `dio` |
+| PDF | `pdf` + `printing` |
+| Formato / Fechas | `intl` |
+| Seguridad local | `flutter_secure_storage` |
 
-```powershell
-flutter doctor
+---
+
+## Lo que ya está implementado
+
+### 🏠 Dashboard
+- Resumen visual con tarjetas de colores para: propiedades totales, ocupadas, disponibles, alquileres activos, pagos pendientes e inquilinos.
+- Accesos rápidos a Alquileres y a la creación de pagos.
+- Las tarjetas son adaptables al tamaño de pantalla (móvil / tablet).
+
+### 🏘️ Propiedades
+- Listado de propiedades con estado local.
+- Pantalla de detalle.
+- Precio mensual que se carga automáticamente al crear un alquiler.
+
+### 👤 Inquilinos
+- Creación con solo nombre obligatorio (correo, fecha de contrato y día de pago son opcionales).
+- Edición y eliminación local.
+- Pantalla de detalle.
+- Al crear o editar un alquiler, el inquilino se actualiza automáticamente con la fecha de inicio del contrato y el día de pago acordado.
+
+### 📋 Alquileres
+- Listado con búsqueda (propiedad / inquilino / estado) y filtros por estado.
+- Formulario de creación y edición:
+  - Al seleccionar fechas de inicio y fin → calcula los meses automáticamente.
+  - Al ingresar cantidad de meses → calcula la fecha de fin automáticamente.
+  - El día de pago y la fecha de inicio se sincronizan al inquilino al guardar.
+- Generación automática de pagos pendientes por cada mes del contrato al crear el alquiler.
+- Pantalla de detalle con:
+  - Tarjetas de métricas: meses acordados, pagos realizados, pendientes (con color de alerta si hay pendientes).
+  - Información completa del contrato.
+  - Tabla de pagos vinculados al alquiler.
+- Eliminación de contratos.
+
+### 💳 Pagos
+- Listado con nombre del inquilino, búsqueda por nombre o ID y filtro por estado.
+- Creación: selección de inquilino con carga automática del monto del alquiler activo (`montoPago`, con `importe` como respaldo).
+- Edición, cambio de estado y eliminación.
+- Generación de comprobante de pago no fiscal en PDF.
+
+### ⚙️ Configuración y sistema
+- Pantalla de configuración con URL de la API.
+- Tema claro y oscuro (Material 3).
+- Logo personalizado (reemplaza el ícono de Flutter en Android e iOS).
+- Datos semilla para pruebas locales.
+- Pantalla de login como punto de entrada.
+- Sincronización remota configurable (pendiente de estabilizar).
+
+---
+
+## Arquitectura
+
 ```
+lib/
+├── core/
+│   ├── router/          # GoRouter + rutas nombradas
+│   ├── shared/widgets/  # AppCard, AppButton, AppTextField, StatusBadge, etc.
+│   ├── theme/           # AppTypography, colores, tema Material 3
+│   └── ...
+└── features/
+    ├── dashboard/       # Panel principal y provider de resumen
+    ├── propiedades/     # CRUD de propiedades
+    ├── inquilinos/      # CRUD de inquilinos
+    ├── alquileres/      # Contratos: listado, formulario, detalle
+    ├── pagos/           # Pagos: listado, formulario, comprobante PDF
+    ├── sync/            # LocalDatabaseService + SyncRepository
+    ├── configuracion/   # Ajustes de la app
+    └── login/           # Pantalla de autenticación
+```
+
+### Base de datos local (`alquilados_local.db3`)
+
+| Tabla | Descripción |
+|---|---|
+| `propiedades` | Inmuebles disponibles para alquilar |
+| `inquilinos` | Personas que alquilan |
+| `alquileres` | Contratos que vinculan propiedad + inquilino |
+| `pagos` | Registros de cobros por mes de alquiler |
+| `sync_log` | Log de operaciones pendientes de sincronizar |
+
+La base se crea y migra automáticamente al iniciar la app. En plataformas nativas el archivo vive en el directorio de `path_provider`; en Web usa almacenamiento web con el mismo nombre lógico.
+
+---
+
+## Rutas
+
+```
+/login
+/dashboard
+/propiedades        /propiedades/:id
+/inquilinos         /inquilinos/:id
+/alquileres         /alquileres/:id
+/pagos              /pagos/:id
+/configuracion
+```
+
+---
 
 ## Instalación y ejecución
 
-Desde la raíz del proyecto:
-
-```powershell
+```bash
 flutter pub get
-flutter run
+flutter run                  # dispositivo por defecto
+flutter run -d chrome        # web
+flutter run -d <device-id>   # dispositivo específico
 ```
 
-Para elegir una plataforma concreta:
+Revisar entorno:
 
-```powershell
+```bash
+flutter doctor
 flutter devices
-flutter run -d chrome
-flutter run -d windows
-```
-
-La aplicación inicia en la pantalla de login. La sincronización usa la API configurada mediante `API_BASE_URL` y, por defecto, el túnel de desarrollo publicado en Swagger.
-
-## Pruebas y análisis
-
-Ejecuta el análisis estático y las pruebas con:
-
-```powershell
 flutter analyze
 flutter test
 ```
 
-Las pruebas actuales cubren el renderizado inicial de la pantalla de login, modelos de dominio, utilidades y la generación de comprobantes de pago.
+---
 
-## Arquitectura
+## Puntos a mejorar 🛠️
 
-La estructura principal está organizada por capas y funcionalidades:
+### Alta prioridad
+- [ ] **Autenticación real** — la pantalla de login existe pero no tiene sesión real; se necesita JWT o token persistido con `flutter_secure_storage`.
+- [ ] **Sincronización bidireccional** — el `SyncRepository` existe pero el flujo de conflictos no está resuelto; faltan estrategias de merge cuando el mismo registro se edita local y remotamente.
+- [ ] **Manejo de errores de red** — los errores CORS y de conectividad no tienen un flujo de reintento amigable para el usuario.
 
-- `lib/core/`: configuración, errores, red, rutas, almacenamiento, tema, utilidades y widgets compartidos.
-- `lib/features/`: módulos `dashboard`, `propiedades`, `inquilinos`, `pagos`, `alquileres`, `sync`, `configuracion` y `login`.
-- `lib/features/sync/data/datasources/local_database_service.dart`: conexión, creación y migración de la base local.
-- `lib/features/alquileres/`: entidad, providers, listado, formulario y detalle de alquileres.
+### Módulo de alquileres
+- [ ] **Editar pagos generados** — al editar un alquiler (cambiar meses, fecha o monto), los pagos pendientes ya generados no se recalculan; habría que destruirlos y regenerarlos o permitir ajustes individuales.
+- [ ] **Alerta de contrato por vencer** — notificación o badge cuando la fecha de fin está próxima (< 30 días).
+- [ ] **Renovación de contrato** — flujo para extender un alquiler finalizado sin perder el historial.
 
-Las dependencias principales son:
+### Módulo de pagos
+- [ ] **Marcar pago desde el detalle del alquiler** — actualmente hay que ir a la pestaña de Pagos; sería mejor poder cambiar el estado directamente desde la tabla de pagos en el detalle.
+- [ ] **Filtro por propiedad o alquiler** — el listado de pagos solo filtra por inquilino/estado; falta filtrar por propiedad.
+- [ ] **Recibo mejorado en PDF** — el comprobante es básico; se podría enriquecer con logo, datos del propietario y desglose del período.
 
-- `flutter_riverpod` para el estado;
-- `go_router` para la navegación;
-- `sqflite` y `sqflite_common_ffi_web` para SQLite en plataformas nativas y Web;
-- `dio` para la comunicación HTTP y la sincronización remota;
-- `pdf` y `printing` para comprobantes.
+### UX / Diseño
+- [ ] **Modo tablet / escritorio** — la grilla del dashboard ya detecta el tamaño pero el resto de pantallas no tiene layout adaptado para pantallas anchas.
+- [ ] **Onboarding inicial** — cuando la base de datos está vacía, guiar al usuario para crear su primera propiedad e inquilino.
+- [ ] **Validaciones en tiempo real** — los campos del formulario de alquiler solo validan al guardar; sería mejor mostrar errores inline mientras el usuario escribe.
+- [ ] **Accesibilidad** — revisar etiquetas semánticas y contraste de colores en modo oscuro.
 
-## Persistencia local
+### Técnico / Deuda
+- [ ] **Tests unitarios e integración** — la cobertura actual es mínima; se necesitan tests para `LocalDatabaseService`, providers de Riverpod y cálculos de meses/fechas.
+- [ ] **Backend/API definitivo** — los contratos REST están definidos parcialmente; se necesita un backend estable con el que cerrar el ciclo de sincronización.
+- [ ] **Facturación fiscal** — el comprobante de pago actual es **no fiscal**; para uso comercial real se requiere integración con NCF (República Dominicana) u otro sistema tributario.
+- [ ] **CI/CD** — no hay pipeline de integración continua; configurar GitHub Actions para análisis estático y pruebas automáticas en cada PR.
+- [ ] **Distribución** — no existe configuración de firma para Play Store ni App Store.
 
-La base de datos contiene, entre otras, las tablas:
-
-- `propiedades`
-- `inquilinos`
-- `pagos`
-- `alquileres`
-- `sync_log`
-
-La aplicación crea la base automáticamente y aplica migraciones incrementales. En plataformas nativas utiliza el archivo `alquilados_local.db3` dentro del directorio devuelto por `path_provider`. En Web se utiliza almacenamiento web con ese mismo nombre lógico; no se crea un archivo normal en la carpeta del proyecto.
-
-La tabla `alquileres` relaciona propiedad e inquilino y almacena fechas de vigencia, importe, monto de pago, cantidad de depósitos, día de pago y estado.
-
-## Rutas principales
-
-- `/login`: pantalla inicial.
-- `/dashboard`: panel principal.
-- `/alquileres`: listado de alquileres.
-- `/alquileres/:id`: detalle de un alquiler.
-- `/propiedades` y `/propiedades/:id`: propiedades y detalle.
-- `/inquilinos` y `/inquilinos/:id`: inquilinos y detalle.
-- `/pagos` y `/pagos/:id`: pagos y detalle.
-- `/configuracion`: configuración.
-
-## Trabajo pendiente
-
-- Autenticación real y control de sesión.
-- Manejo de conflictos de sincronización.
-- Contratos REST formales y manejo de conflictos de sincronización.
-- Validaciones de negocio avanzadas.
-- Facturación fiscal o tributaria legal.
-- Distribución y despliegue productivo.
+---
 
 ## Principios del proyecto
 
-- Priorizar una experiencia local funcional sin depender de una API no estabilizada.
-- Mantener compatibilidad con los módulos existentes.
-- Reutilizar la estructura por funcionalidades y la lógica local compartida.
-- Avanzar de forma incremental sin romper la operación anterior.
-# Alquilados App
-
-Aplicación Flutter para la gestión local de alquileres, propiedades, inquilinos y pagos. El proyecto sigue un enfoque local-first con SQLite como fuente de verdad, y está estructurado con `Flutter + Riverpod + GoRouter + SQLite`.
-
-## Estado actual
-
-La app ya incluye la base técnica operativa para gestión inmobiliaria y el módulo de alquileres quedó integrado de manera compatible con el resto del sistema. El proyecto funciona como una herramienta local de administración de inmuebles, con datos persistidos en dispositivo y flujo de navegación basado en pestañas y rutas de detalle.
-
-## Funcionalidades implementadas
-
-- Proyecto Flutter con soporte para Android, iOS y Web.
-- Arquitectura por capas con `core/` y `features/`.
-- Persistencia local con SQLite en `LocalDatabaseService`.
-- Módulo de propiedades con listado, detalle y estado local.
-- Módulo de inquilinos con edición y consulta local.
-- Formularios de propiedades, inquilinos, pagos y alquileres con calendario para fechas y formato monetario `RD$` para montos y precios.
-- Módulo de pagos con:
-  - listado,
-  - nombre del inquilino asociado,
-  - búsqueda por nombre o ID del inquilino,
-  - filtro por estado,
-  - edición local,
-  - cambio de estado,
-  - eliminación,
-  - creación mediante selector de inquilinos y carga automática del monto del alquiler activo,
-  - selección de fecha desde calendario y monto con formato monetario `RD$`,
-  - comprobante no fiscal.
-- Módulo de alquileres con:
-  - listado,
-  - búsqueda por propiedad/inquilino/estado,
-  - filtros por estado,
-  - creación y edición de contratos,
-  - monto acordado con el inquilino,
-  - cantidad de depósitos y día mensual de pago,
-  - validación del día de pago entre 1 y 31,
-  - eliminación,
-  - detalle del alquiler,
-  - vinculación con propiedad, inquilino y pagos,
-  - estado del alquiler y resumen financiero básico.
-- Navegación principal con bottom navigation y rutas de detalle.
-- Dashboard con resumen visual de propiedades, inquilinos y alquileres.
-- Generación de PDF de comprobante de pago.
-- Soporte de datos semilla para pruebas locales.
-
-## Arquitectura actual
-
-La estructura principal del proyecto es la siguiente:
-
-- `lib/core/` — configuración, rutas, tema, widgets compartidos y utilidades base.
-- `lib/features/` — módulos funcionales: `dashboard`, `propiedades`, `inquilinos`, `pagos`, `alquileres`, `sync`, `configuracion`.
-- `lib/features/sync/data/datasources/local_database_service.dart` — almacenamiento local y migraciones.
-- `lib/features/alquileres/` — entidad, provider, listado y detalle del módulo de alquileres.
-
-## Base de datos local
-
-La app guarda la información en SQLite con tablas como:
-
-- `propiedades`
-- `inquilinos`
-- `pagos`
-- `alquileres`
-- `sync_log`
-
-La capa de base de datos incluye creación automática, migración incremental y esquema compatible con versiones previas del proyecto. También se mantiene el flujo local de sincronización para la app.
-
-En plataformas no web, el archivo se llama `alquilados_local.db3` y se guarda en el directorio que devuelve `getDownloadsDirectory()` de `path_provider`. En Web se abre con el nombre `alquilados_local.db3` a través del almacenamiento web; no corresponde a un archivo normal dentro de la carpeta del proyecto.
-
-La tabla `alquileres` incluye, entre otros, estos campos:
-
-- `propiedad_id` e `inquilino_id`: relaciones con la propiedad y el inquilino.
-- `fecha_inicio` y `fecha_fin`: vigencia del alquiler.
-- `importe`: importe base del alquiler.
-- `montoPago`: monto acordado a pagar por el inquilino.
-- `cantidadDepositos`: cantidad de depósitos.
-- `diaPago`: día del mes previsto para el pago (entre 1 y 31 en el formulario).
-- `estado`: estado del alquiler.
-
-Al crear un pago, la aplicación permite seleccionar el inquilino por nombre. A continuación consulta su alquiler activo y utiliza `montoPago` como monto mensual; si no está definido, utiliza `importe`. Los pagos existentes muestran también el nombre del inquilino mediante la relación con la tabla `inquilinos`.
-
-## Módulo de alquileres
-
-El módulo de alquileres ya integra la relación con:
-
-- propiedad asociada,
-- inquilino asociado,
-- estado del contrato,
-- importe mensual o total del alquiler,
-- historial de pagos relacionados.
-
-La pantalla de detalle muestra:
-
-- propiedad,
-- inquilino,
-- fechas del alquiler,
-- monto acordado,
-- cantidad de depósitos y día de pago,
-- estado,
-- pagos vinculados.
-
-## Estado de validación
-
-Se validó el proyecto con análisis estático de Flutter:
-
-```powershell
-cd "C:\Archivos\Johancel\Proyectos\AlquilerMovil\Alquilados_App"; flutter analyze
-```
-
-Resultado verificado:
-
-- `No issues found!`
-- `Exit code: 0`
-
-También se validó la ejecución real con:
-
-```powershell
-cd "C:\Archivos\Johancel\Proyectos\AlquilerMovil\Alquilados_App"; flutter run
-```
-
-Resultado verificado:
-
-- arranque correcto en modo debug,
-- la app queda en ejecución sin bloqueos de compilación.
-
-## Pendiente y deuda técnica
-
-Lo siguiente sigue siendo parte del trabajo pendiente para una versión más productiva:
-
-- autenticación real,
-- backend/API remota definitiva,
-- sincronización real con servidor,
-- contratos REST más formales,
-- validaciones de negocio avanzadas,
-- facturación fiscal/tributaria legal,
-- distribución final y despliegue.
-
-## Principios del proyecto
-
-- Prioridad a la gestión local y funcional sin depender de una API aún no estabilizada.
-- Mantener compatibilidad con las pantallas ya existentes.
-- Reusar la misma estructura por features y lógica local estable.
-- Avanzar por pasos sin romper funcionalidad anterior.
-
-## Uso local
-
-Para trabajar en local:
-
-```powershell
-cd "C:\Archivos\Johancel\Proyectos\AlquilerMovil\Alquilados_App"
-flutter pub get
-flutter run
-```
-
-## Objetivo del MVP actual
-
-El objetivo inmediato del proyecto es cubrir la gestión operativa local de alquileres con una base sólida para futuras integraciones de backend y sincronización. La app ya está preparada para evolucionar desde un flujo local validado hacia una solución con API y automatización real.
+1. **Local-first** — la app funciona sin conexión; el backend es una mejora, no un requisito.
+2. **Compatibilidad incremental** — cada cambio debe preservar los datos existentes en la BD local.
+3. **Un paso a la vez** — avanzar feature por feature sin romper lo que ya funciona.
+4. **Reutilizar antes de crear** — aprovechar los widgets compartidos de `core/shared/` y la lógica existente en `LocalDatabaseService`.
