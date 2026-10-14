@@ -171,11 +171,11 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                         int.tryParse(fechaPagosController.text.trim()) ??
                         inquilino.fechaPagos;
 
-                    if (nombre.isEmpty || fechaInicio.isEmpty) {
+                    if (nombre.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Nombre y fecha de inicio son obligatorios.',
+                            'El nombre y apellido es obligatorio.',
                           ),
                         ),
                       );
@@ -189,7 +189,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                       id: inquilino.id,
                       nombreApellido: nombre,
                       correo: correo.isEmpty ? null : correo,
-                      fechaInicioContrato: fechaInicio,
+                      fechaInicioContrato: fechaInicio.isEmpty ? null : fechaInicio,
                       fechaPagos: fechaPagos,
                     );
 
@@ -276,13 +276,13 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     final correo = correoController.text.trim();
                     final fechaInicio = fechaInicioController.text.trim();
                     final fechaPagos =
-                        int.tryParse(fechaPagosController.text.trim()) ?? 1;
+                        int.tryParse(fechaPagosController.text.trim());
 
-                    if (nombre.isEmpty || fechaInicio.isEmpty) {
+                    if (nombre.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Nombre y fecha de inicio son obligatorios.',
+                            'El nombre y apellido es obligatorio.',
                           ),
                         ),
                       );
@@ -295,7 +295,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     await database.insertInquilino(
                       nombreApellido: nombre,
                       correo: correo.isEmpty ? null : correo,
-                      fechaInicioContrato: fechaInicio,
+                      fechaInicioContrato: fechaInicio.isEmpty ? null : fechaInicio,
                       fechaPagos: fechaPagos,
                     );
 
@@ -382,14 +382,16 @@ class _InquilinoCard extends StatelessWidget {
           Text(inquilino.correo!),
         ],
         const SizedBox(height: 10),
-        Text(
-          'Inicio de contrato: ${inquilino.fechaInicioContrato}',
-          style: AppTypography.bodySmall,
-        ),
-        Text(
-          'Día de pago: ${inquilino.fechaPagos}',
-          style: AppTypography.bodySmall,
-        ),
+        if (inquilino.fechaInicioContrato?.isNotEmpty ?? false)
+          Text(
+            'Inicio de contrato: ${inquilino.fechaInicioContrato}',
+            style: AppTypography.bodySmall,
+          ),
+        if (inquilino.fechaPagos != null)
+          Text(
+            'Día de pago: ${inquilino.fechaPagos}',
+            style: AppTypography.bodySmall,
+          ),
         const SizedBox(height: 12),
         Row(
           children: [

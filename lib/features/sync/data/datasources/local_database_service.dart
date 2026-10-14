@@ -373,6 +373,7 @@ class LocalDatabaseService {
         'montoPago': 6000.0,
         'cantidadDepositos': 2,
         'diaPago': 15,
+        'cantidadMeses': 12,
         'estado': 'Activo',
         'sync_state': 'synced',
         'synced_at': DateTime.now().toIso8601String(),
@@ -388,6 +389,7 @@ class LocalDatabaseService {
         'montoPago': 7000.0,
         'cantidadDepositos': 1,
         'diaPago': 20,
+        'cantidadMeses': 12,
         'estado': 'Activo',
         'sync_state': 'synced',
         'synced_at': DateTime.now().toIso8601String(),
@@ -547,9 +549,9 @@ class LocalDatabaseService {
 
   Future<int> insertInquilino({
     required String nombreApellido,
-    required String? correo,
-    required String fechaInicioContrato,
-    required int fechaPagos,
+    String? correo,
+    String? fechaInicioContrato,
+    int? fechaPagos,
   }) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
@@ -616,6 +618,23 @@ class LocalDatabaseService {
     return rows.isEmpty ? null : rows.first;
   }
 
+  static int calcularCantidadMeses(String fechaInicio, String? fechaFin) {
+    if (fechaFin == null || fechaFin.isEmpty) return 0;
+    final inicio = DateTime.tryParse(fechaInicio);
+    final fin = DateTime.tryParse(fechaFin);
+    if (inicio == null || fin == null || fin.isBefore(inicio)) return 0;
+
+    final finAjustado = fin.add(const Duration(days: 1));
+    var meses = (finAjustado.year - inicio.year) * 12 + (finAjustado.month - inicio.month);
+    if (finAjustado.day < inicio.day) {
+      meses--;
+    }
+    if (meses <= 0 && fin.difference(inicio).inDays >= 25) {
+      meses = 1;
+    }
+    return meses > 0 ? meses : 0;
+  }
+
   Future<int> insertAlquiler({
     required int propiedadId,
     required int inquilinoId,
@@ -625,13 +644,18 @@ class LocalDatabaseService {
     double? montoPago,
     int cantidadDepositos = 0,
     int diaPago = 1,
+    int? cantidadMeses,
     required String estado,
+    bool generarPagosPendientes = true,
   }) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
     final pago = montoPago ?? importe;
+    final meses = (cantidadMeses != null && cantidadMeses > 0)
+        ? cantidadMeses
+        : calcularCantidadMeses(fechaInicio, fechaFin);
 
-    return db.insert('alquileres', {
+    final id = await db.insert('alquileres', {
       'propiedad_id': propiedadId,
       'inquilino_id': inquilinoId,
       'fecha_inicio': fechaInicio,
@@ -640,11 +664,83 @@ class LocalDatabaseService {
       'montoPago': pago,
       'cantidadDepositos': cantidadDepositos,
       'diaPago': diaPago,
+      'cantidadMeses': meses,
       'estado': estado,
       'updated_at': now,
       'sync_state': 'pending',
       'synced_at': null,
     });
+
+    if (generarPagosPendientes && meses > 0) {
+      await generarPagosParaAlquiler(
+        alquilerId: id,
+        inquilinoId: inquilinoId,
+        fechaInicio: fechaInicio,
+        cantidadMeses: meses,
+        montoPago: pago,
+        diaPago: diaPago,
+      );
+    }
+
+    return id;
+  }
+
+  Future<void> generarPagosParaAlquiler({
+    required int alquilerId,
+    required int inquilinoId,
+    required String fechaInicio,
+    required int cantidadMeses,
+    required double montoPago,
+    required int diaPago,
+  }) async {
+    final db = await database;
+    final inicio = DateTime.tryParse(fechaInicio);
+    if (inicio == null || cantidadMeses <= 0) return;
+
+    final batch = db.batch();
+    final now = DateTime.now().toIso8601String();
+
+    const mesesNombres = [
+      '',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+
+    for (int i = 0; i < cantidadMeses; i++) {
+      final targetYear = inicio.year + ((inicio.month - 1 + i) ~/ 12);
+      final targetMonth = ((inicio.month - 1 + i) % 12) + 1;
+      final diasEnMes = DateTime(targetYear, targetMonth + 1, 0).day;
+      final dia = (diaPago >= 1 && diaPago <= 31) ? diaPago.clamp(1, diasEnMes) : 1;
+
+      final fechaPagoStr =
+          '$targetYear-${targetMonth.toString().padLeft(2, '0')}-${dia.toString().padLeft(2, '0')}';
+      final periodoStr = '${mesesNombres[targetMonth]} $targetYear';
+
+      batch.insert('pagos', {
+        'id_inquilino': inquilinoId.toString(),
+        'id_alquiler': alquilerId,
+        'alquiler_id': alquilerId,
+        'periodo': periodoStr,
+        'fecha_pago': fechaPagoStr,
+        'monto': montoPago,
+        'estado': 'pendiente',
+        'updated_at': now,
+        'sync_state': 'pending',
+        'synced_at': null,
+      });
+    }
+
+    await batch.commit(noResult: true);
   }
 
   Future<int> updateAlquiler({
@@ -657,10 +753,15 @@ class LocalDatabaseService {
     double? montoPago,
     int cantidadDepositos = 0,
     int diaPago = 1,
+    int? cantidadMeses,
     required String estado,
   }) async {
     final db = await database;
     final pago = montoPago ?? importe;
+    final meses = (cantidadMeses != null && cantidadMeses > 0)
+        ? cantidadMeses
+        : calcularCantidadMeses(fechaInicio, fechaFin);
+
     return db.update(
       'alquileres',
       {
@@ -672,6 +773,7 @@ class LocalDatabaseService {
         'montoPago': pago,
         'cantidadDepositos': cantidadDepositos,
         'diaPago': diaPago,
+        'cantidadMeses': meses,
         'estado': estado,
         'updated_at': DateTime.now().toIso8601String(),
         'sync_state': 'pending',
@@ -817,9 +919,9 @@ class LocalDatabaseService {
   Future<int> updateInquilino({
     required int id,
     required String nombreApellido,
-    required String? correo,
-    required String fechaInicioContrato,
-    required int fechaPagos,
+    String? correo,
+    String? fechaInicioContrato,
+    int? fechaPagos,
   }) async {
     final db = await database;
     return db.update(
@@ -838,6 +940,7 @@ class LocalDatabaseService {
     );
   }
 
+
   Future<Map<String, dynamic>?> getInquilinoById(int id) async {
     final db = await database;
     final results = await db.query(
@@ -853,7 +956,14 @@ class LocalDatabaseService {
     final db = await database;
     await ensureDatabaseReady();
     return db.rawQuery('''
-      SELECT a.*, p.nombre AS propiedad_nombre, i.nombre_apellido AS inquilino_nombre
+      SELECT a.*,
+        p.nombre AS propiedad_nombre,
+        i.nombre_apellido AS inquilino_nombre,
+        (
+          SELECT COUNT(1) FROM pagos pg
+          WHERE (pg.id_alquiler = a.id OR pg.alquiler_id = a.id)
+            AND LOWER(pg.estado) = 'pagado'
+        ) AS pagos_realizados
       FROM alquileres a
       LEFT JOIN propiedades p ON p.id = a.propiedad_id
       LEFT JOIN inquilinos i ON i.id = a.inquilino_id
@@ -866,7 +976,14 @@ class LocalDatabaseService {
     await ensureDatabaseReady();
     final results = await db.rawQuery(
       '''
-      SELECT a.*, p.nombre AS propiedad_nombre, i.nombre_apellido AS inquilino_nombre
+      SELECT a.*,
+        p.nombre AS propiedad_nombre,
+        i.nombre_apellido AS inquilino_nombre,
+        (
+          SELECT COUNT(1) FROM pagos pg
+          WHERE (pg.id_alquiler = a.id OR pg.alquiler_id = a.id)
+            AND LOWER(pg.estado) = 'pagado'
+        ) AS pagos_realizados
       FROM alquileres a
       LEFT JOIN propiedades p ON p.id = a.propiedad_id
       LEFT JOIN inquilinos i ON i.id = a.inquilino_id
@@ -948,6 +1065,11 @@ class LocalDatabaseService {
 
   Future<int> deleteAlquiler(int id) async {
     final db = await database;
+    await db.delete(
+      'pagos',
+      where: 'id_alquiler = ? OR alquiler_id = ?',
+      whereArgs: [id, id],
+    );
     return db.delete('alquileres', where: 'id = ?', whereArgs: [id]);
   }
 

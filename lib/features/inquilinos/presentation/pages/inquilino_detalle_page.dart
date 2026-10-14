@@ -155,15 +155,17 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     _buildInfoRow(
                       icon: Icons.calendar_today_rounded,
                       label: 'Inicio de contrato',
-                      value: inquilino.fechaInicioContrato.isNotEmpty
-                          ? inquilino.fechaInicioContrato
+                      value: (inquilino.fechaInicioContrato?.isNotEmpty ?? false)
+                          ? inquilino.fechaInicioContrato!
                           : 'No especificada',
                     ),
                     const Divider(height: 20),
                     _buildInfoRow(
                       icon: Icons.payment_rounded,
                       label: 'Día de cobro recurrente',
-                      value: 'Día ${inquilino.fechaPagos} de cada mes',
+                      value: inquilino.fechaPagos != null
+                          ? 'Día ${inquilino.fechaPagos} de cada mes'
+                          : 'No especificado',
                     ),
                   ],
                 ),

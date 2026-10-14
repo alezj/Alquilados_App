@@ -2,9 +2,9 @@ class Inquilino {
   const Inquilino({
     required this.id,
     required this.nombreApellido,
-    required this.correo,
-    required this.fechaInicioContrato,
-    required this.fechaPagos,
+    this.correo,
+    this.fechaInicioContrato,
+    this.fechaPagos,
     this.syncState = 'pending',
     this.syncedAt,
   });
@@ -12,8 +12,8 @@ class Inquilino {
   final int id;
   final String nombreApellido;
   final String? correo;
-  final String fechaInicioContrato;
-  final int fechaPagos;
+  final String? fechaInicioContrato;
+  final int? fechaPagos;
   final String syncState;
   final String? syncedAt;
 }

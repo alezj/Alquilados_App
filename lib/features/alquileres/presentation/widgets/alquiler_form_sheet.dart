@@ -24,10 +24,15 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
   final _diaPagoController = TextEditingController();
   final _fechaInicioController = TextEditingController();
   final _fechaFinController = TextEditingController();
+  final _cantidadMesesController = TextEditingController();
   final _estadoController = ValueNotifier<String>('Activo');
   List<Map<String, dynamic>> _propiedades = const [];
   List<Map<String, dynamic>> _inquilinos = const [];
   bool _isLoading = true;
+
+  /// Controla si el último cambio vino del campo de meses (para evitar loops).
+  bool _mesesEditandose = false;
+  bool _fechaFinEditandose = false;
 
   @override
   void initState() {
@@ -45,8 +50,36 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
       _diaPagoController.text = widget.alquiler!.diaPago.toString();
       _fechaInicioController.text = widget.alquiler!.fechaInicio;
       _fechaFinController.text = widget.alquiler!.fechaFin ?? '';
+      _cantidadMesesController.text = widget.alquiler!.cantidadMeses > 0
+          ? widget.alquiler!.cantidadMeses.toString()
+          : LocalDatabaseService.calcularCantidadMeses(
+              widget.alquiler!.fechaInicio,
+              widget.alquiler!.fechaFin,
+            ).toString();
       _estadoController.value = widget.alquiler!.estado;
     }
+
+    // Listener: al escribir la cantidad de meses → calcula la fecha fin
+    _cantidadMesesController.addListener(_onMesesChanged);
+  }
+
+  void _onMesesChanged() {
+    if (_mesesEditandose) return; // evita loop
+    final meses = int.tryParse(_cantidadMesesController.text.trim());
+    if (meses == null || meses <= 0) return;
+    final inicioStr = _fechaInicioController.text.trim();
+    if (inicioStr.isEmpty) return;
+    final inicio = DateTime.tryParse(inicioStr);
+    if (inicio == null) return;
+
+    // Fecha fin = inicio + meses - 1 día
+    final fin = DateTime(inicio.year, inicio.month + meses, inicio.day)
+        .subtract(const Duration(days: 1));
+    final finStr = fin.toIso8601String().split('T').first;
+
+    _fechaFinEditandose = true;
+    _fechaFinController.text = finStr;
+    _fechaFinEditandose = false;
   }
 
   Future<void> _loadCatalog() async {
@@ -132,7 +165,21 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
       } else {
         _fechaFinController.text = isoDate;
       }
+      _recalcularMeses();
     });
+  }
+
+  void _recalcularMeses() {
+    if (_fechaFinEditandose) return; // la fecha fin fue puesta por nosotros, no recalcular
+    _mesesEditandose = true;
+    final meses = LocalDatabaseService.calcularCantidadMeses(
+      _fechaInicioController.text.trim(),
+      _fechaFinController.text.trim(),
+    );
+    if (meses > 0) {
+      _cantidadMesesController.text = meses.toString();
+    }
+    _mesesEditandose = false;
   }
 
   Future<void> _save() async {
@@ -167,6 +214,16 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
       return;
     }
 
+    final cantidadMesesManual =
+        int.tryParse(_cantidadMesesController.text.trim());
+    final mesesCalculados = LocalDatabaseService.calcularCantidadMeses(
+      fechaInicio,
+      fechaFin,
+    );
+    final cantidadMeses = (cantidadMesesManual != null && cantidadMesesManual > 0)
+        ? cantidadMesesManual
+        : mesesCalculados;
+
     try {
       final db = LocalDatabaseService();
       if (widget.alquiler == null) {
@@ -179,6 +236,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
           montoPago: montoPago,
           cantidadDepositos: cantidadDepositos,
           diaPago: diaPago,
+          cantidadMeses: cantidadMeses,
           estado: _estadoController.value,
         );
       } else {
@@ -192,8 +250,25 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
           montoPago: montoPago,
           cantidadDepositos: cantidadDepositos,
           diaPago: diaPago,
+          cantidadMeses: cantidadMeses,
           estado: _estadoController.value,
         );
+      }
+
+      // Actualizar el inquilino con la fecha de inicio del contrato y el día de pago
+      if (inquilinoId != 0) {
+        final inquilinoRow = await db.getInquilinoById(inquilinoId);
+        if (inquilinoRow != null) {
+          final nombreActual =
+              (inquilinoRow['nombre_apellido'] as String?) ?? '';
+          await db.updateInquilino(
+            id: inquilinoId,
+            nombreApellido: nombreActual,
+            correo: inquilinoRow['correo'] as String?,
+            fechaInicioContrato: fechaInicio.isNotEmpty ? fechaInicio : null,
+            fechaPagos: diaPago,
+          );
+        }
       }
 
       if (mounted) {
@@ -212,6 +287,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
 
   @override
   void dispose() {
+    _cantidadMesesController.removeListener(_onMesesChanged);
     _propiedadController.dispose();
     _inquilinoController.dispose();
     _montoPagoController.dispose();
@@ -219,6 +295,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     _diaPagoController.dispose();
     _fechaInicioController.dispose();
     _fechaFinController.dispose();
+    _cantidadMesesController.dispose();
     _estadoController.dispose();
     super.dispose();
   }
@@ -329,6 +406,16 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                 prefixIcon: Icons.event_available_rounded,
                 readOnly: true,
                 onTap: () => _pickDate(isInicio: false),
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _cantidadMesesController,
+                label: 'Cantidad de meses acordados',
+                hint: 'Se calcula automáticamente o ingrésalo manualmente',
+                prefixIcon: Icons.calendar_month_rounded,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: false,
+                ),
               ),
               const SizedBox(height: 12),
               AppTextField(

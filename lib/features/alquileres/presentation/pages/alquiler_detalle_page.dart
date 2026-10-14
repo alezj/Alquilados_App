@@ -56,9 +56,46 @@ class AlquilerDetallePage extends ConsumerWidget {
                       ))
                   .toList();
 
+              final pagosRealizados = pagos
+                  .where((p) => p.estado.toLowerCase() == 'pagado')
+                  .length;
+              final cantidadMeses = alquiler.cantidadMeses;
+              final pendientes = (cantidadMeses - pagosRealizados) > 0
+                  ? (cantidadMeses - pagosRealizados)
+                  : 0;
+
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MetricCard(
+                          label: 'Meses acordados',
+                          value: '$cantidadMeses',
+                          icon: Icons.calendar_month_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _MetricCard(
+                          label: 'Pagos realizados',
+                          value: '$pagosRealizados',
+                          icon: Icons.check_circle_outline_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _MetricCard(
+                          label: 'Pendientes',
+                          value: '$pendientes',
+                          icon: Icons.pending_actions_rounded,
+                          highlight: pendientes > 0,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   AppCard(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -82,6 +119,9 @@ class AlquilerDetallePage extends ConsumerWidget {
                           _InfoRow(label: 'Inquilino', value: tenantName),
                           _InfoRow(label: 'Fecha de inicio', value: _formatDate(alquiler.fechaInicio)),
                           _InfoRow(label: 'Fecha de finalización', value: _formatDate(alquiler.fechaFin)),
+                          _InfoRow(label: 'Meses acordados', value: '$cantidadMeses meses'),
+                          _InfoRow(label: 'Pagos realizados', value: '$pagosRealizados pagos'),
+                          _InfoRow(label: 'Pendientes por pagar', value: '$pendientes meses'),
                           _InfoRow(label: 'Monto a pagar', value: _currency(alquiler.montoPago)),
                           _InfoRow(label: 'Cantidad de depósitos', value: alquiler.cantidadDepositos.toString()),
                           _InfoRow(label: 'Día de pago', value: alquiler.diaPago.toString()),
@@ -179,7 +219,7 @@ class _InfoRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 140,
+            width: 160,
             child: Text(
               '$label:',
               style: AppTypography.labelMedium.copyWith(
@@ -189,6 +229,56 @@ class _InfoRow extends StatelessWidget {
           ),
           Expanded(child: Text(value, style: AppTypography.bodyMedium)),
         ],
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.highlight = false,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = highlight ? colorScheme.error : colorScheme.primary;
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: AppTypography.titleMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: AppTypography.bodySmall.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 11,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

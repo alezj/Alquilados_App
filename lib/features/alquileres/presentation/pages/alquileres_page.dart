@@ -12,6 +12,7 @@ import '../../../../core/shared/widgets/app_text_field.dart';
 import '../../../../core/shared/widgets/status_badge.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
+import '../../../pagos/presentation/providers/pagos_provider.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
 import '../../domain/entities/alquiler.dart';
 import '../providers/alquileres_provider.dart';
@@ -155,6 +156,26 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
                                       style: AppTypography.bodySmall,
                                     ),
                                     const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.event_repeat_rounded,
+                                          size: 16,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            'Meses pendientes: ${alquiler.pagosPendientes} (de ${alquiler.cantidadMeses} acordados)',
+                                            style: AppTypography.bodySmall.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
                                     Text(
                                       'Monto a pagar: ${_currency(alquiler.montoPago)}',
                                       style: AppTypography.currencyMedium,
@@ -184,11 +205,12 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
     if (result == true) {
       ref.invalidate(alquileresProvider);
       ref.invalidate(dashboardSummaryProvider);
+      ref.invalidate(pagosProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              alquiler == null ? 'Alquiler creado localmente.' : 'Alquiler actualizado localmente.',
+              alquiler == null ? 'Alquiler creado y pagos generados.' : 'Alquiler actualizado localmente.',
             ),
           ),
         );
@@ -221,6 +243,7 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
     await LocalDatabaseService().deleteAlquiler(id);
     ref.invalidate(alquileresProvider);
     ref.invalidate(dashboardSummaryProvider);
+    ref.invalidate(pagosProvider);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

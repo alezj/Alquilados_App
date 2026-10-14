@@ -182,6 +182,7 @@ class SyncRepositoryImpl implements SyncRepository {
           'montoPago': row['montoPago'],
           'cantidadDepositos': row['cantidadDepositos'],
           'diaPago': row['diaPago'],
+          'cantidadMeses': row['cantidadMeses'],
           'estado': row['estado'],
         };
       default:
@@ -234,6 +235,7 @@ class SyncRepositoryImpl implements SyncRepository {
           'montoPago': _asDouble(row['montoPago']),
           'cantidadDepositos': _asInt(row['cantidadDepositos']),
           'diaPago': _asInt(row['diaPago'], fallback: 1),
+          'cantidadMeses': _asInt(row['cantidadMeses']),
           'estado': row['estado']?.toString() ?? 'Pendiente',
         };
       default:
