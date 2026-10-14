@@ -33,9 +33,12 @@ class _PagosPageState extends ConsumerState<PagosPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.openCreateSheet) {
+    if (widget.openCreateSheet || ref.read(openCreatePagoSheetProvider)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showCreateSheet(context);
+        if (mounted) {
+          _showCreateSheet(context);
+          ref.read(openCreatePagoSheetProvider.notifier).reset();
+        }
       });
     }
   }
@@ -48,6 +51,17 @@ class _PagosPageState extends ConsumerState<PagosPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(openCreatePagoSheetProvider, (prev, next) {
+      if (next) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showCreateSheet(context);
+            ref.read(openCreatePagoSheetProvider.notifier).reset();
+          }
+        });
+      }
+    });
+
     final filtro = ref.watch(pagosFiltroProvider);
     final pagosAsync = ref.watch(pagosFiltradosProvider);
     final colorScheme = Theme.of(context).colorScheme;

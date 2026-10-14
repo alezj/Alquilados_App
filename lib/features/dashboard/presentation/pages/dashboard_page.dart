@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_card.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../app_shell.dart';
+import '../../../pagos/presentation/providers/pagos_provider.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
 
 final dashboardSummaryProvider = FutureProvider<Map<String, int>>((ref) async {
@@ -62,13 +64,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             title: 'Alquileres',
             value: '${data['alquileresActivos'] ?? 0}',
             subtitle: 'activos',
-            route: AppRoutes.alquileres,
+            onTap: () =>
+                ref.read(appShellTabProvider.notifier).goToAlquileres(),
           ),
           _StatCard(
             title: 'Pagos pendientes',
             value: '${data['pagosPendientes'] ?? 0}',
             subtitle: 'por revisar',
-            route: AppRoutes.pagos,
+            onTap: () {
+              ref.read(appShellTabProvider.notifier).goToPagos();
+              ref
+                  .read(pagosFiltroProvider.notifier)
+                  .setEstado(FiltroEstadoPago.pendiente);
+            },
           ),
           _StatCard(
             title: 'Inquilinos',
@@ -89,7 +97,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 children: [
                   Expanded(
                     child: AppCard(
-                      onTap: () => context.push(AppRoutes.alquileres),
+                      onTap: () => ref
+                          .read(appShellTabProvider.notifier)
+                          .goToAlquileres(),
                       child: ListTile(
                         leading: const Icon(Icons.home_work_rounded),
                         title: isMobileSmall ? null : const Text('Alquileres'), // si es móvil pequeño
@@ -101,9 +111,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: AppCard(
-                      onTap: () => context.push(
-                        '${AppRoutes.pagos}?openCreate=true',
-                      ),
+                      onTap: () {
+                        ref.read(appShellTabProvider.notifier).goToPagos();
+                        ref
+                            .read(openCreatePagoSheetProvider.notifier)
+                            .trigger();
+                      },
                       child: ListTile(
                         leading: const Icon(Icons.payment_rounded),
                         title: isMobileSmall ? null : const Text('Pagos'),
@@ -143,17 +156,19 @@ class _StatCard extends StatelessWidget {
     required this.value,
     required this.subtitle,
     this.route,
+    this.onTap,
   });
 
   final String title;
   final String value;
   final String subtitle;
   final String? route;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      onTap: route != null ? () => context.push(route!) : null,
+      onTap: onTap ?? (route != null ? () => context.push(route!) : null),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,

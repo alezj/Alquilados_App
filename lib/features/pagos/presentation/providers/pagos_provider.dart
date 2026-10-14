@@ -135,3 +135,20 @@ final pagosFiltradosProvider = FutureProvider<List<Pago>>((ref) async {
 
   return resultado;
 });
+
+// ──────────────────────────────────────────────
+// Trigger para abrir el modal de crear pago
+// ──────────────────────────────────────────────
+
+class OpenCreatePagoSheetNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void trigger() => state = true;
+  void reset() => state = false;
+}
+
+final openCreatePagoSheetProvider =
+    NotifierProvider<OpenCreatePagoSheetNotifier, bool>(
+  OpenCreatePagoSheetNotifier.new,
+);
