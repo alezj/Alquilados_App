@@ -175,45 +175,65 @@ class _StatCard extends StatelessWidget {
   final String? route;
   final VoidCallback? onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      onTap: onTap ?? (route != null ? () => context.push(route!) : null),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+
+@override
+Widget build(BuildContext context) {
+  return AppCard(
+    onTap: onTap ?? (route != null ? () => context.push(route!) : null),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Icono y valor en la misma fila
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 20, color: color),
               ),
-              child: Icon(icon, size: 20, color: color),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: AppTypography.displayMedium.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Text(
+                  value,
+                  style: AppTypography.displayMedium.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // Título
+          Text(
+            title,
+            style: AppTypography.labelMedium,
+          ),
+
+          // Subtítulo
+          Text(
+            subtitle,
+            style: AppTypography.bodySmall.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 2),
-            Text(title, style: AppTypography.labelMedium),
-            Text(
-              subtitle,
-              style: AppTypography.bodySmall.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ActionCard extends StatelessWidget {
