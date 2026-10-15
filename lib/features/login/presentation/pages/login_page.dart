@@ -20,7 +20,13 @@ class LoginPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const FlutterLogo(size: 90),
+                  //const FlutterLogo(size: 90),
+                  Image.asset(
+  'assets/app_icon.png',
+  width: 100,
+  height: 100,
+  fit: BoxFit.contain,
+),
                   const SizedBox(height: 24),
                   const AppTextField(
                     label: 'Correo',

@@ -3,12 +3,18 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:flutter/services.dart';
 
 import '../../domain/entities/comprobante_pago.dart';
 
 class ComprobantePagoService {
   Future<Uint8List> generatePdfBytes(ComprobantePagoData data) async {
     final pdf = pw.Document();
+
+    final logoBytes = await rootBundle.load('app_icon.png');
+    final logo = pw.MemoryImage(
+      logoBytes.buffer.asUint8List(),
+    );
 
     pdf.addPage(
       pw.Page(
@@ -17,13 +23,35 @@ class ComprobantePagoService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(
-                data.titulo,
-                style: const pw.TextStyle(
-                  fontSize: 24,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
+              pw.Row(
+  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  crossAxisAlignment: pw.CrossAxisAlignment.center,
+  children: [
+    pw.Expanded(
+      child: pw.Text(
+        data.titulo,
+        style: const pw.TextStyle(
+          fontSize: 24,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+    ),
+    pw.SizedBox(width: 16),
+    pw.Image(
+      logo,
+      width: 75,
+      height: 75,
+      fit: pw.BoxFit.contain,
+    ),
+  ],
+),
+              // pw.Text(
+              //   data.titulo,
+              //   style: const pw.TextStyle(
+              //     fontSize: 24,
+              //     fontWeight: pw.FontWeight.bold,
+              //   ),
+              // ),
               pw.SizedBox(height: 12),
               pw.Text(
                 'Documento generado localmente para referencia del pago.',
