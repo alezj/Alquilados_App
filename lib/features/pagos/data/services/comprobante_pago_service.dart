@@ -11,7 +11,7 @@ class ComprobantePagoService {
   Future<Uint8List> generatePdfBytes(ComprobantePagoData data) async {
     final pdf = pw.Document();
 
-    final logoBytes = await rootBundle.load('app_icon.png');
+    final logoBytes = await rootBundle.load('assets/app_icon.png');
     final logo = pw.MemoryImage(
       logoBytes.buffer.asUint8List(),
     );
