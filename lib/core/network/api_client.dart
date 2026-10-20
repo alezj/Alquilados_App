@@ -37,6 +37,9 @@ class ApiClient {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
+              'apikey': AppConfig.supabasePublishableKey,
+              'Authorization': 'Bearer ${AppConfig.supabasePublishableKey}',
+              'Prefer': 'return=representation',
             },
           ),
         );

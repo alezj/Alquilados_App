@@ -31,14 +31,19 @@ abstract final class AppConfig {
     }
   }
 
-  /// URL base de la API ASP.NET Core, incluido el prefijo `/api`.
-  ///
-  /// Backend local actual: `http://localhost:5129/api`.
-  /// En el emulador Android se debe utilizar `http://10.0.2.2:5129/api`.
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://fdb4x788-5129.use2.devtunnels.ms/api',
+  /// URL REST del proyecto Supabase.
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://plkbprmponbtwfxglmzm.supabase.co',
   );
+
+  /// Clave publicable de cliente. Nunca colocar aquí una secret/service role key.
+  static const String supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+    defaultValue: 'sb_publishable_E1IkI3HGl5uZenUfVCLgLg_HQ98n1hC',
+  );
+
+  static String get apiBaseUrl => '${supabaseUrl.replaceAll(RegExp(r'/+$'), '')}/rest/v1/';
 
   /// Habilitar logs en consola (se desactiva por defecto en producción)
   static const bool enableLogs = bool.fromEnvironment(

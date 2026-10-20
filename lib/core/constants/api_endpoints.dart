@@ -1,28 +1,17 @@
-/// Endpoints expuestos actualmente por el backend ASP.NET Core.
-///
-/// Fuente de verdad: el documento OpenAPI publicado por el backend.
-/// La URL base debe terminar en `/api`, por ejemplo:
-/// `http://localhost:5129/api` durante el desarrollo local.
-///
-/// Las colecciones se sincronizan desde `SyncRepositoryImpl`, que también usa
-/// las operaciones genéricas de escritura expuestas por `Backend`.
+/// Tablas expuestas por la API REST de Supabase (PostgREST).
 abstract final class ApiEndpoints {
-  static const String _backend = '/Backend';
-
-  // Consultas disponibles.
-  static const String status = '$_backend/status';
-  static const String inquilinos = '$_backend/inquilinos';
-  static const String estados = '$_backend/estados';
-  static const String pagos = '$_backend/pagos';
-  static const String propiedades = '$_backend/propiedades';
-  static const String mantenimientos = '$_backend/mantenimientos';
-  static const String alquileres = '$_backend/alquileres';
+  static const String inquilinos = 'inquilinos?Origen=eq.movil&usuario=eq.00000000-0000-0000-0000-000000000000&select=*';
+  static const String estados = 'estados?Origen=eq.movil&usuario=eq.00000000-0000-0000-0000-000000000000&select=*';
+  static const String pagos = 'pagos?Origen=eq.movil&usuario=eq.00000000-0000-0000-0000-000000000000&select=*';
+  static const String propiedades = 'propiedades?Origen=eq.movil&usuario=eq.00000000-0000-0000-0000-000000000000&select=*';
+  static const String mantenimientos = 'mantenimientos?Origen=eq.movil&usuario=eq.00000000-0000-0000-0000-000000000000&select=*';
+  static const String alquileres = 'alquileres?Origen=eq.movil&usuario=eq.00000000-0000-0000-0000-000000000000&select=*';
 
   // Operaciones específicas de propiedades.
-  static String propiedadById(String id) => '$_backend/propiedades/$id';
+  static String propiedadById(String id) => 'propiedades?id=eq.$id&select=*';
 
   // Operaciones genéricas permitidas por el backend para los recursos indicados.
-  static String resource(String resource) => '$_backend/$resource';
+  static String resource(String resource) => resource;
   static String resourceById(String resource, String id) =>
-      '$_backend/$resource/$id';
+      '$resource?id=eq.$id';
 }

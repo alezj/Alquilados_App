@@ -20,6 +20,7 @@ Alquilados es una herramienta de administración inmobiliaria pensada para propi
 | Navegación | `go_router` |
 | Base de datos local | `sqflite` (nativo) + `sqflite_common_ffi_web` (web) |
 | HTTP / Sync | `dio` |
+| Backend remoto | Supabase REST API |
 | PDF | `pdf` + `printing` |
 | Formato / Fechas | `intl` |
 | Seguridad local | `flutter_secure_storage` |
@@ -101,9 +102,14 @@ lib/
 | `inquilinos` | Personas que alquilan |
 | `alquileres` | Contratos que vinculan propiedad + inquilino |
 | `pagos` | Registros de cobros por mes de alquiler |
+| `estados` | Catálogo de estados sincronizado desde Supabase |
 | `sync_log` | Log de operaciones pendientes de sincronizar |
 
 La base se crea y migra automáticamente al iniciar la app. En plataformas nativas el archivo vive en el directorio de `path_provider`; en Web usa almacenamiento web con el mismo nombre lógico.
+La versión móvil 6 agrega `Origen`, `usuario` y `created_at` a las tablas de
+negocio, e incorpora `estados`. Se conservan las columnas internas de
+sincronización y los nombres snake_case usados por la app para mantener los
+datos existentes.
 
 ---
 
@@ -122,6 +128,24 @@ La base se crea y migra automáticamente al iniciar la app. En plataformas nativ
 ---
 
 ## Instalación y ejecución
+
+La sincronización usa el proyecto Supabase configurado en `AppConfig`. Para
+usar otro entorno, pasa `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` con
+`--dart-define` (la clave publishable es apta para cliente; nunca uses una
+secret/service role key dentro de la app).
+
+```bash
+flutter run \\
+  --dart-define=SUPABASE_URL=https://<project-ref>.supabase.co \\
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_<key>
+```
+
+La migración `supabase/migrations/20261020000100_app_sync_fields.sql` añade a
+las tablas existentes los campos requeridos por la sincronización local-first.
+El proyecto conectado hoy permite acceso anónimo de lectura y escritura en las
+tablas de alquileres; el formulario de login de esta app todavía no autentica
+usuarios. Antes de guardar datos reales de varios usuarios, configura Supabase
+Auth y políticas RLS por propietario.
 
 ```bash
 flutter pub get

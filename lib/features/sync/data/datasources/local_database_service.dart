@@ -35,6 +35,9 @@ class LocalDatabaseService {
         diaPago INTEGER NOT NULL DEFAULT 1,
         cantidadMeses INTEGER NOT NULL DEFAULT 0,
         estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
         sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
@@ -79,11 +82,28 @@ class LocalDatabaseService {
         fecha TEXT NOT NULL,
         costo REAL NOT NULL DEFAULT 0,
         estado TEXT NOT NULL DEFAULT 'Pendiente',
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
         sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
       )
     ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS estados (
+        id INTEGER PRIMARY KEY,
+        Descripcion TEXT NOT NULL,
+        tabla TEXT NOT NULL,
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        synced_at TEXT,
+        sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
+      )
+    ''');
+    await _ensureOriginUserColumns(db);
   }
 
   Future<Database> _initDatabase() async {
@@ -93,7 +113,7 @@ class LocalDatabaseService {
 
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
     );
@@ -108,6 +128,9 @@ class LocalDatabaseService {
         estado INTEGER,
         precio_mensual REAL,
         notas TEXT,
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
         sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
@@ -121,6 +144,9 @@ class LocalDatabaseService {
         correo TEXT,
         fecha_inicio_contrato TEXT,
         fecha_pagos INTEGER,
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
         sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
@@ -137,6 +163,9 @@ class LocalDatabaseService {
         fecha_pago TEXT,
         monto REAL,
         estado TEXT,
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
         sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
@@ -154,7 +183,11 @@ class LocalDatabaseService {
         montoPago REAL NOT NULL DEFAULT 0,
         cantidadDepositos INTEGER NOT NULL DEFAULT 0,
         diaPago INTEGER NOT NULL DEFAULT 1,
+        cantidadMeses INTEGER NOT NULL DEFAULT 0,
         estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
         sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
@@ -169,6 +202,9 @@ class LocalDatabaseService {
         fecha TEXT NOT NULL,
         costo REAL NOT NULL DEFAULT 0,
         estado TEXT NOT NULL DEFAULT 'Pendiente',
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         synced_at TEXT,
         sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
@@ -183,6 +219,20 @@ class LocalDatabaseService {
         status TEXT NOT NULL,
         message TEXT,
         created_at TEXT DEFAULT (datetime('now'))
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE estados (
+        id INTEGER PRIMARY KEY,
+        Descripcion TEXT NOT NULL,
+        tabla TEXT NOT NULL,
+        "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+        usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        synced_at TEXT,
+        sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
       )
     ''');
   }
@@ -257,6 +307,56 @@ class LocalDatabaseService {
           sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
         )
       ''');
+    }
+
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS estados (
+          id INTEGER PRIMARY KEY,
+          Descripcion TEXT NOT NULL,
+          tabla TEXT NOT NULL,
+          "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
+          usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          synced_at TEXT,
+          sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
+        )
+      ''');
+      await _ensureOriginUserColumns(db);
+    }
+  }
+
+  Future<void> _ensureOriginUserColumns(Database db) async {
+    for (final table in const [
+      'propiedades',
+      'inquilinos',
+      'pagos',
+      'alquileres',
+      'mantenimientos',
+      'estados',
+    ]) {
+      await _addColumnIfNotExists(
+        db,
+        table,
+        'Origen',
+        "TEXT NOT NULL DEFAULT 'movil' CHECK(Origen IN ('web', 'movil'))",
+      );
+      await _addColumnIfNotExists(
+        db,
+        table,
+        'usuario',
+        "TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
+      );
+      await _addColumnIfNotExists(
+        db,
+        table,
+        'created_at',
+        'TEXT',
+      );
+      await db.rawUpdate(
+        "UPDATE $table SET created_at = datetime('now') WHERE created_at IS NULL",
+      );
     }
   }
 
@@ -1133,6 +1233,17 @@ class LocalDatabaseService {
   Future<List<Map<String, dynamic>>> getPendingRows(String tableName) async {
     final db = await database;
     return db.query(tableName, where: 'sync_state = ?', whereArgs: ['pending']);
+  }
+
+  Future<Map<String, dynamic>?> getRowById(String tableName, int id) async {
+    final db = await database;
+    final rows = await db.query(
+      tableName,
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
   }
 
   Future<void> upsertSyncedRow(
