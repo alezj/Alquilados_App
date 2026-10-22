@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../../core/network/network_providers.dart';
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -43,7 +44,27 @@ class ConfiguracionPage extends ConsumerWidget {
               const ListTile(
                 leading: Icon(Icons.sync_rounded),
                 title: Text('Sincronización local'),
-                subtitle: Text('Sincronización manual de la base SQLite local.'),
+                subtitle: Text(
+                  'Sincronización manual de la base SQLite local.',
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings_outlined),
+                title: const Text('Solicitudes de acceso'),
+                subtitle: const Text(
+                  'Aprobar o rechazar la incorporación de usuarios.',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/admin/solicitudes'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.tune_rounded),
+                title: const Text('Roles y permisos'),
+                subtitle: const Text(
+                  'Configurar los permisos por módulo de cada empresa.',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/admin/permisos'),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -80,14 +101,19 @@ class ConfiguracionPage extends ConsumerWidget {
                 child: AppButton(
                   text: 'Cerrar sesión',
                   icon: Icons.logout_rounded,
-                 // isLoading: syncState.isLoading, // Deshabilitado para el botón de cerrar sesión
-                  onPressed: () => context.push('/login'),
+                  // isLoading: syncState.isLoading, // Deshabilitado para el botón de cerrar sesión
+                  onPressed: () async {
+                    await ref.read(supabaseAuthServiceProvider).signOut();
+                    if (context.mounted) context.go('/login');
+                  },
                 ),
               ),
               ListTile(
                 leading: const Icon(Icons.info_outline_rounded),
                 title: const Text('Estado'),
-                subtitle: Text(syncStatus?.message ?? 'Sin sincronizaciones ejecutadas.'),
+                subtitle: Text(
+                  syncStatus?.message ?? 'Sin sincronizaciones ejecutadas.',
+                ),
               ),
               const ListTile(
                 leading: Icon(Icons.dark_mode_rounded),
@@ -103,7 +129,11 @@ class ConfiguracionPage extends ConsumerWidget {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              return const Center(child: Text('Error al obtener la información de la aplicación.'));
+              return const Center(
+                child: Text(
+                  'Error al obtener la información de la aplicación.',
+                ),
+              );
             } else if (snapshot.hasData) {
               final packageInfo = snapshot.data!;
               return Material(
@@ -111,7 +141,9 @@ class ConfiguracionPage extends ConsumerWidget {
                 child: ListTile(
                   leading: const Icon(Icons.info_rounded),
                   title: const Text('Versión de la aplicación'),
-                  subtitle: Text('${packageInfo.version}+${packageInfo.buildNumber}'),
+                  subtitle: Text(
+                    '${packageInfo.version}+${packageInfo.buildNumber}',
+                  ),
                 ),
               );
             } else {

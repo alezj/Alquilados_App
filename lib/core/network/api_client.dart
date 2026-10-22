@@ -38,7 +38,6 @@ class ApiClient {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
               'apikey': AppConfig.supabasePublishableKey,
-              'Authorization': 'Bearer ${AppConfig.supabasePublishableKey}',
               'Prefer': 'return=representation',
             },
           ),
@@ -48,6 +47,7 @@ class ApiClient {
     _dio.interceptors.add(
       AuthInterceptor(
         secureStorage: secureStorage,
+        dio: _dio,
         onUnauthorized: onUnauthorized,
       ),
     );

@@ -13,6 +13,7 @@ class LocalDatabaseService {
   LocalDatabaseService._internal();
 
   Database? _database;
+  String _tenantKey = 'admin';
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -106,10 +107,26 @@ class LocalDatabaseService {
     await _ensureOriginUserColumns(db);
   }
 
+  /// Opens an isolated SQLite file for the signed-in company. The initial
+  /// `admin` tenant keeps using the legacy file so existing local data survives.
+  Future<void> switchTenant(String tenantKey) async {
+    final safeKey = tenantKey.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '');
+    if (safeKey.isEmpty)
+      throw ArgumentError('Identificador de empresa inválido.');
+    if (_tenantKey == safeKey && _database != null) return;
+    await _database?.close();
+    _database = null;
+    _tenantKey = safeKey;
+    await ensureDatabaseReady();
+  }
+
   Future<Database> _initDatabase() async {
-    final path = kIsWeb
+    final filename = _tenantKey == 'admin'
         ? 'alquilados_local.db3'
-        : '${(await getDownloadsDirectory())!.path}/alquilados_local.db3';
+        : 'alquilados_local_$_tenantKey.db3';
+    final path = kIsWeb
+        ? filename
+        : '${(await getDownloadsDirectory())!.path}/$filename';
 
     return openDatabase(
       path,
@@ -348,12 +365,7 @@ class LocalDatabaseService {
         'usuario',
         "TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
       );
-      await _addColumnIfNotExists(
-        db,
-        table,
-        'created_at',
-        'TEXT',
-      );
+      await _addColumnIfNotExists(db, table, 'created_at', 'TEXT');
       await db.rawUpdate(
         "UPDATE $table SET created_at = datetime('now') WHERE created_at IS NULL",
       );
@@ -725,7 +737,9 @@ class LocalDatabaseService {
     if (inicio == null || fin == null || fin.isBefore(inicio)) return 0;
 
     final finAjustado = fin.add(const Duration(days: 1));
-    var meses = (finAjustado.year - inicio.year) * 12 + (finAjustado.month - inicio.month);
+    var meses =
+        (finAjustado.year - inicio.year) * 12 +
+        (finAjustado.month - inicio.month);
     if (finAjustado.day < inicio.day) {
       meses--;
     }
@@ -820,7 +834,9 @@ class LocalDatabaseService {
       final targetYear = inicio.year + ((inicio.month - 1 + i) ~/ 12);
       final targetMonth = ((inicio.month - 1 + i) % 12) + 1;
       final diasEnMes = DateTime(targetYear, targetMonth + 1, 0).day;
-      final dia = (diaPago >= 1 && diaPago <= 31) ? diaPago.clamp(1, diasEnMes) : 1;
+      final dia = (diaPago >= 1 && diaPago <= 31)
+          ? diaPago.clamp(1, diasEnMes)
+          : 1;
 
       final fechaPagoStr =
           '$targetYear-${targetMonth.toString().padLeft(2, '0')}-${dia.toString().padLeft(2, '0')}';
@@ -1040,7 +1056,6 @@ class LocalDatabaseService {
     );
   }
 
-
   Future<Map<String, dynamic>?> getInquilinoById(int id) async {
     final db = await database;
     final results = await db.query(
@@ -1251,15 +1266,11 @@ class LocalDatabaseService {
     Map<String, dynamic> values,
   ) async {
     final db = await database;
-    await db.insert(
-      tableName,
-      {
-        ...values,
-        'sync_state': 'synced',
-        'synced_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(tableName, {
+      ...values,
+      'sync_state': 'synced',
+      'synced_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> logSync(

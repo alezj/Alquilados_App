@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../storage/secure_storage_service.dart';
 import '../../features/alquileres/presentation/pages/alquiler_detalle_page.dart';
 import '../../features/alquileres/presentation/pages/alquileres_page.dart';
 import '../../features/app_shell.dart';
 import '../../features/configuracion/presentation/pages/configuracion_page.dart';
+import '../../features/configuracion/presentation/pages/solicitudes_empresa_page.dart';
+import '../../features/configuracion/presentation/pages/permisos_empresa_page.dart';
 import '../../features/inquilinos/presentation/pages/inquilino_detalle_page.dart';
 import '../../features/inquilinos/presentation/pages/inquilinos_page.dart';
 import '../../features/login/presentation/pages/login_page.dart';
@@ -18,20 +21,21 @@ abstract final class AppRouter {
   static GoRouter create({required WidgetBuilder designSystemBuilder}) {
     return GoRouter(
       initialLocation: AppRoutes.login,
+      redirect: (context, state) async {
+        final location = state.matchedLocation;
+        if (location == AppRoutes.login || location == AppRoutes.designSystem)
+          return null;
+        if (!await SecureStorageService().hasToken()) return AppRoutes.login;
+        return null;
+      },
       routes: [
         GoRoute(path: '/', redirect: (_, _) => AppRoutes.login),
         GoRoute(
           path: AppRoutes.designSystem,
           builder: (context, _) => designSystemBuilder(context),
         ),
-        GoRoute(
-          path: AppRoutes.login,
-          builder: (_, _) => const LoginPage(),
-        ),
-        GoRoute(
-          path: AppRoutes.dashboard,
-          builder: (_, _) => const AppShell(),
-        ),
+        GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginPage()),
+        GoRoute(path: AppRoutes.dashboard, builder: (_, _) => const AppShell()),
         GoRoute(
           path: AppRoutes.alquileres,
           builder: (_, _) => const AlquileresPage(),
@@ -65,8 +69,7 @@ abstract final class AppRouter {
         GoRoute(
           path: AppRoutes.pagos,
           builder: (_, state) => PagosPage(
-            openCreateSheet:
-                state.uri.queryParameters['openCreate'] == 'true',
+            openCreateSheet: state.uri.queryParameters['openCreate'] == 'true',
           ),
         ),
         GoRoute(
@@ -78,6 +81,14 @@ abstract final class AppRouter {
         GoRoute(
           path: AppRoutes.configuracion,
           builder: (_, _) => const ConfiguracionPage(),
+        ),
+        GoRoute(
+          path: AppRoutes.solicitudes,
+          builder: (_, _) => const SolicitudesEmpresaPage(),
+        ),
+        GoRoute(
+          path: AppRoutes.permisosEmpresa,
+          builder: (_, _) => const PermisosEmpresaPage(),
         ),
       ],
     );
