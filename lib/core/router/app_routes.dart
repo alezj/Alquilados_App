@@ -14,4 +14,6 @@ abstract final class AppRoutes {
   static const String configuracion = '/configuracion';
   static const String solicitudes = '/admin/solicitudes';
   static const String permisosEmpresa = '/admin/permisos';
+  static const String politicas = '/políticas';
+  static const String politicaDetalle = '/políticas/:id';
 }

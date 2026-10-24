@@ -66,6 +66,15 @@ class ConfiguracionPage extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push('/admin/permisos'),
               ),
+              ListTile(
+                leading: const Icon(Icons.policy_outlined),
+                title: const Text('Políticas'),
+                subtitle: const Text(
+                  'Revisar y aceptar las políticas de privacidad y términos.',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/políticas'),
+              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: AppButton(

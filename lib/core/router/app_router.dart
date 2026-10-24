@@ -11,6 +11,9 @@ import '../../features/configuracion/presentation/pages/permisos_empresa_page.da
 import '../../features/inquilinos/presentation/pages/inquilino_detalle_page.dart';
 import '../../features/inquilinos/presentation/pages/inquilinos_page.dart';
 import '../../features/login/presentation/pages/login_page.dart';
+import '../../features/policies/domain/entities/policy_document.dart';
+import '../../features/policies/presentation/pages/policy_detail_page.dart';
+import '../../features/policies/presentation/pages/policies_page.dart';
 import '../../features/pagos/presentation/pages/pago_detalle_page.dart';
 import '../../features/pagos/presentation/pages/pagos_page.dart';
 import '../../features/propiedades/presentation/pages/propiedad_detalle_page.dart';
@@ -90,6 +93,18 @@ abstract final class AppRouter {
           path: AppRoutes.permisosEmpresa,
           builder: (_, _) => const PermisosEmpresaPage(),
         ),
+        GoRoute(
+          path: AppRoutes.politicas,
+          builder: (_, _) => const PoliciesPage(),
+        ),
+        GoRoute(
+          path: AppRoutes.politicaDetalle,
+          builder: (_, state) => PolicyDetailPage(
+            document: PolicyCatalog.findById(
+              state.pathParameters['id'] ?? '',
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -107,12 +122,22 @@ class PendingRoutePage extends StatelessWidget {
       appBar: AppBar(title: Text(title)),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            detail == null
-                ? 'Esta pantalla está preparada para la siguiente etapa.'
-                : '$detail\n\nEsta pantalla está preparada para la siguiente etapa.',
-            textAlign: TextAlign.center,
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.hourglass_top,
+                size: 64,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+              const SizedBox(height: 16),
+              Text(title),
+              if (detail != null) ...[
+                const SizedBox(height: 8),
+                Text(detail!),
+              ],
+            ],
           ),
         ),
       ),

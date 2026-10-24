@@ -150,8 +150,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         return DropdownButtonFormField<String>(
                           value:
                               companies.any((item) => item['id'] == _companyId)
-                              ? _companyId
-                              : null,
+                                  ? _companyId
+                                  : null,
                           decoration: InputDecoration(
                             labelText: 'Empresa',
                             border: border,
@@ -185,6 +185,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           ? 'Ya tengo una cuenta'
                           : 'Solicitar incorporación a una empresa',
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Políticas de aceptación
+                  OutlinedButton.icon(
+                    onPressed: () => context.push(AppRoutes.politicas),
+                    icon: const Icon(Icons.policy_outlined),
+                    label: const Text('Políticas'),
                   ),
                 ],
               ),
