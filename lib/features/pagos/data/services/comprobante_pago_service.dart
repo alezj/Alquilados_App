@@ -301,28 +301,54 @@ class ComprobantePagoService {
               pw.SizedBox(height: 40),
 
               // ── Mensaje de agradecimiento ───────────────────────
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  pw.Text(
-                    '¡Gracias por su pago!',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                  pw.SizedBox(height: 4),
-                  pw.Text(
-                    'Comprobante de pago de alquiler',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      color: PdfColors.grey600,
-                    ),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ],
-              ),
+              pw.Spacer(),
+              pw.Spacer(),
+
+pw.Column(
+  crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+  mainAxisAlignment: pw.MainAxisAlignment.end,
+  children: [
+    pw.Text(
+      '¡Gracias por su pago!',
+      style: pw.TextStyle(
+        fontSize: 14,
+        fontWeight: pw.FontWeight.bold,
+      ),
+      textAlign: pw.TextAlign.center,
+    ),
+    pw.SizedBox(height: 4),
+    pw.Text(
+      'Comprobante de pago de alquiler',
+      style: pw.TextStyle(
+        fontSize: 10,
+        color: PdfColors.grey600,
+      ),
+      textAlign: pw.TextAlign.center,
+    ),
+  ],
+),
+              // pw.Column(
+              //   crossAxisAlignment: pw.CrossAxisAlignment.center,
+              //   children: [
+              //     pw.Text(
+              //       '¡Gracias por su pago!',
+              //       style: pw.TextStyle(
+              //         fontSize: 14,
+              //         fontWeight: pw.FontWeight.bold,
+              //       ),
+              //       textAlign: pw.TextAlign.center,
+              //     ),
+              //     pw.SizedBox(height: 4),
+              //     pw.Text(
+              //       'Comprobante de pago de alquiler',
+              //       style: pw.TextStyle(
+              //         fontSize: 10,
+              //         color: PdfColors.grey600,
+              //       ),
+              //       textAlign: pw.TextAlign.center,
+              //     ),
+              //   ],
+              // ),
             ],
           );
         },
