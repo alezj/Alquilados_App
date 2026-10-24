@@ -6,20 +6,30 @@ import 'pago.dart';
 class ComprobantePagoData {
   const ComprobantePagoData({
     required this.idPago,
+    required this.numeroRecibo,
+    required this.fecha,
     required this.inquilinoNombre,
-    required this.fechaPago,
+    required this.telefono,
+    required this.direccion,
     required this.monto,
     required this.estado,
-    required this.descripcion,
+    required this.descripcionDetallada,
+    this.subtotal = 0.0,
+    this.retaso = 0.0,
     this.isFiscal = false,
   });
 
   final int idPago;
+  final String numeroRecibo;
+  final String fecha;
   final String inquilinoNombre;
-  final String fechaPago;
+  final String telefono;
+  final String direccion;
   final double monto;
   final String estado;
-  final String descripcion;
+  final String descripcionDetallada;
+  final double subtotal;
+  final double retaso;
   final bool isFiscal;
 
   factory ComprobantePagoData.fromPayment(Pago pago, [Inquilino? inquilino]) {
@@ -30,16 +40,21 @@ class ComprobantePagoData {
 
     return ComprobantePagoData(
       idPago: pago.id,
+      numeroRecibo: pago.id.toString(),
+      fecha: fechaFormateada,
       inquilinoNombre: inquilino?.nombreApellido ?? 'Inquilino no disponible',
-      fechaPago: fechaFormateada,
+      telefono: inquilino?.correo ?? '-',
+      direccion: '-',
       monto: pago.monto,
       estado: pago.estado,
-      descripcion: 'Pago de alquiler',
+      descripcionDetallada: 'Pago de propiedad: - · Transferencia · Banreservas · Ref. 123456',
+      subtotal: pago.monto,
+      retaso: 0.0,
       isFiscal: false,
     );
   }
 
-  String get titulo => isFiscal ? 'FACTURA' : 'COMPROBANTE NO FISCAL';
+  String get titulo => isFiscal ? 'FACTURA' : 'RECIBO DE PAGO';
 
   String get montoFormateado => NumberFormat.currency(
         locale: 'en_US',
@@ -47,13 +62,23 @@ class ComprobantePagoData {
         decimalDigits: 2,
       ).format(monto);
 
-  String get fileName => 'comprobante_pago_${idPago}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+  String get subtotalFormateado => NumberFormat.currency(
+        locale: 'en_US',
+        symbol: '\$',
+        decimalDigits: 2,
+      ).format(subtotal);
 
-  List<Map<String, String>> get rows => [
-        {'label': 'Número', 'value': '#$idPago'},
-        {'label': 'Inquilino', 'value': inquilinoNombre},
-        {'label': 'Fecha', 'value': fechaPago},
-        {'label': 'Estado', 'value': estado},
-        {'label': 'Concepto', 'value': descripcion},
-      ];
+  String get retasoFormateado => NumberFormat.currency(
+        locale: 'en_US',
+        symbol: '\$',
+        decimalDigits: 2,
+      ).format(retaso);
+
+  String get totalFormateado => NumberFormat.currency(
+        locale: 'en_US',
+        symbol: '\$',
+        decimalDigits: 2,
+      ).format(monto);
+
+  String get fileName => 'recibo_pago_${numeroRecibo}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 }
