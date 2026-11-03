@@ -309,7 +309,7 @@ pw.Column(
   mainAxisAlignment: pw.MainAxisAlignment.end,
   children: [
     pw.Text(
-      '¡Gracias por su pago!',
+      '¡Todo listo!',
       style: pw.TextStyle(
         fontSize: 14,
         fontWeight: pw.FontWeight.bold,
