@@ -9,20 +9,28 @@ final inquilinosProvider = FutureProvider<List<Inquilino>>((ref) async {
   await database.ensureSeedData();
 
   final rows = await database.getAllRows('inquilinos');
-  return rows.map((row) {
-    return Inquilino(
-      id: row['id'] as int,
-      nombreApellido: (row['nombre_apellido'] ?? '').toString(),
-      correo: (row['correo'] ?? '').toString().isEmpty ? null : (row['correo'] ?? '').toString(),
-      fechaInicioContrato: (row['fecha_inicio_contrato'] ?? '').toString(),
-      fechaPagos: (row['fecha_pagos'] as int?) ?? 0,
-      syncState: (row['sync_state'] ?? 'pending').toString(),
-      syncedAt: row['synced_at']?.toString(),
-    );
-  }).toList(growable: false);
+  return rows
+      .map((row) {
+        return Inquilino(
+          id: row['id'] as int,
+          nombreApellido: (row['nombre_apellido'] ?? '').toString(),
+          telefono: row['telefono']?.toString(),
+          correo: (row['correo'] ?? '').toString().isEmpty
+              ? null
+              : (row['correo'] ?? '').toString(),
+          fechaInicioContrato: (row['fecha_inicio_contrato'] ?? '').toString(),
+          fechaPagos: (row['fecha_pagos'] as int?) ?? 0,
+          syncState: (row['sync_state'] ?? 'pending').toString(),
+          syncedAt: row['synced_at']?.toString(),
+        );
+      })
+      .toList(growable: false);
 });
 
-final inquilinoDetalleProvider = FutureProvider.family<Inquilino?, int>((ref, id) async {
+final inquilinoDetalleProvider = FutureProvider.family<Inquilino?, int>((
+  ref,
+  id,
+) async {
   final database = LocalDatabaseService();
   await database.ensureSeedData();
 
@@ -32,7 +40,10 @@ final inquilinoDetalleProvider = FutureProvider.family<Inquilino?, int>((ref, id
   return Inquilino(
     id: row['id'] as int,
     nombreApellido: (row['nombre_apellido'] ?? '').toString(),
-    correo: (row['correo'] ?? '').toString().isEmpty ? null : (row['correo'] ?? '').toString(),
+    telefono: row['telefono']?.toString(),
+    correo: (row['correo'] ?? '').toString().isEmpty
+        ? null
+        : (row['correo'] ?? '').toString(),
     fechaInicioContrato: (row['fecha_inicio_contrato'] ?? '').toString(),
     fechaPagos: (row['fecha_pagos'] as int?) ?? 0,
     syncState: (row['sync_state'] ?? 'pending').toString(),
@@ -40,21 +51,26 @@ final inquilinoDetalleProvider = FutureProvider.family<Inquilino?, int>((ref, id
   );
 });
 
-final pagosDeInquilinoProvider = FutureProvider.family<List<Pago>, int>((ref, inquilinoId) async {
+final pagosDeInquilinoProvider = FutureProvider.family<List<Pago>, int>((
+  ref,
+  inquilinoId,
+) async {
   final database = LocalDatabaseService();
   await database.ensureSeedData();
 
   final rows = await database.getPagosByInquilinoId(inquilinoId);
-  return rows.map((row) {
-    return Pago(
-      id: row['id'] as int,
-      idInquilino: (row['id_inquilino'] ?? '').toString(),
-      inquilinoNombre: (row['inquilino_nombre'] ?? '').toString(),
-      fechaPago: (row['fecha_pago'] ?? '').toString(),
-      monto: (row['monto'] as num?)?.toDouble() ?? 0,
-      estado: (row['estado'] ?? 'pendiente').toString(),
-      syncState: (row['sync_state'] ?? 'pending').toString(),
-      syncedAt: row['synced_at']?.toString(),
-    );
-  }).toList(growable: false);
+  return rows
+      .map((row) {
+        return Pago(
+          id: row['id'] as int,
+          idInquilino: (row['id_inquilino'] ?? '').toString(),
+          inquilinoNombre: (row['inquilino_nombre'] ?? '').toString(),
+          fechaPago: (row['fecha_pago'] ?? '').toString(),
+          monto: (row['monto'] as num?)?.toDouble() ?? 0,
+          estado: (row['estado'] ?? 'pendiente').toString(),
+          syncState: (row['sync_state'] ?? 'pending').toString(),
+          syncedAt: row['synced_at']?.toString(),
+        );
+      })
+      .toList(growable: false);
 });

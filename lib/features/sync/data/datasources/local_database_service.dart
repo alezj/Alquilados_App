@@ -7,13 +7,24 @@ import 'package:sqflite/sqflite.dart';
 class LocalDatabaseService {
   static final LocalDatabaseService _instance =
       LocalDatabaseService._internal();
-
   factory LocalDatabaseService() => _instance;
+  LocalDatabaseService._internal() : _databasePathOverride = null;
 
-  LocalDatabaseService._internal();
+  @visibleForTesting
+  LocalDatabaseService.forTesting(String path) : _databasePathOverride = path;
+  final String? _databasePathOverride;
 
   Database? _database;
   String _tenantKey = 'admin';
+  String get tenantKey => _tenantKey;
+  final _changes = StreamController<void>.broadcast();
+  Stream<void> get changes => _changes.stream;
+
+  Future<T> _notify<T>(Future<T> operation) async {
+    final result = await operation;
+    _changes.add(null);
+    return result;
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -34,6 +45,7 @@ class LocalDatabaseService {
         montoPago REAL NOT NULL DEFAULT 0,
         cantidadDepositos INTEGER NOT NULL DEFAULT 0,
         diaPago INTEGER NOT NULL DEFAULT 1,
+        diasProrroga INTEGER NOT NULL DEFAULT 0,
         cantidadMeses INTEGER NOT NULL DEFAULT 0,
         estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
         "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
@@ -105,6 +117,65 @@ class LocalDatabaseService {
       )
     ''');
     await _ensureOriginUserColumns(db);
+    await _ensureNotificationSchema(db);
+  }
+
+  Future<void> _ensureNotificationSchema(Database db) async {
+    await _addColumnIfNotExists(
+      db,
+      'alquileres',
+      'diasProrroga',
+      'INTEGER NOT NULL DEFAULT 0',
+    );
+    await _addColumnIfNotExists(db, 'inquilinos', 'telefono', 'TEXT');
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS payment_notice_history '
+      '(event_key TEXT PRIMARY KEY, scheduled_at TEXT NOT NULL)',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPaymentReminderRows() async {
+    await ensureDatabaseReady();
+    final db = await database;
+    return db.rawQuery("""SELECT p.*, a.diasProrroga,
+      a.estado AS alquiler_estado, i.nombre_apellido AS inquilino_nombre
+      FROM pagos p
+      JOIN alquileres a ON a.id = COALESCE(p.id_alquiler, p.alquiler_id)
+      JOIN inquilinos i ON i.id = CAST(p.id_inquilino AS INTEGER)
+      WHERE lower(p.estado) IN ('pendiente', 'vencido')
+        AND lower(a.estado) = 'activo'""");
+  }
+
+  Future<bool> wasNoticeScheduled(String key) async {
+    final db = await database;
+    return (await db.query(
+      'payment_notice_history',
+      where: 'event_key = ?',
+      whereArgs: [key],
+      limit: 1,
+    )).isNotEmpty;
+  }
+
+  Future<void> recordNoticeScheduled(String key) async {
+    final db = await database;
+    await db.insert('payment_notice_history', {
+      'event_key': key,
+      'scheduled_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, dynamic>?> getWhatsAppPayment(int id) async {
+    await ensureDatabaseReady();
+    final db = await database;
+    final rows = await db.rawQuery(
+      """SELECT p.*, i.nombre_apellido,
+      i.telefono, COALESCE(a.diasProrroga, 0) AS diasProrroga
+      FROM pagos p JOIN inquilinos i ON i.id = CAST(p.id_inquilino AS INTEGER)
+      LEFT JOIN alquileres a ON a.id = COALESCE(p.id_alquiler, p.alquiler_id)
+      WHERE p.id = ?""",
+      [id],
+    );
+    return rows.isEmpty ? null : rows.first;
   }
 
   /// Opens an isolated SQLite file for the signed-in company. The initial
@@ -118,19 +189,22 @@ class LocalDatabaseService {
     _database = null;
     _tenantKey = safeKey;
     await ensureDatabaseReady();
+    _changes.add(null);
   }
 
   Future<Database> _initDatabase() async {
     final filename = _tenantKey == 'admin'
         ? 'alquilados_local.db3'
         : 'alquilados_local_$_tenantKey.db3';
-    final path = kIsWeb
-        ? filename
-        : '${(await getDownloadsDirectory())!.path}/$filename';
+    final path =
+        _databasePathOverride ??
+        (kIsWeb
+            ? filename
+            : '${(await getDownloadsDirectory())!.path}/$filename');
 
     return openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
     );
@@ -159,6 +233,7 @@ class LocalDatabaseService {
         id INTEGER PRIMARY KEY,
         nombre_apellido TEXT NOT NULL,
         correo TEXT,
+        telefono TEXT,
         fecha_inicio_contrato TEXT,
         fecha_pagos INTEGER,
         "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
@@ -200,6 +275,7 @@ class LocalDatabaseService {
         montoPago REAL NOT NULL DEFAULT 0,
         cantidadDepositos INTEGER NOT NULL DEFAULT 0,
         diaPago INTEGER NOT NULL DEFAULT 1,
+        diasProrroga INTEGER NOT NULL DEFAULT 0,
         cantidadMeses INTEGER NOT NULL DEFAULT 0,
         estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
         "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
@@ -252,6 +328,7 @@ class LocalDatabaseService {
         sync_state TEXT DEFAULT 'pending' CHECK(sync_state IN ('pending', 'synced', 'error'))
       )
     ''');
+    await _ensureNotificationSchema(db);
   }
 
   Future<void> _upgradeSchema(
@@ -271,6 +348,7 @@ class LocalDatabaseService {
           montoPago REAL NOT NULL DEFAULT 0,
           cantidadDepositos INTEGER NOT NULL DEFAULT 0,
           diaPago INTEGER NOT NULL DEFAULT 1,
+        diasProrroga INTEGER NOT NULL DEFAULT 0,
           estado TEXT DEFAULT 'Pendiente' CHECK(estado IN ('Activo', 'Finalizado', 'Pendiente', 'Cancelado')),
           updated_at TEXT DEFAULT (datetime('now')),
           synced_at TEXT,
@@ -342,6 +420,7 @@ class LocalDatabaseService {
       ''');
       await _ensureOriginUserColumns(db);
     }
+    if (oldVersion < 7) await _ensureNotificationSchema(db);
   }
 
   Future<void> _ensureOriginUserColumns(Database db) async {
@@ -662,21 +741,25 @@ class LocalDatabaseService {
   Future<int> insertInquilino({
     required String nombreApellido,
     String? correo,
+    String? telefono,
     String? fechaInicioContrato,
     int? fechaPagos,
   }) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
 
-    return db.insert('inquilinos', {
-      'nombre_apellido': nombreApellido,
-      'correo': correo,
-      'fecha_inicio_contrato': fechaInicioContrato,
-      'fecha_pagos': fechaPagos,
-      'updated_at': now,
-      'sync_state': 'pending',
-      'synced_at': null,
-    });
+    return _notify(
+      db.insert('inquilinos', {
+        'nombre_apellido': nombreApellido,
+        'correo': correo,
+        'telefono': ?telefono,
+        'fecha_inicio_contrato': fechaInicioContrato,
+        'fecha_pagos': fechaPagos,
+        'updated_at': now,
+        'sync_state': 'pending',
+        'synced_at': null,
+      }),
+    );
   }
 
   Future<int> insertPago({
@@ -690,18 +773,20 @@ class LocalDatabaseService {
     final db = await database;
     final now = DateTime.now().toIso8601String();
 
-    return db.insert('pagos', {
-      'id_inquilino': idInquilino,
-      'id_alquiler': alquilerId,
-      'alquiler_id': alquilerId,
-      'periodo': periodo,
-      'fecha_pago': fechaPago,
-      'monto': monto,
-      'estado': estado,
-      'updated_at': now,
-      'sync_state': 'pending',
-      'synced_at': null,
-    });
+    return _notify(
+      db.insert('pagos', {
+        'id_inquilino': idInquilino,
+        'id_alquiler': alquilerId,
+        'alquiler_id': alquilerId,
+        'periodo': periodo,
+        'fecha_pago': fechaPago,
+        'monto': monto,
+        'estado': estado,
+        'updated_at': now,
+        'sync_state': 'pending',
+        'synced_at': null,
+      }),
+    );
   }
 
   Future<List<Map<String, dynamic>>> getPagosConDetalles() async {
@@ -758,10 +843,14 @@ class LocalDatabaseService {
     double? montoPago,
     int cantidadDepositos = 0,
     int diaPago = 1,
+    int diasProrroga = 0,
     int? cantidadMeses,
     required String estado,
     bool generarPagosPendientes = true,
   }) async {
+    if (diasProrroga < 0 || diasProrroga > 365) {
+      throw ArgumentError('La prórroga debe estar entre 0 y 365 días.');
+    }
     final db = await database;
     final now = DateTime.now().toIso8601String();
     final pago = montoPago ?? importe;
@@ -778,6 +867,7 @@ class LocalDatabaseService {
       'montoPago': pago,
       'cantidadDepositos': cantidadDepositos,
       'diaPago': diaPago,
+      'diasProrroga': diasProrroga,
       'cantidadMeses': meses,
       'estado': estado,
       'updated_at': now,
@@ -796,6 +886,7 @@ class LocalDatabaseService {
       );
     }
 
+    _changes.add(null);
     return id;
   }
 
@@ -869,34 +960,41 @@ class LocalDatabaseService {
     double? montoPago,
     int cantidadDepositos = 0,
     int diaPago = 1,
+    int diasProrroga = 0,
     int? cantidadMeses,
     required String estado,
   }) async {
+    if (diasProrroga < 0 || diasProrroga > 365) {
+      throw ArgumentError('La prórroga debe estar entre 0 y 365 días.');
+    }
     final db = await database;
     final pago = montoPago ?? importe;
     final meses = (cantidadMeses != null && cantidadMeses > 0)
         ? cantidadMeses
         : calcularCantidadMeses(fechaInicio, fechaFin);
 
-    return db.update(
-      'alquileres',
-      {
-        'propiedad_id': propiedadId,
-        'inquilino_id': inquilinoId,
-        'fecha_inicio': fechaInicio,
-        'fecha_fin': fechaFin,
-        'importe': importe,
-        'montoPago': pago,
-        'cantidadDepositos': cantidadDepositos,
-        'diaPago': diaPago,
-        'cantidadMeses': meses,
-        'estado': estado,
-        'updated_at': DateTime.now().toIso8601String(),
-        'sync_state': 'pending',
-        'synced_at': null,
-      },
-      where: 'id = ?',
-      whereArgs: [id],
+    return _notify(
+      db.update(
+        'alquileres',
+        {
+          'propiedad_id': propiedadId,
+          'inquilino_id': inquilinoId,
+          'fecha_inicio': fechaInicio,
+          'fecha_fin': fechaFin,
+          'importe': importe,
+          'montoPago': pago,
+          'cantidadDepositos': cantidadDepositos,
+          'diaPago': diaPago,
+          'diasProrroga': diasProrroga,
+          'cantidadMeses': meses,
+          'estado': estado,
+          'updated_at': DateTime.now().toIso8601String(),
+          'sync_state': 'pending',
+          'synced_at': null,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      ),
     );
   }
 
@@ -1036,23 +1134,27 @@ class LocalDatabaseService {
     required int id,
     required String nombreApellido,
     String? correo,
+    String? telefono,
     String? fechaInicioContrato,
     int? fechaPagos,
   }) async {
     final db = await database;
-    return db.update(
-      'inquilinos',
-      {
-        'nombre_apellido': nombreApellido,
-        'correo': correo,
-        'fecha_inicio_contrato': fechaInicioContrato,
-        'fecha_pagos': fechaPagos,
-        'updated_at': DateTime.now().toIso8601String(),
-        'sync_state': 'pending',
-        'synced_at': null,
-      },
-      where: 'id = ?',
-      whereArgs: [id],
+    return _notify(
+      db.update(
+        'inquilinos',
+        {
+          'nombre_apellido': nombreApellido,
+          'correo': correo,
+          'telefono': ?telefono,
+          'fecha_inicio_contrato': fechaInicioContrato,
+          'fecha_pagos': fechaPagos,
+          'updated_at': DateTime.now().toIso8601String(),
+          'sync_state': 'pending',
+          'synced_at': null,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      ),
     );
   }
 
@@ -1157,19 +1259,21 @@ class LocalDatabaseService {
     required String estado,
   }) async {
     final db = await database;
-    return db.update(
-      'pagos',
-      {
-        'id_inquilino': idInquilino,
-        'fecha_pago': fechaPago,
-        'monto': monto,
-        'estado': estado,
-        'updated_at': DateTime.now().toIso8601String(),
-        'sync_state': 'pending',
-        'synced_at': null,
-      },
-      where: 'id = ?',
-      whereArgs: [id],
+    return _notify(
+      db.update(
+        'pagos',
+        {
+          'id_inquilino': idInquilino,
+          'fecha_pago': fechaPago,
+          'monto': monto,
+          'estado': estado,
+          'updated_at': DateTime.now().toIso8601String(),
+          'sync_state': 'pending',
+          'synced_at': null,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      ),
     );
   }
 
@@ -1185,17 +1289,17 @@ class LocalDatabaseService {
       where: 'id_alquiler = ? OR alquiler_id = ?',
       whereArgs: [id, id],
     );
-    return db.delete('alquileres', where: 'id = ?', whereArgs: [id]);
+    return _notify(db.delete('alquileres', where: 'id = ?', whereArgs: [id]));
   }
 
   Future<int> deleteInquilino(int id) async {
     final db = await database;
-    return db.delete('inquilinos', where: 'id = ?', whereArgs: [id]);
+    return _notify(db.delete('inquilinos', where: 'id = ?', whereArgs: [id]));
   }
 
   Future<int> deletePago(int id) async {
     final db = await database;
-    return db.delete('pagos', where: 'id = ?', whereArgs: [id]);
+    return _notify(db.delete('pagos', where: 'id = ?', whereArgs: [id]));
   }
 
   Future<Map<String, dynamic>?> getPagoById(int id) async {
@@ -1271,6 +1375,7 @@ class LocalDatabaseService {
       'sync_state': 'synced',
       'synced_at': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    _changes.add(null);
   }
 
   Future<void> logSync(

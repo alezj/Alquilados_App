@@ -1,3 +1,7 @@
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../notificaciones/domain/whatsapp_reminder.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -94,7 +98,8 @@ class PagoDetallePage extends ConsumerWidget {
                       icon: Icons.person_rounded,
                       label: 'Inquilino ID',
                       value: pago.idInquilino,
-                    ),_InfoRow(
+                    ),
+                    _InfoRow(
                       icon: Icons.person_rounded,
                       label: 'Inquilino',
                       value: pago.inquilinoNombre,
@@ -159,6 +164,17 @@ class PagoDetallePage extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
+                if ([
+                  'pendiente',
+                  'vencido',
+                ].contains(pago.estado.toLowerCase())) ...[
+                  AppButton(
+                    text: 'Recordar por WhatsApp',
+                    icon: Icons.chat_outlined,
+                    onPressed: () => _openWhatsApp(context, pago),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 // ── Comprobante ─────────────────────────────────
                 AppButton(
                   text: 'Generar comprobante',
@@ -179,6 +195,40 @@ class PagoDetallePage extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _openWhatsApp(BuildContext context, Pago pago) async {
+    try {
+      final row = await LocalDatabaseService().getWhatsAppPayment(pago.id);
+      if (row == null ||
+          ![
+            'pendiente',
+            'vencido',
+          ].contains(row['estado']?.toString().toLowerCase())) {
+        throw Exception('El pago ya no está pendiente.');
+      }
+      final due = DateTime.tryParse(row['fecha_pago']?.toString() ?? '');
+      if (due == null) throw Exception('La fecha del pago no es válida.');
+      final uri = WhatsAppReminder.build(
+        phone: row['telefono']?.toString() ?? '',
+        tenantName: row['nombre_apellido']?.toString() ?? '',
+        dueDate: due,
+        graceDays: (row['diasProrroga'] as num?)?.toInt() ?? 0,
+        amount: (row['monto'] as num).toDouble(),
+        now: DateTime.now(),
+      );
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw Exception('No se pudo abrir WhatsApp en este dispositivo.');
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _showEditSheet(

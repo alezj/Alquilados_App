@@ -64,6 +64,16 @@ Alquilados es una herramienta de administración inmobiliaria pensada para propi
 - Edición, cambio de estado y eliminación.
 - Generación de comprobante de pago no fiscal en PDF.
 
+### 🔔 Avisos de cobro y WhatsApp
+- En Android/iOS, acepta el permiso al iniciar sesión o activa **Acciones → Avisos de pagos**.
+- En el contrato, configura **Días de prórroga para el pago** (0 a 365; los contratos existentes comienzan en 0).
+- La app programa avisos alrededor de las 9:00 a. m., según la zona horaria del teléfono, el día de vencimiento del pago y el día siguiente de superar la prórroga. Por ejemplo: día 15 + 3 días de prórroga → aviso de atraso el 19.
+- Solo se consideran pagos pendientes/vencidos vinculados a contratos activos. La fecha usada es la fecha del pago pendiente; al editar su fecha o estado se actualiza el aviso. Cambiar el día de un contrato no recalcula los pagos previamente generados.
+- Los avisos se agrupan por fecha y tipo. Se programan las próximas 60 agrupaciones y se renuevan al abrir o reanudar la app y cuando cambian los datos, incluso después de sincronizar. Una prórroga vencida mientras la app estaba cerrada se recupera al abrirla, como máximo una vez por día y tipo.
+- Marcar pagado, eliminar un pago, finalizar/cancelar un contrato, desactivar los avisos o cerrar sesión cancela los avisos correspondientes. Android puede retrasar la entrega por ahorro de batería; los avisos ya programados funcionan sin internet.
+- Registra el **WhatsApp con código de país** del inquilino (por ejemplo `+1 809 555 0123`). En **Detalle del pago → Recordar por WhatsApp**, revisa el mensaje y confirma el envío en WhatsApp. El texto distingue recordatorio de cobro y prórroga vencida. No hay envío automático.
+- Los avisos programados del sistema están disponibles en Android/iOS. El botón WhatsApp también puede abrir WhatsApp Web desde el navegador.
+
 ### ⚙️ Configuración y sistema
 - Pantalla de configuración con URL de la API.
 - Tema claro y oscuro (Material 3).

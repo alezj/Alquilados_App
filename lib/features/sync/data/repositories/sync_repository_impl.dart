@@ -129,7 +129,9 @@ class SyncRepositoryImpl implements SyncRepository {
           if (!ready) dependenciesReady = false;
         }
         if (!dependenciesReady) {
-          errors.add('${entry.key}/$id (no se envió: faltan registros relacionados)');
+          errors.add(
+            '${entry.key}/$id (no se envió: faltan registros relacionados)',
+          );
           continue;
         }
         if (dependencyUploads[entry.key]?.contains(id) == true) continue;
@@ -165,21 +167,19 @@ class SyncRepositoryImpl implements SyncRepository {
     return errors;
   }
 
-  Map<String, int?> _parentReferences(
-    String table,
-    Map<String, dynamic> row,
-  ) => switch (table) {
-    'alquileres' => {
-      'propiedades': _asInt(row['propiedad_id']),
-      'inquilinos': _asInt(row['inquilino_id']),
-    },
-    'pagos' => {
-      'inquilinos': _asInt(row['id_inquilino']),
-      'alquileres': _asInt(row['id_alquiler'] ?? row['alquiler_id']),
-    },
-    'mantenimientos' => {'propiedades': _asInt(row['propiedad_id'])},
-    _ => const {},
-  };
+  Map<String, int?> _parentReferences(String table, Map<String, dynamic> row) =>
+      switch (table) {
+        'alquileres' => {
+          'propiedades': _asInt(row['propiedad_id']),
+          'inquilinos': _asInt(row['inquilino_id']),
+        },
+        'pagos' => {
+          'inquilinos': _asInt(row['id_inquilino']),
+          'alquileres': _asInt(row['id_alquiler'] ?? row['alquiler_id']),
+        },
+        'mantenimientos' => {'propiedades': _asInt(row['propiedad_id'])},
+        _ => const {},
+      };
 
   Future<bool> _ensureRemoteParent(
     String table,
@@ -271,6 +271,7 @@ class SyncRepositoryImpl implements SyncRepository {
           'correo': row['correo'],
           'fechaInicioContrato': row['fecha_inicio_contrato'],
           'fechaPagos': row['fecha_pagos'],
+          'telefono': row['telefono'],
           'Origen': row['Origen'] ?? 'movil',
           'usuario': row['usuario'] ?? _anonymousUserId,
         };
@@ -299,6 +300,7 @@ class SyncRepositoryImpl implements SyncRepository {
           'montoPago': row['montoPago'],
           'cantidadDepositos': row['cantidadDepositos'],
           'diaPago': row['diaPago'],
+          'diasProrroga': row['diasProrroga'] ?? 0,
           'cantidadMeses': row['cantidadMeses'],
           'estado': row['estado'],
           'Origen': row['Origen'] ?? 'movil',
@@ -350,6 +352,7 @@ class SyncRepositoryImpl implements SyncRepository {
           'correo': row['correo']?.toString(),
           'fecha_inicio_contrato': row['fechaInicioContrato']?.toString() ?? '',
           'fecha_pagos': _asInt(row['fechaPagos']),
+          'telefono': row['telefono']?.toString(),
           'Origen': row['Origen']?.toString() ?? 'movil',
           'usuario': row['usuario']?.toString() ?? _anonymousUserId,
           'created_at': row['created_at']?.toString(),
@@ -379,6 +382,7 @@ class SyncRepositoryImpl implements SyncRepository {
           'montoPago': _asDouble(row['montoPago']),
           'cantidadDepositos': _asInt(row['cantidadDepositos']),
           'diaPago': _asInt(row['diaPago'], fallback: 1),
+          'diasProrroga': _asInt(row['diasProrroga']),
           'cantidadMeses': _asInt(row['cantidadMeses']),
           'estado': row['estado']?.toString() ?? 'Pendiente',
           'Origen': row['Origen']?.toString() ?? 'movil',
@@ -422,21 +426,19 @@ class SyncRepositoryImpl implements SyncRepository {
     _ => null,
   };
 
-  static int _maintenanceStatusId(dynamic value) => switch (
-    value?.toString().toLowerCase()
-  ) {
-    'en proceso' => 6,
-    'finalizado' || 'completado' => 7,
-    'cancelado' => 8,
-    _ => 5,
-  };
+  static int _maintenanceStatusId(dynamic value) =>
+      switch (value?.toString().toLowerCase()) {
+        'en proceso' => 6,
+        'finalizado' || 'completado' => 7,
+        'cancelado' => 8,
+        _ => 5,
+      };
 
-  static String _maintenanceStatusName(dynamic value) => switch (
-    _asInt(value)
-  ) {
-    6 => 'En proceso',
-    7 => 'Finalizado',
-    8 => 'Cancelado',
-    _ => 'Pendiente',
-  };
+  static String _maintenanceStatusName(dynamic value) =>
+      switch (_asInt(value)) {
+        6 => 'En proceso',
+        7 => 'Finalizado',
+        8 => 'Cancelado',
+        _ => 'Pendiente',
+      };
 }

@@ -10,6 +10,7 @@ class Alquiler {
     required this.cantidadDepositos,
     required this.diaPago,
     this.cantidadMeses = 0,
+    this.diasProrroga = 0,
     required this.estado,
     this.propiedadNombre,
     this.inquilinoNombre,
@@ -26,6 +27,7 @@ class Alquiler {
   final int cantidadDepositos;
   final int diaPago;
   final int cantidadMeses;
+  final int diasProrroga;
   final String estado;
   final String? propiedadNombre;
   final String? inquilinoNombre;
@@ -39,22 +41,39 @@ class Alquiler {
 
   static Alquiler fromMap(Map<String, dynamic> map) {
     final importe = _parseDouble(map['importe']);
-    final montoPago = _parseDouble(map['montoPago'] ?? map['monto_pago'] ?? map['importe']);
-    final cantidadDepositos = ((map['cantidadDepositos'] ?? map['cantidad_depositos'] ?? 0) as num?)?.toInt() ?? 0;
-    final diaPago = ((map['diaPago'] ?? map['dia_pago'] ?? 1) as num?)?.toInt() ?? 1;
-    var cantidadMeses = ((map['cantidadMeses'] ?? map['cantidad_meses'] ?? 0) as num?)?.toInt() ?? 0;
-    final pagosRealizados = ((map['pagos_realizados'] ?? map['pagosRealizados'] ?? 0) as num?)?.toInt() ?? 0;
+    final montoPago = _parseDouble(
+      map['montoPago'] ?? map['monto_pago'] ?? map['importe'],
+    );
+    final cantidadDepositos =
+        ((map['cantidadDepositos'] ?? map['cantidad_depositos'] ?? 0) as num?)
+            ?.toInt() ??
+        0;
+    final diaPago =
+        ((map['diaPago'] ?? map['dia_pago'] ?? 1) as num?)?.toInt() ?? 1;
+    var cantidadMeses =
+        ((map['cantidadMeses'] ?? map['cantidad_meses'] ?? 0) as num?)
+            ?.toInt() ??
+        0;
+    final pagosRealizados =
+        ((map['pagos_realizados'] ?? map['pagosRealizados'] ?? 0) as num?)
+            ?.toInt() ??
+        0;
 
     final fechaInicioStr = (map['fecha_inicio'] ?? '').toString();
     final fechaFinStr = map['fecha_fin']?.toString();
 
     // Fallback: Si cantidadMeses viene en 0 pero hay fechas, calcularla
-    if (cantidadMeses <= 0 && fechaInicioStr.isNotEmpty && fechaFinStr != null && fechaFinStr.isNotEmpty) {
+    if (cantidadMeses <= 0 &&
+        fechaInicioStr.isNotEmpty &&
+        fechaFinStr != null &&
+        fechaFinStr.isNotEmpty) {
       final inicio = DateTime.tryParse(fechaInicioStr);
       final fin = DateTime.tryParse(fechaFinStr);
       if (inicio != null && fin != null && !fin.isBefore(inicio)) {
         final finAjustado = fin.add(const Duration(days: 1));
-        var m = (finAjustado.year - inicio.year) * 12 + (finAjustado.month - inicio.month);
+        var m =
+            (finAjustado.year - inicio.year) * 12 +
+            (finAjustado.month - inicio.month);
         if (finAjustado.day < inicio.day) m--;
         if (m <= 0 && fin.difference(inicio).inDays >= 25) m = 1;
         if (m > 0) cantidadMeses = m;
@@ -71,6 +90,7 @@ class Alquiler {
       montoPago: montoPago,
       cantidadDepositos: cantidadDepositos,
       diaPago: diaPago,
+      diasProrroga: (map['diasProrroga'] as num?)?.toInt() ?? 0,
       cantidadMeses: cantidadMeses,
       estado: (map['estado'] ?? 'Pendiente').toString(),
       propiedadNombre: map['propiedad_nombre']?.toString(),

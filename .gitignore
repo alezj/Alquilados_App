@@ -13,7 +13,7 @@
 # Dependencias descargadas
 .packages
 .pub/
-pubspec.lock
+# Mantener pubspec.lock versionado para reproducir las dependencias de la app.
 
 # --- Ambientes / Configuración segura ---
 # NUNCA subir configuración de ambientes con URLs de API
@@ -86,3 +86,6 @@ doc/api/
 crash_log_*.log
 # Widget Preview related
 .widget_preview/
+
+# Caché local de la CLI Supabase
+supabase/.temp/

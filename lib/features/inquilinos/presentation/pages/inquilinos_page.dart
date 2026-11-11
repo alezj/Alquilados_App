@@ -1,3 +1,5 @@
+import '../../../notificaciones/domain/whatsapp_reminder.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -102,6 +104,9 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
     final nombreController = TextEditingController(
       text: inquilino.nombreApellido,
     );
+    final telefonoController = TextEditingController(
+      text: inquilino.telefono ?? '',
+    );
     final correoController = TextEditingController(
       text: inquilino.correo ?? '',
     );
@@ -140,6 +145,14 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
+                  label: 'WhatsApp (con código de país)',
+                  hint: '+1 809 555 0123',
+                  prefixIcon: Icons.phone_rounded,
+                  keyboardType: TextInputType.phone,
+                  controller: telefonoController,
+                ),
+                const SizedBox(height: 12),
+                AppTextField(
                   label: 'Correo',
                   prefixIcon: Icons.email_rounded,
                   keyboardType: TextInputType.emailAddress,
@@ -164,6 +177,18 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                 AppButton(
                   text: 'Actualizar inquilino',
                   onPressed: () async {
+                    final telefono = telefonoController.text.trim();
+                    if (telefono.isNotEmpty &&
+                        WhatsAppReminder.normalizePhone(telefono) == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Indica un teléfono válido con código de país.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
                     final nombre = nombreController.text.trim();
                     final correo = correoController.text.trim();
                     final fechaInicio = fechaInicioController.text.trim();
@@ -174,9 +199,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     if (nombre.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text(
-                            'El nombre y apellido es obligatorio.',
-                          ),
+                          content: Text('El nombre y apellido es obligatorio.'),
                         ),
                       );
                       return;
@@ -189,7 +212,10 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                       id: inquilino.id,
                       nombreApellido: nombre,
                       correo: correo.isEmpty ? null : correo,
-                      fechaInicioContrato: fechaInicio.isEmpty ? null : fechaInicio,
+                      telefono: telefono,
+                      fechaInicioContrato: fechaInicio.isEmpty
+                          ? null
+                          : fechaInicio,
                       fechaPagos: fechaPagos,
                     );
 
@@ -216,6 +242,7 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
   Future<void> _showCreateDialog() async {
     final nombreController = TextEditingController();
     final correoController = TextEditingController();
+    final telefonoController = TextEditingController();
     final fechaInicioController = TextEditingController();
     final fechaPagosController = TextEditingController();
 
@@ -242,6 +269,14 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                   hint: 'Carlos Mendoza',
                   prefixIcon: Icons.person_rounded,
                   controller: nombreController,
+                ),
+                const SizedBox(height: 12),
+                AppTextField(
+                  label: 'WhatsApp (con código de país)',
+                  hint: '+1 809 555 0123',
+                  prefixIcon: Icons.phone_rounded,
+                  keyboardType: TextInputType.phone,
+                  controller: telefonoController,
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
@@ -272,18 +307,29 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                 AppButton(
                   text: 'Guardar inquilino',
                   onPressed: () async {
+                    final telefono = telefonoController.text.trim();
+                    if (telefono.isNotEmpty &&
+                        WhatsAppReminder.normalizePhone(telefono) == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Indica un teléfono válido con código de país.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
                     final nombre = nombreController.text.trim();
                     final correo = correoController.text.trim();
                     final fechaInicio = fechaInicioController.text.trim();
-                    final fechaPagos =
-                        int.tryParse(fechaPagosController.text.trim());
+                    final fechaPagos = int.tryParse(
+                      fechaPagosController.text.trim(),
+                    );
 
                     if (nombre.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text(
-                            'El nombre y apellido es obligatorio.',
-                          ),
+                          content: Text('El nombre y apellido es obligatorio.'),
                         ),
                       );
                       return;
@@ -295,7 +341,10 @@ class _InquilinosPageState extends ConsumerState<InquilinosPage> {
                     await database.insertInquilino(
                       nombreApellido: nombre,
                       correo: correo.isEmpty ? null : correo,
-                      fechaInicioContrato: fechaInicio.isEmpty ? null : fechaInicio,
+                      telefono: telefono,
+                      fechaInicioContrato: fechaInicio.isEmpty
+                          ? null
+                          : fechaInicio,
                       fechaPagos: fechaPagos,
                     );
 

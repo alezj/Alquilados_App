@@ -1,3 +1,4 @@
+import '../../../notificaciones/data/payment_notification_service.dart';
 import '../../../../core/config/app_config.dart';
 
 import 'package:flutter/material.dart';
@@ -74,6 +75,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         );
       } else {
+        await PaymentNotificationService.instance.cancel();
         await auth.signIn(
           _username.text,
           _password.text,
@@ -89,7 +91,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ref.invalidate(alquileresProvider);
         ref.invalidate(pagosProvider);
         ref.invalidate(pagoDetalleProvider);
-        if (mounted) context.go(AppRoutes.dashboard);
+        await PaymentNotificationService.instance.activateOnFirstLogin();
+        if (mounted) {
+          final notifications = PaymentNotificationService.instance;
+          final route = notifications.openPaymentsRequested
+              ? AppRoutes.pagos
+              : AppRoutes.dashboard;
+          notifications.openPaymentsRequested = false;
+          context.go(route);
+        }
       }
     } catch (error) {
       if (mounted) {

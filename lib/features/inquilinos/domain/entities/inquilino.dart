@@ -3,6 +3,7 @@ class Inquilino {
     required this.id,
     required this.nombreApellido,
     this.correo,
+    this.telefono,
     this.fechaInicioContrato,
     this.fechaPagos,
     this.syncState = 'pending',
@@ -12,6 +13,7 @@ class Inquilino {
   final int id;
   final String nombreApellido;
   final String? correo;
+  final String? telefono;
   final String? fechaInicioContrato;
   final int? fechaPagos;
   final String syncState;

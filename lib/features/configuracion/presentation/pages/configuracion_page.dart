@@ -1,3 +1,4 @@
+import '../../../notificaciones/data/payment_notification_service.dart';
 import '../../../../core/config/app_config.dart';
 
 import 'package:flutter/material.dart';
@@ -42,6 +43,7 @@ class ConfiguracionPage extends ConsumerWidget {
                           : 'Actual: Producción',
                     ),
                     onTap: () async {
+                      await PaymentNotificationService.instance.cancel();
                       await ref.read(supabaseAuthServiceProvider).signOut();
                       if (context.mounted) {
                         context.go('/login?usuario=Johancel');
@@ -50,6 +52,7 @@ class ConfiguracionPage extends ConsumerWidget {
                   );
                 },
               ),
+              _PaymentNotificationSettings(),
               const Text('Acciones', style: AppTypography.titleMedium),
               const SizedBox(height: 12),
               ListTile(
@@ -138,6 +141,7 @@ class ConfiguracionPage extends ConsumerWidget {
                   icon: Icons.logout_rounded,
                   // isLoading: syncState.isLoading, // Deshabilitado para el botón de cerrar sesión
                   onPressed: () async {
+                    await PaymentNotificationService.instance.cancel();
                     await ref.read(supabaseAuthServiceProvider).signOut();
                     if (context.mounted) context.go('/login');
                   },
@@ -189,4 +193,78 @@ class ConfiguracionPage extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _PaymentNotificationSettings extends StatefulWidget {
+  @override
+  State<_PaymentNotificationSettings> createState() =>
+      _PaymentNotificationSettingsState();
+}
+
+class _PaymentNotificationSettingsState
+    extends State<_PaymentNotificationSettings> {
+  bool _enabled = false;
+  bool _busy = true;
+  final _service = PaymentNotificationService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _service
+        .isEnabled()
+        .then((enabled) {
+          if (mounted) {
+            setState(() {
+              _enabled = enabled;
+              _busy = false;
+            });
+          }
+        })
+        .catchError((Object error) {
+          if (mounted) setState(() => _busy = false);
+        });
+  }
+
+  @override
+  Widget build(BuildContext context) => SwitchListTile(
+    secondary: const Icon(Icons.notifications_active_outlined),
+    title: const Text('Avisos de pagos'),
+    subtitle: Text(
+      _service.supported
+          ? 'A las 9:00 a. m. del teléfono: día de pago y al vencer la prórroga. Los avisos se renuevan al abrir la app.'
+          : 'Los avisos programados están disponibles en Android y iOS.',
+    ),
+    value: _enabled,
+    onChanged: _busy || !_service.supported
+        ? null
+        : (value) async {
+            setState(() => _busy = true);
+            try {
+              final enabled = await _service.setEnabled(value);
+              if (!context.mounted) return;
+              setState(() => _enabled = enabled);
+              if ((value && !enabled) || _service.lastError != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _service.lastError ?? 'Permite las notificaciones en los ajustes del teléfono para recibir los avisos.',
+                    ),
+                  ),
+                );
+              }
+            } catch (error) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'No se pudieron configurar los avisos: $error',
+                    ),
+                  ),
+                );
+              }
+            } finally {
+              if (mounted) setState(() => _busy = false);
+            }
+          },
+  );
 }

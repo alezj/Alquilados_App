@@ -44,16 +44,21 @@ class AlquilerDetallePage extends ConsumerWidget {
             ),
             builder: (context, pagosSnapshot) {
               final pagos = (pagosSnapshot.data ?? [])
-                  .map((row) => Pago(
-                        id: (row['id'] as num?)?.toInt() ?? 0,
-                        idInquilino: (row['id_inquilino'] ?? alquiler.inquilinoId.toString()).toString(),
-                        inquilinoNombre: tenantName,
-                        fechaPago: (row['fecha_pago'] ?? '').toString(),
-                        monto: _parseDouble(row['monto']),
-                        estado: (row['estado'] ?? 'pendiente').toString(),
-                        syncState: (row['sync_state'] ?? 'pending').toString(),
-                        syncedAt: row['synced_at']?.toString(),
-                      ))
+                  .map(
+                    (row) => Pago(
+                      id: (row['id'] as num?)?.toInt() ?? 0,
+                      idInquilino:
+                          (row['id_inquilino'] ??
+                                  alquiler.inquilinoId.toString())
+                              .toString(),
+                      inquilinoNombre: tenantName,
+                      fechaPago: (row['fecha_pago'] ?? '').toString(),
+                      monto: _parseDouble(row['monto']),
+                      estado: (row['estado'] ?? 'pendiente').toString(),
+                      syncState: (row['sync_state'] ?? 'pending').toString(),
+                      syncedAt: row['synced_at']?.toString(),
+                    ),
+                  )
                   .toList();
 
               final pagosRealizados = pagos
@@ -117,14 +122,42 @@ class AlquilerDetallePage extends ConsumerWidget {
                           const SizedBox(height: 12),
                           _InfoRow(label: 'Propiedad', value: propertyName),
                           _InfoRow(label: 'Inquilino', value: tenantName),
-                          _InfoRow(label: 'Fecha de inicio', value: _formatDate(alquiler.fechaInicio)),
-                          _InfoRow(label: 'Fecha de finalización', value: _formatDate(alquiler.fechaFin)),
-                          _InfoRow(label: 'Meses acordados', value: '$cantidadMeses meses'),
-                          _InfoRow(label: 'Pagos realizados', value: '$pagosRealizados pagos'),
-                          _InfoRow(label: 'Pendientes por pagar', value: '$pendientes meses'),
-                          _InfoRow(label: 'Monto a pagar', value: _currency(alquiler.montoPago)),
-                          _InfoRow(label: 'Cantidad de depósitos', value: alquiler.cantidadDepositos.toString()),
-                          _InfoRow(label: 'Día de pago', value: alquiler.diaPago.toString()),
+                          _InfoRow(
+                            label: 'Fecha de inicio',
+                            value: _formatDate(alquiler.fechaInicio),
+                          ),
+                          _InfoRow(
+                            label: 'Fecha de finalización',
+                            value: _formatDate(alquiler.fechaFin),
+                          ),
+                          _InfoRow(
+                            label: 'Meses acordados',
+                            value: '$cantidadMeses meses',
+                          ),
+                          _InfoRow(
+                            label: 'Pagos realizados',
+                            value: '$pagosRealizados pagos',
+                          ),
+                          _InfoRow(
+                            label: 'Pendientes por pagar',
+                            value: '$pendientes meses',
+                          ),
+                          _InfoRow(
+                            label: 'Monto a pagar',
+                            value: _currency(alquiler.montoPago),
+                          ),
+                          _InfoRow(
+                            label: 'Cantidad de depósitos',
+                            value: alquiler.cantidadDepositos.toString(),
+                          ),
+                          _InfoRow(
+                            label: 'Día de pago',
+                            value: alquiler.diaPago.toString(),
+                          ),
+                          _InfoRow(
+                            label: 'Días de prórroga',
+                            value: alquiler.diasProrroga.toString(),
+                          ),
                           _InfoRow(label: 'Estado', value: alquiler.estado),
                         ],
                       ),
@@ -137,10 +170,15 @@ class AlquilerDetallePage extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Información de pagos', style: AppTypography.titleMedium),
+                          const Text(
+                            'Información de pagos',
+                            style: AppTypography.titleMedium,
+                          ),
                           const SizedBox(height: 12),
                           if (pagos.isEmpty)
-                            const Text('No hay pagos registrados para este alquiler.')
+                            const Text(
+                              'No hay pagos registrados para este alquiler.',
+                            )
                           else ...[
                             DataTable(
                               columns: const [
@@ -150,12 +188,18 @@ class AlquilerDetallePage extends ConsumerWidget {
                                 DataColumn(label: Text('Estado')),
                               ],
                               rows: pagos.map((pago) {
-                                return DataRow(cells: [
-                                  DataCell(Text(_formatDate(pago.fechaPago))),
-                                  DataCell(Text(_periodoFromDate(pago.fechaPago))),
-                                  DataCell(Text(_currency(pago.monto))),
-                                  DataCell(StatusBadge.fromString(pago.estado)),
-                                ]);
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(_formatDate(pago.fechaPago))),
+                                    DataCell(
+                                      Text(_periodoFromDate(pago.fechaPago)),
+                                    ),
+                                    DataCell(Text(_currency(pago.monto))),
+                                    DataCell(
+                                      StatusBadge.fromString(pago.estado),
+                                    ),
+                                  ],
+                                );
                               }).toList(),
                             ),
                           ],
@@ -194,7 +238,11 @@ class AlquilerDetallePage extends ConsumerWidget {
   }
 
   static String _currency(double amount) {
-    final format = NumberFormat.currency(locale: 'en_US', symbol: 'RD\$', decimalDigits: 2);
+    final format = NumberFormat.currency(
+      locale: 'en_US',
+      symbol: 'RD\$',
+      decimalDigits: 2,
+    );
     return format.format(amount);
   }
 

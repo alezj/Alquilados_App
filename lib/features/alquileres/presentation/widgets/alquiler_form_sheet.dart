@@ -21,6 +21,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
   final _inquilinoController = ValueNotifier<int>(0);
   final _montoPagoController = TextEditingController();
   final _cantidadDepositosController = TextEditingController();
+  final _prorrogaController = TextEditingController(text: '0');
   final _diaPagoController = TextEditingController();
   final _fechaInicioController = TextEditingController();
   final _fechaFinController = TextEditingController();
@@ -47,6 +48,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
       );
       _cantidadDepositosController.text = widget.alquiler!.cantidadDepositos
           .toString();
+      _prorrogaController.text = widget.alquiler!.diasProrroga.toString();
       _diaPagoController.text = widget.alquiler!.diaPago.toString();
       _fechaInicioController.text = widget.alquiler!.fechaInicio;
       _fechaFinController.text = widget.alquiler!.fechaFin ?? '';
@@ -73,8 +75,11 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     if (inicio == null) return;
 
     // Fecha fin = inicio + meses - 1 día
-    final fin = DateTime(inicio.year, inicio.month + meses, inicio.day)
-        .subtract(const Duration(days: 1));
+    final fin = DateTime(
+      inicio.year,
+      inicio.month + meses,
+      inicio.day,
+    ).subtract(const Duration(days: 1));
     final finStr = fin.toIso8601String().split('T').first;
 
     _fechaFinEditandose = true;
@@ -170,7 +175,9 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
   }
 
   void _recalcularMeses() {
-    if (_fechaFinEditandose) return; // la fecha fin fue puesta por nosotros, no recalcular
+    if (_fechaFinEditandose) {
+      return; // la fecha fin fue puesta por nosotros, no recalcular
+    }
     _mesesEditandose = true;
     final meses = LocalDatabaseService.calcularCantidadMeses(
       _fechaInicioController.text.trim(),
@@ -188,6 +195,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     final montoPago = _parseCurrency(_montoPagoController.text.trim());
     final cantidadDepositos =
         int.tryParse(_cantidadDepositosController.text.trim()) ?? 0;
+    final diasProrroga = int.tryParse(_prorrogaController.text.trim());
     final diaPago = int.tryParse(_diaPagoController.text.trim()) ?? 1;
     final fechaInicio = _fechaInicioController.text.trim();
     final fechaFin = _fechaFinController.text.trim();
@@ -207,6 +215,11 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
       return;
     }
 
+    if (diasProrroga == null || diasProrroga < 0 || diasProrroga > 365) {
+      _showMessage('Indica una prórroga entre 0 y 365 días.');
+      return;
+    }
+
     if (cantidadDepositos < 0 || diaPago < 1 || diaPago > 31) {
       _showMessage(
         'La cantidad de depósitos debe ser 0 o mayor y el día de pago debe estar entre 1 y 31.',
@@ -214,13 +227,15 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
       return;
     }
 
-    final cantidadMesesManual =
-        int.tryParse(_cantidadMesesController.text.trim());
+    final cantidadMesesManual = int.tryParse(
+      _cantidadMesesController.text.trim(),
+    );
     final mesesCalculados = LocalDatabaseService.calcularCantidadMeses(
       fechaInicio,
       fechaFin,
     );
-    final cantidadMeses = (cantidadMesesManual != null && cantidadMesesManual > 0)
+    final cantidadMeses =
+        (cantidadMesesManual != null && cantidadMesesManual > 0)
         ? cantidadMesesManual
         : mesesCalculados;
 
@@ -236,6 +251,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
           montoPago: montoPago,
           cantidadDepositos: cantidadDepositos,
           diaPago: diaPago,
+          diasProrroga: diasProrroga,
           cantidadMeses: cantidadMeses,
           estado: _estadoController.value,
         );
@@ -250,6 +266,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
           montoPago: montoPago,
           cantidadDepositos: cantidadDepositos,
           diaPago: diaPago,
+          diasProrroga: diasProrroga,
           cantidadMeses: cantidadMeses,
           estado: _estadoController.value,
         );
@@ -265,6 +282,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
             id: inquilinoId,
             nombreApellido: nombreActual,
             correo: inquilinoRow['correo'] as String?,
+            telefono: inquilinoRow['telefono'] as String?,
             fechaInicioContrato: fechaInicio.isNotEmpty ? fechaInicio : null,
             fechaPagos: diaPago,
           );
@@ -293,6 +311,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
     _montoPagoController.dispose();
     _cantidadDepositosController.dispose();
     _diaPagoController.dispose();
+    _prorrogaController.dispose();
     _fechaInicioController.dispose();
     _fechaFinController.dispose();
     _cantidadMesesController.dispose();
@@ -443,6 +462,14 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: false,
                 ),
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _prorrogaController,
+                label: 'Días de prórroga para el pago',
+                hint: '0 = aviso de atraso al día siguiente',
+                keyboardType: TextInputType.number,
+                prefixIcon: Icons.more_time_rounded,
               ),
               const SizedBox(height: 12),
               ValueListenableBuilder<String>(

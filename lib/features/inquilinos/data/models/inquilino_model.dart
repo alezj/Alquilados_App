@@ -5,6 +5,7 @@ class InquilinoModel extends Inquilino {
     required super.id,
     required super.nombreApellido,
     super.correo,
+    super.telefono,
     super.fechaInicioContrato,
     super.fechaPagos,
   });
@@ -13,6 +14,7 @@ class InquilinoModel extends Inquilino {
     id: _asInt(json['id']),
     nombreApellido: json['nombreApellido']?.toString() ?? '',
     correo: (json['correo'] ?? json['email'])?.toString(),
+    telefono: json['telefono']?.toString(),
     fechaInicioContrato: json['fechaInicioContrato']?.toString(),
     fechaPagos: _asNullableInt(json['fechaPagos']),
   );

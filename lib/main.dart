@@ -1,10 +1,14 @@
+import 'features/notificaciones/data/payment_notification_service.dart';
+import 'core/router/app_routes.dart';
 import 'core/config/app_config.dart';
 import 'core/storage/secure_storage_service.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+
 import 'core/shared/widgets/app_button.dart';
 import 'core/shared/widgets/app_card.dart';
 import 'core/shared/widgets/app_empty.dart';
@@ -27,10 +31,18 @@ Future<void> main() async {
   final session = await storage.getSessionContext();
   if (session != null && await storage.hasToken()) {
     AppConfig.backend = session['environment'] == 'test'
-        ? BackendEnvironment.test : BackendEnvironment.production;
+        ? BackendEnvironment.test
+        : BackendEnvironment.production;
     await LocalDatabaseService().switchTenant(session['tenant'] as String);
   }
   await LocalDatabaseService().ensureSeedData();
+  try {
+    await PaymentNotificationService.instance.initialize();
+    await PaymentNotificationService.instance.refresh();
+  } catch (error) {
+    PaymentNotificationService.instance.lastError =
+        'No se pudieron iniciar los avisos: $error';
+  }
   runApp(const ProviderScope(child: AlquiladosApp()));
 }
 
@@ -45,7 +57,34 @@ class AlquiladosApp extends StatefulWidget {
   State<AlquiladosApp> createState() => _AlquiladosAppState();
 }
 
-class _AlquiladosAppState extends State<AlquiladosApp> {
+class _AlquiladosAppState extends State<AlquiladosApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    PaymentNotificationService.instance.onOpenPayments = () async {
+      if (await SecureStorageService().hasToken() && mounted) {
+        PaymentNotificationService.instance.openPaymentsRequested = false;
+        router.go(AppRoutes.pagos);
+      }
+    };
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      PaymentNotificationService.instance.refresh();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    PaymentNotificationService.instance.onOpenPayments = null;
+    super.dispose();
+  }
+
   ThemeMode _themeMode = ThemeMode.light;
   late final router = AppRouter.create(
     designSystemBuilder: (_) => DesignSystemShowcasePage(
@@ -56,7 +95,9 @@ class _AlquiladosAppState extends State<AlquiladosApp> {
 
   void _toggleTheme() {
     setState(() {
-      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+      _themeMode = _themeMode == ThemeMode.light
+          ? ThemeMode.dark
+          : ThemeMode.light;
     });
   }
 
@@ -85,7 +126,8 @@ class DesignSystemShowcasePage extends StatefulWidget {
   final VoidCallback onToggleTheme;
 
   @override
-  State<DesignSystemShowcasePage> createState() => _DesignSystemShowcasePageState();
+  State<DesignSystemShowcasePage> createState() =>
+      _DesignSystemShowcasePageState();
 }
 
 class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
@@ -145,10 +187,26 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  StatusBadge(label: 'Disponible', type: StatusBadgeType.success, icon: Icons.check_circle_rounded),
-                  StatusBadge(label: 'Alquilado', type: StatusBadgeType.info, icon: Icons.key_rounded),
-                  StatusBadge(label: 'Mantenimiento', type: StatusBadgeType.warning, icon: Icons.build_rounded),
-                  StatusBadge(label: 'En Mora', type: StatusBadgeType.error, icon: Icons.warning_rounded),
+                  StatusBadge(
+                    label: 'Disponible',
+                    type: StatusBadgeType.success,
+                    icon: Icons.check_circle_rounded,
+                  ),
+                  StatusBadge(
+                    label: 'Alquilado',
+                    type: StatusBadgeType.info,
+                    icon: Icons.key_rounded,
+                  ),
+                  StatusBadge(
+                    label: 'Mantenimiento',
+                    type: StatusBadgeType.warning,
+                    icon: Icons.build_rounded,
+                  ),
+                  StatusBadge(
+                    label: 'En Mora',
+                    type: StatusBadgeType.error,
+                    icon: Icons.warning_rounded,
+                  ),
                   StatusBadge(label: 'Borrador', type: StatusBadgeType.neutral),
                 ],
               ),
@@ -180,12 +238,18 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 16, color: AppColors.textSecondaryLight),
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 16,
+                          color: AppColors.textSecondaryLight,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Av. Winston Churchill #102, Piantini',
                           style: AppTypography.bodySmall.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                       ],
@@ -200,10 +264,15 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
                             Text(
                               'Inquilino Actual',
                               style: AppTypography.labelSmall.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             ),
-                            const Text('Carlos Mendoza', style: AppTypography.bodyMedium),
+                            const Text(
+                              'Carlos Mendoza',
+                              style: AppTypography.bodyMedium,
+                            ),
                           ],
                         ),
                         Column(
@@ -212,7 +281,9 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
                             Text(
                               'Renta Mensual',
                               style: AppTypography.labelSmall.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             ),
                             const Text(
@@ -248,7 +319,9 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
               // Sección: Botones y Estados de Carga
               _buildSectionTitle('4. AppButton (Variantes e Interacción)'),
               AppButton(
-                text: _isLoadingButton ? 'Procesando...' : 'Botón Primario (Pruébame)',
+                text: _isLoadingButton
+                    ? 'Procesando...'
+                    : 'Botón Primario (Pruébame)',
                 icon: Icons.send_rounded,
                 isLoading: _isLoadingButton,
                 onPressed: _simulateAction,
@@ -288,7 +361,8 @@ class _DesignSystemShowcasePageState extends State<DesignSystemShowcasePage> {
               AppCard(
                 child: AppEmpty(
                   title: 'No hay inquilinos registrados',
-                  message: 'Cuando registres un nuevo contrato, aparecerá aquí.',
+                  message:
+                      'Cuando registres un nuevo contrato, aparecerá aquí.',
                   actionText: 'Registrar Inquilino',
                   onAction: () {},
                 ),

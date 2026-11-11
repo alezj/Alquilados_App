@@ -1,3 +1,5 @@
+import '../../../notificaciones/domain/whatsapp_reminder.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -147,6 +149,14 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     ),
                     const SizedBox(height: 14),
                     _buildInfoRow(
+                      icon: Icons.phone_outlined,
+                      label: 'WhatsApp',
+                      value: (inquilino.telefono?.isNotEmpty ?? false)
+                          ? inquilino.telefono!
+                          : 'Sin teléfono registrado',
+                    ),
+                    const Divider(height: 20),
+                    _buildInfoRow(
                       icon: Icons.email_outlined,
                       label: 'Correo electrónico',
                       value: inquilino.correo ?? 'Sin correo registrado',
@@ -155,7 +165,8 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     _buildInfoRow(
                       icon: Icons.calendar_today_rounded,
                       label: 'Inicio de contrato',
-                      value: (inquilino.fechaInicioContrato?.isNotEmpty ?? false)
+                      value:
+                          (inquilino.fechaInicioContrato?.isNotEmpty ?? false)
                           ? inquilino.fechaInicioContrato!
                           : 'No especificada',
                     ),
@@ -362,6 +373,9 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
     final nombreController = TextEditingController(
       text: inquilino.nombreApellido,
     );
+    final telefonoController = TextEditingController(
+      text: inquilino.telefono ?? '',
+    );
     final correoController = TextEditingController(
       text: inquilino.correo ?? '',
     );
@@ -400,6 +414,14 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
+                  label: 'WhatsApp (con código de país)',
+                  hint: '+1 809 555 0123',
+                  prefixIcon: Icons.phone_rounded,
+                  keyboardType: TextInputType.phone,
+                  controller: telefonoController,
+                ),
+                const SizedBox(height: 12),
+                AppTextField(
                   label: 'Correo electrónico',
                   prefixIcon: Icons.email_rounded,
                   keyboardType: TextInputType.emailAddress,
@@ -424,6 +446,18 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                 AppButton(
                   text: 'Actualizar inquilino',
                   onPressed: () async {
+                    final telefono = telefonoController.text.trim();
+                    if (telefono.isNotEmpty &&
+                        WhatsAppReminder.normalizePhone(telefono) == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Indica un teléfono válido con código de país.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
                     final nombre = nombreController.text.trim();
                     final fechaInicio = fechaInicioController.text.trim();
                     final fechaPagos =
@@ -447,6 +481,7 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     await database.updateInquilino(
                       id: inquilino.id,
                       nombreApellido: nombre,
+                      telefono: telefono,
                       correo: correoController.text.trim().isEmpty
                           ? null
                           : correoController.text.trim(),
