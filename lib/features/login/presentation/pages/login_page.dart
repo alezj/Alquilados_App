@@ -1,13 +1,22 @@
+import '../../../../core/config/app_config.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../dashboard/presentation/pages/dashboard_page.dart';
+import '../../../propiedades/presentation/providers/propiedades_provider.dart';
+import '../../../inquilinos/presentation/providers/inquilinos_provider.dart';
+import '../../../alquileres/presentation/providers/alquileres_provider.dart';
+import '../../../pagos/presentation/providers/pagos_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_button.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.initialUsername = ''});
+
+  final String initialUsername;
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
@@ -15,6 +24,8 @@ class LoginPage extends ConsumerStatefulWidget {
 
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _name = TextEditingController();
+  final _username = TextEditingController();
+  BackendEnvironment _environment = BackendEnvironment.test;
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _registering = false;
@@ -25,12 +36,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _companies = ref.read(supabaseAuthServiceProvider).activeCompanies();
+    _username.text = widget.initialUsername;
+    _companies = Future.value([]);
   }
 
   @override
   void dispose() {
     _name.dispose();
+    _username.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -41,10 +54,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     try {
       final auth = ref.read(supabaseAuthServiceProvider);
       if (_registering) {
-        if (_companyId == null)
+        if (_companyId == null) {
           throw Exception('Selecciona la empresa a la que solicitas acceso.');
+        }
         await auth.signUp(
           name: _name.text,
+          username: _username.text,
           email: _email.text,
           password: _password.text,
           companyId: _companyId!,
@@ -59,7 +74,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         );
       } else {
-        await auth.signIn(_email.text, _password.text);
+        await auth.signIn(
+          _username.text,
+          _password.text,
+          environment: _environment,
+        );
+        ref.invalidate(apiClientProvider);
+        ref.invalidate(dashboardSummaryProvider);
+        ref.invalidate(propiedadesProvider);
+        ref.invalidate(propiedadDetalleProvider);
+        ref.invalidate(inquilinosProvider);
+        ref.invalidate(inquilinoDetalleProvider);
+        ref.invalidate(pagosDeInquilinoProvider);
+        ref.invalidate(alquileresProvider);
+        ref.invalidate(pagosProvider);
+        ref.invalidate(pagoDetalleProvider);
         if (mounted) context.go(AppRoutes.dashboard);
       }
     } catch (error) {
@@ -110,16 +139,60 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 14),
                   ],
                   TextField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
+                    controller: _username,
+                    enabled: !_loading,
+                    autocorrect: false,
                     autofillHints: const [AutofillHints.username],
+                    onChanged: (_) => setState(() {
+                      _environment = BackendEnvironment.test;
+                    }),
                     decoration: InputDecoration(
-                      labelText: 'Correo',
-                      hintText: 'usuario@empresa.com',
-                      prefixIcon: const Icon(Icons.email_outlined),
+                      labelText: 'Usuario',
+                      prefixIcon: const Icon(Icons.person_outline),
                       border: border,
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  if (!_registering &&
+                      AppConfig.canChooseEnvironment(_username.text)) ...[
+                    DropdownButtonFormField<BackendEnvironment>(
+                      isExpanded: true,
+                      key: ValueKey(_environment),
+                      initialValue: _environment,
+                      decoration: InputDecoration(
+                        labelText: 'Ambiente',
+                        border: border,
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: BackendEnvironment.test,
+                          child: Text('Pruebas (Alquilados_Test)'),
+                        ),
+                        DropdownMenuItem(
+                          value: BackendEnvironment.production,
+                          child: Text('Producción'),
+                        ),
+                      ],
+                      onChanged: _loading
+                          ? null
+                          : (value) => setState(() {
+                              _environment = value ?? BackendEnvironment.test;
+                            }),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  if (_registering)
+                    TextField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
+                      decoration: InputDecoration(
+                        labelText: 'Correo',
+                        hintText: 'usuario@empresa.com',
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        border: border,
+                      ),
+                    ),
                   const SizedBox(height: 14),
                   TextField(
                     controller: _password,
@@ -140,18 +213,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     FutureBuilder<List<Map<String, dynamic>>>(
                       future: _companies,
                       builder: (context, snapshot) {
-                        if (snapshot.hasError)
+                        if (snapshot.hasError) {
                           return const Text(
                             'No se pudieron cargar las empresas disponibles.',
                           );
-                        if (!snapshot.hasData)
+                        }
+                        if (!snapshot.hasData) {
                           return const LinearProgressIndicator();
+                        }
                         final companies = snapshot.data!;
                         return DropdownButtonFormField<String>(
-                          value:
+                          isExpanded: true,
+                          initialValue:
                               companies.any((item) => item['id'] == _companyId)
-                                  ? _companyId
-                                  : null,
+                              ? _companyId
+                              : null,
                           decoration: InputDecoration(
                             labelText: 'Empresa',
                             border: border,
@@ -179,7 +255,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   TextButton(
                     onPressed: _loading
                         ? null
-                        : () => setState(() => _registering = !_registering),
+                        : () => setState(() {
+                            _registering = !_registering;
+                            if (_registering) {
+                              AppConfig.backend = BackendEnvironment.production;
+                              ref.invalidate(supabaseAuthServiceProvider);
+                              _companyId = null;
+                              _companies = ref
+                                  .read(supabaseAuthServiceProvider)
+                                  .activeCompanies();
+                            }
+                          }),
                     child: Text(
                       _registering
                           ? 'Ya tengo una cuenta'

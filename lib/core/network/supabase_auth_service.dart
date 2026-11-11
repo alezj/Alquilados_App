@@ -5,18 +5,21 @@ import '../storage/secure_storage_service.dart';
 import '../../features/sync/data/datasources/local_database_service.dart';
 
 class SupabaseAuthService {
-  SupabaseAuthService(this._storage, this._localDatabase)
-    : _dio = Dio(
-        BaseOptions(
-          baseUrl: '${AppConfig.supabaseUrl.replaceAll(RegExp(r'/+$'), '')}/',
-          headers: {
-            'apikey': AppConfig.supabasePublishableKey,
-            'Content-Type': 'application/json',
-          },
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-        ),
-      );
+  SupabaseAuthService(this._storage, this._localDatabase, {Dio? dio})
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl:
+                  '${AppConfig.supabaseUrl.replaceAll(RegExp(r'/+$'), '')}/',
+              headers: {
+                'apikey': AppConfig.supabasePublishableKey,
+                'Content-Type': 'application/json',
+              },
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 15),
+            ),
+          );
 
   final SecureStorageService _storage;
   final LocalDatabaseService _localDatabase;
@@ -31,8 +34,29 @@ class SupabaseAuthService {
         .toList();
   }
 
-  Future<void> signIn(String email, String password) async {
+  Future<void> signIn(
+    String username,
+    String password, {
+    BackendEnvironment? environment,
+  }) async {
+    final target = AppConfig.loginEnvironment(username, environment);
+    await _storage.clearSession();
+    AppConfig.backend = target;
+    _dio.options.baseUrl =
+        '${AppConfig.supabaseUrl.replaceAll(RegExp(r'/+$'), '')}/';
+    _dio.options.headers['apikey'] = AppConfig.supabasePublishableKey;
     try {
+      if (username.trim().isEmpty || password.isEmpty) {
+        throw Exception('Ingresa tu usuario y contraseña.');
+      }
+      final resolved = await _dio.post<dynamic>(
+        'rest/v1/rpc/get_email_by_username',
+        data: {'p_username': username.trim()},
+      );
+      final email = resolved.data as String?;
+      if (email == null || email.trim().isEmpty) {
+        throw Exception('Usuario o contraseña incorrectos.');
+      }
       final response = await _dio.post<Map<String, dynamic>>(
         'auth/v1/token?grant_type=password',
         data: {'email': email.trim(), 'password': password},
@@ -42,12 +66,13 @@ class SupabaseAuthService {
       final refresh = data['refresh_token']?.toString();
       final user = data['user'] as Map<String, dynamic>?;
       final userId = user?['id']?.toString();
-      if (token == null || userId == null)
+      if (token == null || userId == null) {
         throw Exception('Respuesta de autenticación incompleta.');
+      }
       await _storage.saveToken(token);
       if (refresh != null) await _storage.saveRefreshToken(refresh);
       final profile = await _dio.get<List<dynamic>>(
-        'rest/v1/profiles?id=eq.$userId&select=approval_status,is_active',
+        'rest/v1/profiles?id=eq.$userId&select=approval_status,is_active,usuarioSesion',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       final rows =
@@ -59,6 +84,13 @@ class SupabaseAuthService {
           row['is_active'] != true) {
         await _storage.clearSession();
         throw Exception(_statusMessage(row?['approval_status']?.toString()));
+      }
+      final actualUsername = row['usuarioSesion']?.toString() ?? '';
+      if (actualUsername.trim().toLowerCase() !=
+              username.trim().toLowerCase() ||
+          (target == BackendEnvironment.test &&
+              !AppConfig.canChooseEnvironment(actualUsername))) {
+        throw Exception('Usuario o contraseña incorrectos.');
       }
       final membershipsResponse = await _dio.get<List<dynamic>>(
         'rest/v1/company_memberships?select=company_id&user_id=eq.$userId&status=eq.approved&order=requested_at.asc&limit=1',
@@ -87,7 +119,9 @@ class SupabaseAuthService {
         await _storage.clearSession();
         throw Exception('No se pudo resolver la empresa de la cuenta.');
       }
-      await _localDatabase.switchTenant(companies.first['slug'].toString());
+      final tenant = AppConfig.tenantKey(companies.first['slug'].toString());
+      await _localDatabase.switchTenant(tenant);
+      await _storage.saveSessionContext(target.name, tenant, actualUsername);
       await _storage.saveUserData(userId);
     } on DioException catch (error) {
       await _storage.clearSession();
@@ -99,15 +133,22 @@ class SupabaseAuthService {
         message?.toString() ??
             'No fue posible iniciar sesión. Verifica tus datos.',
       );
+    } catch (_) {
+      await _storage.clearSession();
+      rethrow;
     }
   }
 
   Future<void> signUp({
     required String name,
+    required String username,
     required String email,
     required String password,
     required String companyId,
   }) async {
+    if (username.trim().isEmpty) {
+      throw Exception('Ingresa un nombre de usuario.');
+    }
     try {
       await _dio.post<Map<String, dynamic>>(
         'auth/v1/signup',
@@ -116,6 +157,7 @@ class SupabaseAuthService {
           'password': password,
           'data': {
             'full_name': name.trim(),
+            'usuarioSesion': username.trim(),
             'company_id': companyId,
             'Origen': 'movil',
           },

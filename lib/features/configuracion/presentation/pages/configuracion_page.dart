@@ -1,3 +1,5 @@
+import '../../../../core/config/app_config.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +26,30 @@ class ConfiguracionPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              FutureBuilder<Map<String, dynamic>?>(
+                future: ref.read(secureStorageProvider).getSessionContext(),
+                builder: (context, snapshot) {
+                  final username = snapshot.data?['username']?.toString() ?? '';
+                  if (!AppConfig.canChooseEnvironment(username)) {
+                    return const SizedBox.shrink();
+                  }
+                  return ListTile(
+                    leading: const Icon(Icons.swap_horiz),
+                    title: const Text('Cambiar ambiente'),
+                    subtitle: Text(
+                      AppConfig.backend == BackendEnvironment.test
+                          ? 'Actual: Pruebas (Alquilados_Test)'
+                          : 'Actual: Producción',
+                    ),
+                    onTap: () async {
+                      await ref.read(supabaseAuthServiceProvider).signOut();
+                      if (context.mounted) {
+                        context.go('/login?usuario=Johancel');
+                      }
+                    },
+                  );
+                },
+              ),
               const Text('Acciones', style: AppTypography.titleMedium),
               const SizedBox(height: 12),
               ListTile(

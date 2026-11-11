@@ -18,12 +18,17 @@ void main() {
     const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test';
 
     test('saveToken guarda el token en el almacenamiento seguro', () async {
-      when(() => mockStorage.write(key: any(named: 'key'), value: any(named: 'value')))
-          .thenAnswer((_) async {});
+      when(
+        () => mockStorage.write(
+          key: any(named: 'key'),
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async {});
 
       await service.saveToken(testToken);
 
-      verify(() => mockStorage.write(key: 'auth_token_jwt', value: testToken)).called(1);
+      verify(() => mockStorage.write(key: 'auth_token_jwt', value: testToken))
+          .called(1);
     });
 
     test('getToken lee el token del almacenamiento seguro', () async {
@@ -54,6 +59,32 @@ void main() {
       expect(hasToken, isFalse);
     });
 
+    test('guarda y recupera ambiente, empresa y usuario juntos', () async {
+      String? stored;
+      when(
+        () => mockStorage.write(
+          key: 'auth_context',
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((invocation) async {
+        stored = invocation.namedArguments[#value] as String?;
+      });
+      when(() => mockStorage.read(key: 'auth_context'))
+          .thenAnswer((_) async => stored);
+      await service.saveSessionContext('test', 'test_admin', 'Johancel');
+      expect(await service.getSessionContext(), {
+        'environment': 'test',
+        'tenant': 'test_admin',
+        'username': 'Johancel',
+      });
+    });
+
+    test('una sesión antigua sin contexto mantiene compatibilidad', () async {
+      when(() => mockStorage.read(key: 'auth_context'))
+          .thenAnswer((_) async => null);
+      expect(await service.getSessionContext(), isNull);
+    });
+
     test('clearSession elimina el token y datos de sesión', () async {
       when(() => mockStorage.delete(key: any(named: 'key')))
           .thenAnswer((_) async {});
@@ -63,6 +94,7 @@ void main() {
       verify(() => mockStorage.delete(key: 'auth_token_jwt')).called(1);
       verify(() => mockStorage.delete(key: 'auth_refresh_token_jwt')).called(1);
       verify(() => mockStorage.delete(key: 'auth_user_data_json')).called(1);
+      verify(() => mockStorage.delete(key: 'auth_context')).called(1);
     });
   });
 }

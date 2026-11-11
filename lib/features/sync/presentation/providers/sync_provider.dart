@@ -17,16 +17,22 @@ final syncRepositoryProvider = Provider<SyncRepository>((ref) {
   );
 });
 
-final syncStateProvider = StateNotifierProvider<SyncController, AsyncValue<SyncStatus>>((ref) {
-  return SyncController(ref.read(syncRepositoryProvider));
-});
+final syncStateProvider =
+    StateNotifierProvider<SyncController, AsyncValue<SyncStatus>>((ref) {
+      return SyncController(ref.watch(syncRepositoryProvider));
+    });
 
 class SyncController extends StateNotifier<AsyncValue<SyncStatus>> {
-  SyncController(this._repository) : super(const AsyncValue.data(SyncStatus(
-          isRunning: false,
-          message: 'Sincronización lista.',
-          lastUpdatedAt: null,
-        )));
+  SyncController(this._repository)
+    : super(
+        const AsyncValue.data(
+          SyncStatus(
+            isRunning: false,
+            message: 'Sincronización lista.',
+            lastUpdatedAt: null,
+          ),
+        ),
+      );
 
   final SyncRepository _repository;
 

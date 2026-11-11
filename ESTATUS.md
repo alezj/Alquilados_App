@@ -29,6 +29,17 @@ Este documento registra el estatus actual de todos los procesos y solicitudes en
 | `AUTH_FAILED` | Fallo en autenticación | Reingresar credenciales |
 | `OFFLINE_MODE` | Modo offline activado | Funcionalidad limitada |
 
+### Inicio de sesión con `usuarioSesion` y ambientes
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-11
+**Fecha Fin**: 2026-11-11 08:42:08
+**Última Actualización**: 2026-11-11 08:42:08
+**Progreso**: 100%
+**Comentario**: Login integrado con get_email_by_username(p_username) y validación de contraseña, perfil activo/aprobado y empresa. Johancel inicia en Alquilados_Test por defecto y puede elegir producción; otros usuarios usan producción sin selector. Configuración muestra Cambiar ambiente únicamente a Johancel y solicita autenticarse nuevamente. Registro envía usuarioSesion. SQLite de pruebas usa prefijo test_ y producción conserva los archivos existentes; contexto de ambiente/empresa se conserva en almacenamiento seguro y se restauran las conexiones al reiniciar. Los proveedores se invalidan después del login para actualizar datos y sincronización.
+**Verificación remota**: Ambos proyectos activos, RPC accesible mediante sus publishable keys (HTTP 200), perfil Johancel activo/aprobado con empresa aprobada en ambos. No se modificaron esquemas ni datos remotos.
+**Pruebas**: 85 aprobadas y 2 fallos en módulos sin cambios: alquiler_entity_test (6000 esperado frente a 28000) y comprobante_pago_service_test (guion largo esperado frente a guion simple). Las 7 pruebas nuevas de autenticación, 2 de persistencia de contexto y el widget de login aprobaron. flutter analyze --no-fatal-infos finaliza sin errores ni advertencias; mantiene 33 observaciones informativas existentes. git diff --check correcto.
+**Validación manual pendiente**: No se ejecutó un inicio de sesión real con contraseña de Johancel; se verificaron RPC, configuración y reglas mediante consultas y pruebas automatizadas.
+
 ### Procesos Individuales
 Cada proceso debe registrar su estatus en el siguiente formato:
 

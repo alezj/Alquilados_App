@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../errors/app_exception.dart';
@@ -30,6 +32,27 @@ class SecureStorageService {
   static const String _keyToken = 'auth_token_jwt';
   static const String _keyRefreshToken = 'auth_refresh_token_jwt';
   static const String _keyUserData = 'auth_user_data_json';
+
+  Future<void> saveSessionContext(
+    String environment,
+    String tenant,
+    String username,
+  ) async {
+    await _storage.write(
+      key: 'auth_context',
+      value: jsonEncode({
+        'environment': environment,
+        'tenant': tenant,
+        'username': username,
+      }),
+    );
+  }
+
+  Future<Map<String, dynamic>?> getSessionContext() async {
+    final value = await _storage.read(key: 'auth_context');
+    if (value == null) return null;
+    return jsonDecode(value) as Map<String, dynamic>;
+  }
 
   /// Guarda el Access Token JWT
   Future<void> saveToken(String token) async {
@@ -100,6 +123,7 @@ class SecureStorageService {
       await _storage.delete(key: _keyToken);
       await _storage.delete(key: _keyRefreshToken);
       await _storage.delete(key: _keyUserData);
+      await _storage.delete(key: 'auth_context');
     } catch (e, s) {
       AppLogger.e('Error limpiando sesión en SecureStorage', e, s);
     }

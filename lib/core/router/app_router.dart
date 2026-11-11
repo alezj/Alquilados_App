@@ -37,7 +37,12 @@ abstract final class AppRouter {
           path: AppRoutes.designSystem,
           builder: (context, _) => designSystemBuilder(context),
         ),
-        GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginPage()),
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (_, state) => LoginPage(
+            initialUsername: state.uri.queryParameters['usuario'] ?? '',
+          ),
+        ),
         GoRoute(path: AppRoutes.dashboard, builder: (_, _) => const AppShell()),
         GoRoute(
           path: AppRoutes.alquileres,
@@ -100,9 +105,7 @@ abstract final class AppRouter {
         GoRoute(
           path: AppRoutes.politicaDetalle,
           builder: (_, state) => PolicyDetailPage(
-            document: PolicyCatalog.findById(
-              state.pathParameters['id'] ?? '',
-            ),
+            document: PolicyCatalog.findById(state.pathParameters['id'] ?? ''),
           ),
         ),
       ],
@@ -133,10 +136,7 @@ class PendingRoutePage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(title),
-              if (detail != null) ...[
-                const SizedBox(height: 8),
-                Text(detail!),
-              ],
+              if (detail != null) ...[const SizedBox(height: 8), Text(detail!)],
             ],
           ),
         ),

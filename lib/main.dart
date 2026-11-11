@@ -1,3 +1,5 @@
+import 'core/config/app_config.dart';
+import 'core/storage/secure_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +22,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kIsWeb) {
     databaseFactory = databaseFactoryFfiWeb;
+  }
+  final storage = SecureStorageService();
+  final session = await storage.getSessionContext();
+  if (session != null && await storage.hasToken()) {
+    AppConfig.backend = session['environment'] == 'test'
+        ? BackendEnvironment.test : BackendEnvironment.production;
+    await LocalDatabaseService().switchTenant(session['tenant'] as String);
   }
   await LocalDatabaseService().ensureSeedData();
   runApp(const ProviderScope(child: AlquiladosApp()));
