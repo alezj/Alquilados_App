@@ -21,9 +21,12 @@ import '../../features/propiedades/presentation/pages/propiedades_page.dart';
 import 'app_routes.dart';
 
 abstract final class AppRouter {
-  static GoRouter create({required WidgetBuilder designSystemBuilder}) {
+  static GoRouter create({
+    required WidgetBuilder designSystemBuilder,
+    String initialLocation = AppRoutes.login,
+  }) {
     return GoRouter(
-      initialLocation: AppRoutes.login,
+      initialLocation: initialLocation,
       redirect: (context, state) async {
         final location = state.matchedLocation;
         if (location == AppRoutes.login || location == AppRoutes.designSystem)

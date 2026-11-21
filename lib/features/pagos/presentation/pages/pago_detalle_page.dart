@@ -17,7 +17,9 @@ import '../../../sync/data/datasources/local_database_service.dart';
 import '../../data/services/comprobante_pago_service.dart';
 import '../../domain/entities/comprobante_pago.dart';
 import '../../domain/entities/pago.dart';
+import '../providers/payment_mutations_provider.dart';
 import '../providers/pagos_provider.dart';
+import '../widgets/payment_feedback.dart';
 
 class PagoDetallePage extends ConsumerWidget {
   const PagoDetallePage({super.key, required this.id});
@@ -148,15 +150,14 @@ class PagoDetallePage extends ConsumerWidget {
                             label: estado,
                             isActive: pago.estado == estado,
                             onTap: () async {
-                              await LocalDatabaseService().updatePago(
-                                id: pago.id,
-                                idInquilino: pago.idInquilino,
-                                fechaPago: pago.fechaPago,
-                                monto: pago.monto,
-                                estado: estado,
+                              if (pago.estado == estado) return;
+                              final mutations = ref.read(
+                                paymentMutationsProvider,
                               );
-                              ref.invalidate(pagoDetalleProvider(pago.id));
-                              ref.invalidate(pagosProvider);
+                              await showPaymentResult(
+                                context,
+                                () => mutations.changeStatus(pago, estado),
+                              );
                             },
                           ),
                         ),
@@ -187,7 +188,7 @@ class PagoDetallePage extends ConsumerWidget {
                   text: 'Eliminar pago',
                   icon: Icons.delete_rounded,
                   variant: AppButtonVariant.danger,
-                  onPressed: () => _confirmDelete(context, ref, pago.id),
+                  onPressed: () => _confirmDelete(context, ref, pago),
                 ),
               ],
             ),
@@ -240,6 +241,8 @@ class PagoDetallePage extends ConsumerWidget {
     final fechaPagoController = TextEditingController(text: pago.fechaPago);
     final montoController = TextEditingController(text: _currency(pago.monto));
     String estadoSeleccionado = pago.estado;
+    var guardando = false;
+    final mutations = ref.read(paymentMutationsProvider);
 
     await showModalBottomSheet(
       context: context,
@@ -311,27 +314,26 @@ class PagoDetallePage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 AppButton(
                   text: 'Guardar cambios',
+                  isLoading: guardando,
                   onPressed: () async {
                     final monto = _parseCurrency(
                       montoController.text.trim(),
                       fallback: pago.monto,
                     );
-                    await LocalDatabaseService().updatePago(
-                      id: pago.id,
-                      idInquilino: idInquilinoController.text.trim(),
-                      fechaPago: fechaPagoController.text.trim(),
-                      monto: monto,
-                      estado: estadoSeleccionado,
-                    );
-                    if (!context.mounted) return;
-                    Navigator.of(sheetCtx).pop();
-                    ref.invalidate(pagoDetalleProvider(pago.id));
-                    ref.invalidate(pagosProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Pago actualizado localmente.'),
+                    setState(() => guardando = true);
+                    final saved = await showPaymentResult(
+                      context,
+                      () => mutations.update(
+                        pago,
+                        idInquilino: idInquilinoController.text.trim(),
+                        fechaPago: fechaPagoController.text.trim(),
+                        monto: monto,
+                        estado: estadoSeleccionado,
                       ),
                     );
+                    if (!ctx.mounted || !sheetCtx.mounted) return;
+                    setState(() => guardando = false);
+                    if (saved) Navigator.of(sheetCtx).pop();
                   },
                 ),
               ],
@@ -421,14 +423,17 @@ class PagoDetallePage extends ConsumerWidget {
   Future<void> _confirmDelete(
     BuildContext context,
     WidgetRef ref,
-    int pagoId,
+    Pago pago,
   ) async {
+    final mutations = ref.read(paymentMutationsProvider);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar pago'),
-        content: const Text(
-          '¿Deseas eliminar este pago? Esta acción no se puede deshacer.',
+        content: Text(
+          mutations.isOnline
+              ? '¿Deseas eliminar este pago del CRM?'
+              : '¿Deseas eliminar este pago? Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
@@ -443,13 +448,12 @@ class PagoDetallePage extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed != true) return;
-    await LocalDatabaseService().deletePago(pagoId);
-    if (!context.mounted) return;
-    ref.invalidate(pagosProvider);
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Pago eliminado.')));
+    if (confirmed != true || !context.mounted) return;
+    final deleted = await showPaymentResult(
+      context,
+      () => mutations.delete(pago),
+    );
+    if (deleted && context.mounted) Navigator.of(context).pop();
   }
 }
 

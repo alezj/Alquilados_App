@@ -16,6 +16,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
+import '../../../pagos/presentation/providers/payment_mutations_provider.dart';
+import '../../../pagos/presentation/widgets/payment_feedback.dart';
 import '../../domain/entities/inquilino.dart';
 import '../providers/inquilinos_provider.dart';
 
@@ -523,6 +525,8 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
       text: DateTime.now().toIso8601String().split('T')[0],
     );
     String selectedEstado = 'pagado';
+    var guardandoPago = false;
+    final mutations = ref.read(paymentMutationsProvider);
 
     await showModalBottomSheet(
       context: context,
@@ -593,6 +597,7 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     const SizedBox(height: 16),
                     AppButton(
                       text: 'Registrar pago',
+                      isLoading: guardandoPago,
                       onPressed: () async {
                         final monto = _parseCurrency(
                           montoController.text.trim(),
@@ -608,23 +613,19 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                           return;
                         }
 
-                        final messenger = ScaffoldMessenger.of(context);
-                        final navigator = Navigator.of(sheetContext);
-                        await LocalDatabaseService().insertPago(
-                          idInquilino: inquilino.id.toString(),
-                          fechaPago: fecha,
-                          monto: monto,
-                          estado: selectedEstado,
-                        );
-
-                        if (!mounted) return;
-                        navigator.pop();
-                        ref.invalidate(pagosDeInquilinoProvider(widget.id));
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Pago registrado correctamente.'),
+                        setSheetState(() => guardandoPago = true);
+                        final saved = await showPaymentResult(
+                          context,
+                          () => mutations.create(
+                            idInquilino: inquilino.id.toString(),
+                            fechaPago: fecha,
+                            monto: monto,
+                            estado: selectedEstado,
                           ),
                         );
+                        if (!sheetContext.mounted) return;
+                        setSheetState(() => guardandoPago = false);
+                        if (saved) Navigator.of(sheetContext).pop();
                       },
                     ),
                   ],

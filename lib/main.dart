@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'features/notificaciones/data/payment_notification_service.dart';
 import 'core/router/app_routes.dart';
 import 'core/config/app_config.dart';
@@ -21,6 +23,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/app_typography.dart';
 import 'core/router/app_router.dart';
 import 'features/sync/data/datasources/local_database_service.dart';
+import 'features/sync/presentation/providers/sync_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,11 +32,13 @@ Future<void> main() async {
   }
   final storage = SecureStorageService();
   final session = await storage.getSessionContext();
+  var restoreTestSession = false;
   if (session != null && await storage.hasToken()) {
     AppConfig.backend = session['environment'] == 'test'
         ? BackendEnvironment.test
         : BackendEnvironment.production;
     await LocalDatabaseService().switchTenant(session['tenant'] as String);
+    restoreTestSession = AppConfig.backend == BackendEnvironment.test;
   }
   await LocalDatabaseService().ensureSeedData();
   try {
@@ -43,26 +48,35 @@ Future<void> main() async {
     PaymentNotificationService.instance.lastError =
         'No se pudieron iniciar los avisos: $error';
   }
-  runApp(const ProviderScope(child: AlquiladosApp()));
+  runApp(
+    ProviderScope(child: AlquiladosApp(restoreTestSession: restoreTestSession)),
+  );
 }
 
 /// Widget principal de la aplicación.
 ///
 /// Comparación con Angular:
 /// Equivale al `AppModule` / `AppComponent` raíz con el `Theme` inyectado.
-class AlquiladosApp extends StatefulWidget {
-  const AlquiladosApp({super.key});
+class AlquiladosApp extends ConsumerStatefulWidget {
+  const AlquiladosApp({super.key, this.restoreTestSession = false});
+
+  final bool restoreTestSession;
 
   @override
-  State<AlquiladosApp> createState() => _AlquiladosAppState();
+  ConsumerState<AlquiladosApp> createState() => _AlquiladosAppState();
 }
 
-class _AlquiladosAppState extends State<AlquiladosApp>
+class _AlquiladosAppState extends ConsumerState<AlquiladosApp>
     with WidgetsBindingObserver {
+  Timer? _crmRefreshTimer;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _startCrmRefresh();
+    });
     PaymentNotificationService.instance.onOpenPayments = () async {
       if (await SecureStorageService().hasToken() && mounted) {
         PaymentNotificationService.instance.openPaymentsRequested = false;
@@ -75,11 +89,38 @@ class _AlquiladosAppState extends State<AlquiladosApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       PaymentNotificationService.instance.refresh();
+      _startCrmRefresh();
+    } else {
+      _crmRefreshTimer?.cancel();
+      _crmRefreshTimer = null;
     }
+  }
+
+  void _startCrmRefresh() {
+    if (AppConfig.backend != BackendEnvironment.test) return;
+    _refreshCrm();
+    _scheduleCrmRefresh();
+  }
+
+  void _scheduleCrmRefresh() {
+    _crmRefreshTimer ??= Timer.periodic(
+      const Duration(seconds: 45),
+      (_) => _refreshCrm(),
+    );
+  }
+
+  void _refreshCrm() {
+    if (AppConfig.backend != BackendEnvironment.test) {
+      _crmRefreshTimer?.cancel();
+      _crmRefreshTimer = null;
+      return;
+    }
+    unawaited(ref.read(syncStateProvider.notifier).syncFromCrm());
   }
 
   @override
   void dispose() {
+    _crmRefreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     PaymentNotificationService.instance.onOpenPayments = null;
     super.dispose();
@@ -87,6 +128,9 @@ class _AlquiladosAppState extends State<AlquiladosApp>
 
   ThemeMode _themeMode = ThemeMode.light;
   late final router = AppRouter.create(
+    initialLocation: widget.restoreTestSession
+        ? AppRoutes.dashboard
+        : AppRoutes.login,
     designSystemBuilder: (_) => DesignSystemShowcasePage(
       isDarkMode: _themeMode == ThemeMode.dark,
       onToggleTheme: _toggleTheme,
@@ -103,6 +147,12 @@ class _AlquiladosAppState extends State<AlquiladosApp>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(syncStateProvider, (_, _) {
+      if (AppConfig.backend == BackendEnvironment.test &&
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        _scheduleCrmRefresh();
+      }
+    });
     return MaterialApp.router(
       title: 'Alquilados',
       debugShowCheckedModeBanner: false,

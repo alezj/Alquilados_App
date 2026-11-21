@@ -85,8 +85,14 @@ void main() {
     when(() => storage.saveToken(any())).thenAnswer((_) async {});
     when(() => storage.saveRefreshToken(any())).thenAnswer((_) async {});
     when(() => storage.saveUserData(any())).thenAnswer((_) async {});
-    when(() => storage.saveSessionContext(any(), any(), any()))
-        .thenAnswer((_) async {});
+    when(
+      () => storage.saveSessionContext(
+        any(),
+        any(),
+        any(),
+        companyId: any(named: 'companyId'),
+      ),
+    ).thenAnswer((_) async {});
     when(() => database.switchTenant(any())).thenAnswer((_) async {});
     auth = SupabaseAuthService(
       storage,
@@ -115,8 +121,14 @@ void main() {
         isTrue,
       );
       verify(() => database.switchTenant('test_admin')).called(1);
-      verify(() => storage.saveSessionContext('test', 'test_admin', 'Johancel'))
-          .called(1);
+      verify(
+        () => storage.saveSessionContext(
+          'test',
+          'test_admin',
+          'Johancel',
+          companyId: any(named: 'companyId'),
+        ),
+      ).called(1);
     },
   );
 
@@ -160,7 +172,14 @@ void main() {
     adapter.approved = false;
     await expectLater(auth.signIn('Johancel', 'password'), throwsException);
     verifyNever(() => database.switchTenant(any()));
-    verifyNever(() => storage.saveSessionContext(any(), any(), any()));
+    verifyNever(
+      () => storage.saveSessionContext(
+        any(),
+        any(),
+        any(),
+        companyId: any(named: 'companyId'),
+      ),
+    );
   });
 
   test('el correo no sustituye a usuarioSesion', () async {

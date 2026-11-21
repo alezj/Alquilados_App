@@ -1,10 +1,12 @@
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/sync_status.dart';
+import '../datasources/crm_sync_store.dart';
 import '../datasources/local_database_service.dart';
 
 abstract interface class SyncRepository {
   Future<SyncStatus> syncNow();
+  Future<SyncStatus> pullCrm({required String tenant, String? companyId});
 }
 
 class SyncRepositoryImpl implements SyncRepository {
@@ -23,6 +25,153 @@ class SyncRepositoryImpl implements SyncRepository {
     'pagos': ApiEndpoints.pagos,
     'mantenimientos': ApiEndpoints.mantenimientos,
   };
+
+  @override
+  Future<SyncStatus> pullCrm({
+    required String tenant,
+    String? companyId,
+  }) async {
+    final client = _apiClient!;
+    final store = CrmSyncStore();
+    if (_databaseService.tenantKey != tenant) {
+      throw StateError('La empresa activa cambió.');
+    }
+    final db = await _databaseService.database;
+    final company = companyId ?? await _resolveCrmCompany(client, tenant);
+    const pageSize = 100;
+    var applied = 0;
+    var pending = 0;
+    var interrupted = false;
+    try {
+      while (true) {
+        final cursor = await store.cursor(db);
+        final response = await client.get<List<dynamic>>(
+          'mobile_crm_change_feed',
+          queryParameters: {
+            'select': 'resource,remote_id,revision,record',
+            'company_id': 'eq.$company',
+            'revision': 'gt.$cursor',
+            'order': 'revision.asc',
+            'limit': pageSize,
+          },
+        );
+        if (_databaseService.tenantKey != tenant) {
+          throw StateError('La empresa activa cambió.');
+        }
+        final rows = response.data!;
+        final result = await store.apply(db, rows.map(_crmChange).toList());
+        applied += result.applied;
+        pending = result.pending;
+        if (rows.length < pageSize) break;
+      }
+    } catch (_) {
+      if (applied == 0) rethrow;
+      interrupted = true;
+    } finally {
+      if (applied > 0) _databaseService.notifyCrmChanges();
+    }
+
+    return SyncStatus(
+      isRunning: false,
+      message: interrupted
+          ? 'CRM: $applied cambios aplicados. La descarga continuará en el próximo intento.'
+          : pending > 0
+          ? 'CRM: $applied cambios aplicados. $pending en espera por ediciones locales o registros relacionados.'
+          : applied == 0
+          ? 'CRM al día. No hay cambios nuevos.'
+          : 'CRM: $applied cambios aplicados.',
+      lastUpdatedAt: interrupted ? null : DateTime.now(),
+      localChanges: applied,
+    );
+  }
+
+  Future<String> _resolveCrmCompany(ApiClient client, String tenant) async {
+    const prefix = 'test_';
+    if (!tenant.startsWith(prefix)) {
+      throw StateError('Empresa de pruebas inválida.');
+    }
+    final response = await client.get<List<dynamic>>(
+      'companies',
+      queryParameters: {
+        'select': 'id',
+        'slug': 'eq.${tenant.substring(prefix.length)}',
+        'status': 'eq.active',
+        'limit': 1,
+      },
+    );
+    final company = (response.data?.firstOrNull as Map?)?['id'] as String?;
+    if (company == null) {
+      throw StateError('No se pudo resolver la empresa de pruebas.');
+    }
+    return company;
+  }
+
+  CrmChange _crmChange(dynamic item) {
+    final change = item as Map<String, dynamic>;
+    final resource = change['resource'] as String;
+    final remoteId = _asInt(change['remote_id']);
+    final revision = _asInt(change['revision']);
+    if (!CrmSyncStore.resources.contains(resource) ||
+        remoteId <= 0 ||
+        revision <= 0) {
+      throw const FormatException('Cambio del CRM inválido.');
+    }
+
+    final record = change['record'] as Map<String, dynamic>?;
+    Map<String, dynamic>? values;
+    if (record != null) {
+      values = _remoteToLocal(resource, record)!..remove('id');
+      if (resource == 'inquilinos' && values['correo'] == null) {
+        values['correo'] = record['email']?.toString();
+      }
+      if (resource == 'alquileres') {
+        values['importe'] = _asDouble(record['importe'] ?? record['montoPago']);
+        values['estado'] = _crmRentalStatus(record);
+      }
+      if (resource == 'pagos') {
+        final paidDate = record['fechaPago']?.toString().trim() ?? '';
+        values['fecha_pago'] = paidDate.isEmpty
+            ? record['fechaVencimiento']
+            : paidDate;
+        values['estado'] = switch (record['estado']
+            ?.toString()
+            .trim()
+            .toLowerCase()) {
+          'pagado' || 'paid' || 'completado' || 'completada' => 'pagado',
+          'vencido' || 'atrasado' || 'overdue' => 'vencido',
+          null || '' => 'pendiente',
+          final estado => estado,
+        };
+      }
+      values['sync_state'] = 'synced';
+      values['synced_at'] = DateTime.now().toUtc().toIso8601String();
+    }
+    return (
+      resource: resource,
+      remoteId: remoteId,
+      revision: revision,
+      values: values,
+    );
+  }
+
+  String _crmRentalStatus(Map<String, dynamic> record) {
+    switch (record['estado']?.toString().trim().toLowerCase()) {
+      case 'activo':
+        return 'Activo';
+      case 'finalizado':
+        return 'Finalizado';
+      case 'cancelado':
+        return 'Cancelado';
+      case 'pendiente':
+        return 'Pendiente';
+    }
+    final start = DateTime.tryParse(record['fechaInicio']?.toString() ?? '');
+    final end = DateTime.tryParse(record['fechaFin']?.toString() ?? '');
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (end != null && end.isBefore(today)) return 'Finalizado';
+    return start == null || start.isAfter(today) ? 'Pendiente' : 'Activo';
+  }
 
   @override
   Future<SyncStatus> syncNow() async {

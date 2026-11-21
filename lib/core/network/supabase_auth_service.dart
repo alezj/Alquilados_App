@@ -121,7 +121,12 @@ class SupabaseAuthService {
       }
       final tenant = AppConfig.tenantKey(companies.first['slug'].toString());
       await _localDatabase.switchTenant(tenant);
-      await _storage.saveSessionContext(target.name, tenant, actualUsername);
+      await _storage.saveSessionContext(
+        target.name,
+        tenant,
+        actualUsername,
+        companyId: companyId,
+      );
       await _storage.saveUserData(userId);
     } on DioException catch (error) {
       await _storage.clearSession();

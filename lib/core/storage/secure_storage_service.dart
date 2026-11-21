@@ -36,14 +36,16 @@ class SecureStorageService {
   Future<void> saveSessionContext(
     String environment,
     String tenant,
-    String username,
-  ) async {
+    String username, {
+    String? companyId,
+  }) async {
     await _storage.write(
       key: 'auth_context',
       value: jsonEncode({
         'environment': environment,
         'tenant': tenant,
         'username': username,
+        'companyId': ?companyId,
       }),
     );
   }

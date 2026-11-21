@@ -51,7 +51,7 @@ void main() {
         'José',
       );
       expect((await migrated.query('inquilinos')).single['telefono'], isNull);
-      expect(await migrated.getVersion(), 7);
+      expect(await migrated.getVersion(), 9);
     },
   );
 

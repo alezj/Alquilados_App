@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'crm_sync_store.dart';
+
 class LocalDatabaseService {
   static final LocalDatabaseService _instance =
       LocalDatabaseService._internal();
@@ -19,6 +21,8 @@ class LocalDatabaseService {
   String get tenantKey => _tenantKey;
   final _changes = StreamController<void>.broadcast();
   Stream<void> get changes => _changes.stream;
+
+  void notifyCrmChanges() => _changes.add(null);
 
   Future<T> _notify<T>(Future<T> operation) async {
     final result = await operation;
@@ -196,18 +200,30 @@ class LocalDatabaseService {
     final filename = _tenantKey == 'admin'
         ? 'alquilados_local.db3'
         : 'alquilados_local_$_tenantKey.db3';
-    final path =
-        _databasePathOverride ??
-        (kIsWeb
-            ? filename
-            : '${(await getDownloadsDirectory())!.path}/$filename');
+    final path = _databasePathOverride ?? await _databasePath(filename);
 
     return openDatabase(
       path,
-      version: 7,
+      version: 9,
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
     );
+  }
+
+  Future<String> _databasePath(String filename) async {
+    if (kIsWeb) return filename;
+
+    final downloads = await getDownloadsDirectory();
+    final downloadsPath = downloads == null
+        ? null
+        : '${downloads.path}/$filename';
+    if (downloadsPath != null &&
+        (defaultTargetPlatform != TargetPlatform.iOS ||
+            await databaseExists(downloadsPath))) {
+      return downloadsPath;
+    }
+
+    return '${await getDatabasesPath()}/$filename';
   }
 
   Future<void> _createSchema(Database db, int version) async {
@@ -329,6 +345,8 @@ class LocalDatabaseService {
       )
     ''');
     await _ensureNotificationSchema(db);
+    await CrmSyncStore.createSchema(db);
+    await _createOnlinePaymentRequests(db);
   }
 
   Future<void> _upgradeSchema(
@@ -421,7 +439,16 @@ class LocalDatabaseService {
       await _ensureOriginUserColumns(db);
     }
     if (oldVersion < 7) await _ensureNotificationSchema(db);
+    if (oldVersion < 8) await CrmSyncStore.createSchema(db);
+    if (oldVersion < 9) await _createOnlinePaymentRequests(db);
   }
+
+  Future<void> _createOnlinePaymentRequests(Database db) => db.execute('''
+    CREATE TABLE IF NOT EXISTS online_payment_requests (
+      request TEXT PRIMARY KEY,
+      operation_id TEXT NOT NULL
+    )
+  ''');
 
   Future<void> _ensureOriginUserColumns(Database db) async {
     for (final table in const [
@@ -793,9 +820,11 @@ class LocalDatabaseService {
     final db = await database;
     await ensureDatabaseReady();
     return db.rawQuery('''
-      SELECT p.*, i.nombre_apellido AS inquilino_nombre
+      SELECT p.*, i.nombre_apellido AS inquilino_nombre, r.revision AS crm_revision
       FROM pagos p
       LEFT JOIN inquilinos i ON i.id = CAST(p.id_inquilino AS INTEGER)
+      LEFT JOIN crm_sync_records r
+        ON r.resource = 'pagos' AND r.local_id = p.id AND r.needs_apply = 0
       ORDER BY p.fecha_pago DESC, p.id DESC
     ''');
   }
@@ -1317,9 +1346,11 @@ class LocalDatabaseService {
     final db = await database;
     final rows = await db.rawQuery(
       '''
-      SELECT p.*, i.nombre_apellido AS inquilino_nombre
+      SELECT p.*, i.nombre_apellido AS inquilino_nombre, r.revision AS crm_revision
       FROM pagos p
       LEFT JOIN inquilinos i ON i.id = CAST(p.id_inquilino AS INTEGER)
+      LEFT JOIN crm_sync_records r
+        ON r.resource = 'pagos' AND r.local_id = p.id AND r.needs_apply = 0
       WHERE p.id = ?
       LIMIT 1
     ''',

@@ -16,6 +16,7 @@ Pago _rowToPago(Map<String, dynamic> row) => Pago(
       estado: (row['estado'] ?? 'pendiente').toString(),
       syncState: (row['sync_state'] ?? 'pending').toString(),
       syncedAt: row['synced_at']?.toString(),
+      crmRevision: row['crm_revision'] as int?,
     );
 
 // ──────────────────────────────────────────────

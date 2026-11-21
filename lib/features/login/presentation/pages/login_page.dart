@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../notificaciones/data/payment_notification_service.dart';
 import '../../../../core/config/app_config.dart';
 
@@ -13,6 +15,7 @@ import '../../../alquileres/presentation/providers/alquileres_provider.dart';
 import '../../../pagos/presentation/providers/pagos_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_button.dart';
+import '../../../sync/presentation/providers/sync_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key, this.initialUsername = ''});
@@ -98,6 +101,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ? AppRoutes.pagos
               : AppRoutes.dashboard;
           notifications.openPaymentsRequested = false;
+          unawaited(ref.read(syncStateProvider.notifier).syncFromCrm());
           context.go(route);
         }
       }

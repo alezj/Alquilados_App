@@ -12,7 +12,9 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
 import '../../domain/entities/pago.dart';
+import '../providers/payment_mutations_provider.dart';
 import '../providers/pagos_provider.dart';
+import '../widgets/payment_feedback.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Página principal de pagos
@@ -171,7 +173,7 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                           pago: items[i],
                           onTap: () => context.push('/pagos/${items[i].id}'),
                           onEdit: () => _showEditSheet(context, items[i]),
-                          onDelete: () => _confirmDelete(context, items[i].id),
+                          onDelete: () => _confirmDelete(context, items[i]),
                           onEstadoChange: (estado) =>
                               _cambiarEstado(items[i], estado),
                         ),
@@ -283,26 +285,36 @@ class _PagosPageState extends ConsumerState<PagosPage> {
   }
 
   Future<void> _cambiarEstado(Pago pago, String nuevoEstado) async {
-    await LocalDatabaseService().updatePago(
-      id: pago.id,
-      idInquilino: pago.idInquilino,
-      fechaPago: pago.fechaPago,
-      monto: pago.monto,
-      estado: nuevoEstado,
+    if (pago.estado == nuevoEstado) return;
+    final mutations = ref.read(paymentMutationsProvider);
+    await showPaymentResult(
+      context,
+      () => mutations.changeStatus(pago, nuevoEstado),
     );
-    ref.invalidate(pagosProvider);
   }
 
   Future<void> _showCreateSheet(BuildContext context) async {
     final database = LocalDatabaseService();
-    final inquilinos = await database.getAllRows('inquilinos');
+    final mutations = ref.read(paymentMutationsProvider);
+    final inquilinos = await mutations.availableTenants();
     if (!context.mounted) return;
+    if (mutations.isOnline && inquilinos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Sincroniza los inquilinos del CRM antes de registrar un pago.',
+          ),
+        ),
+      );
+      return;
+    }
     final fechaPagoCtrl = TextEditingController(
       text: DateTime.now().toIso8601String().substring(0, 10),
     );
     final montoCtrl = TextEditingController();
     int? idInquilinoSeleccionado;
     String estadoSeleccionado = 'pendiente';
+    var guardando = false;
 
     await showModalBottomSheet(
       context: context,
@@ -322,6 +334,8 @@ class _PagosPageState extends ConsumerState<PagosPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Nuevo pago', style: AppTypography.titleMedium),
+                if (mutations.isOnline)
+                  const Text('El pago se guarda en el CRM. Requiere conexión.'),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
                   initialValue: idInquilinoSeleccionado,
@@ -389,6 +403,7 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                 const SizedBox(height: 16),
                 AppButton(
                   text: 'Guardar pago',
+                  isLoading: guardando,
                   onPressed: () async {
                     final fechaPago = fechaPagoCtrl.text.trim();
                     final monto = _parseCurrency(montoCtrl.text.trim());
@@ -402,20 +417,19 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                       return;
                     }
 
-                    await LocalDatabaseService().insertPago(
-                      idInquilino: idInquilinoSeleccionado.toString(),
-                      fechaPago: fechaPago,
-                      monto: monto,
-                      estado: estadoSeleccionado,
-                    );
-                    if (!context.mounted) return;
-                    Navigator.of(sheetCtx).pop();
-                    ref.invalidate(pagosProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Pago guardado localmente.'),
+                    setState(() => guardando = true);
+                    final saved = await showPaymentResult(
+                      context,
+                      () => mutations.create(
+                        idInquilino: idInquilinoSeleccionado.toString(),
+                        fechaPago: fechaPago,
+                        monto: monto,
+                        estado: estadoSeleccionado,
                       ),
                     );
+                    if (!ctx.mounted || !sheetCtx.mounted) return;
+                    setState(() => guardando = false);
+                    if (saved) Navigator.of(sheetCtx).pop();
                   },
                 ),
               ],
@@ -431,6 +445,8 @@ class _PagosPageState extends ConsumerState<PagosPage> {
     final fechaPagoCtrl = TextEditingController(text: pago.fechaPago);
     final montoCtrl = TextEditingController(text: _currency(pago.monto));
     String estadoSeleccionado = pago.estado;
+    var guardando = false;
+    final mutations = ref.read(paymentMutationsProvider);
 
     await showModalBottomSheet(
       context: context,
@@ -492,26 +508,26 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                 const SizedBox(height: 16),
                 AppButton(
                   text: 'Actualizar pago',
+                  isLoading: guardando,
                   onPressed: () async {
                     final monto = _parseCurrency(
                       montoCtrl.text.trim(),
                       fallback: pago.monto,
                     );
-                    await LocalDatabaseService().updatePago(
-                      id: pago.id,
-                      idInquilino: idInquilinoCtrl.text.trim(),
-                      fechaPago: fechaPagoCtrl.text.trim(),
-                      monto: monto,
-                      estado: estadoSeleccionado,
-                    );
-                    if (!context.mounted) return;
-                    Navigator.of(sheetCtx).pop();
-                    ref.invalidate(pagosProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Pago actualizado localmente.'),
+                    setState(() => guardando = true);
+                    final saved = await showPaymentResult(
+                      context,
+                      () => mutations.update(
+                        pago,
+                        idInquilino: idInquilinoCtrl.text.trim(),
+                        fechaPago: fechaPagoCtrl.text.trim(),
+                        monto: monto,
+                        estado: estadoSeleccionado,
                       ),
                     );
+                    if (!ctx.mounted || !sheetCtx.mounted) return;
+                    setState(() => guardando = false);
+                    if (saved) Navigator.of(sheetCtx).pop();
                   },
                 ),
               ],
@@ -522,12 +538,17 @@ class _PagosPageState extends ConsumerState<PagosPage> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, int id) async {
+  Future<void> _confirmDelete(BuildContext context, Pago pago) async {
+    final mutations = ref.read(paymentMutationsProvider);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar pago'),
-        content: const Text('¿Deseas eliminar este pago localmente?'),
+        content: Text(
+          mutations.isOnline
+              ? '¿Deseas eliminar este pago del CRM?'
+              : '¿Deseas eliminar este pago localmente?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -541,12 +562,8 @@ class _PagosPageState extends ConsumerState<PagosPage> {
         ],
       ),
     );
-    if (confirmed != true) return;
-    await LocalDatabaseService().deletePago(id);
-    if (!context.mounted) return;
-    ref.invalidate(pagosProvider);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Pago eliminado.')));
+    if (confirmed != true || !context.mounted) return;
+    await showPaymentResult(context, () => mutations.delete(pago));
   }
 }
 
