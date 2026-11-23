@@ -153,6 +153,7 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     ),
                     const SizedBox(height: 14),
                     _buildInfoRow(
+                      context,
                       icon: Icons.phone_outlined,
                       label: 'WhatsApp',
                       value: (inquilino.telefono?.isNotEmpty ?? false)
@@ -161,12 +162,14 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     ),
                     const Divider(height: 20),
                     _buildInfoRow(
+                      context,
                       icon: Icons.email_outlined,
                       label: 'Correo electrónico',
                       value: inquilino.correo ?? 'Sin correo registrado',
                     ),
                     const Divider(height: 20),
                     _buildInfoRow(
+                      context,
                       icon: Icons.calendar_today_rounded,
                       label: 'Inicio de contrato',
                       value:
@@ -176,6 +179,7 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                     ),
                     const Divider(height: 20),
                     _buildInfoRow(
+                      context,
                       icon: Icons.payment_rounded,
                       label: 'Día de cobro recurrente',
                       value: inquilino.fechaPagos != null
@@ -325,14 +329,15 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
     );
   }
 
-  Widget _buildInfoRow({
+  Widget _buildInfoRow(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primary),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

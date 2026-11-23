@@ -19,6 +19,7 @@ import 'core/shared/widgets/app_loading.dart';
 import 'core/shared/widgets/app_text_field.dart';
 import 'core/shared/widgets/status_badge.dart';
 import 'core/theme/app_colors.dart';
+import 'core/theme/app_appearance.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_typography.dart';
 import 'core/router/app_router.dart';
@@ -49,7 +50,14 @@ Future<void> main() async {
         'No se pudieron iniciar los avisos: $error';
   }
   runApp(
-    ProviderScope(child: AlquiladosApp(restoreTestSession: restoreTestSession)),
+    ProviderScope(
+      overrides: [
+        initialAppearanceProvider.overrideWithValue(
+          await loadAppearance(storage),
+        ),
+      ],
+      child: AlquiladosApp(restoreTestSession: restoreTestSession),
+    ),
   );
 }
 
@@ -122,27 +130,26 @@ class _AlquiladosAppState extends ConsumerState<AlquiladosApp>
     super.dispose();
   }
 
-  ThemeMode _themeMode = ThemeMode.light;
   late final router = AppRouter.create(
     initialLocation: widget.restoreTestSession
         ? AppRoutes.dashboard
         : AppRoutes.login,
-    designSystemBuilder: (_) => DesignSystemShowcasePage(
-      isDarkMode: _themeMode == ThemeMode.dark,
-      onToggleTheme: _toggleTheme,
+    designSystemBuilder: (context) => DesignSystemShowcasePage(
+      onToggleTheme: () => unawaited(
+        ref
+            .read(appearanceProvider.notifier)
+            .update(
+              mode: Theme.of(context).brightness == Brightness.dark
+                  ? ThemeMode.light
+                  : ThemeMode.dark,
+            ),
+      ),
     ),
   );
 
-  void _toggleTheme() {
-    setState(() {
-      _themeMode = _themeMode == ThemeMode.light
-          ? ThemeMode.dark
-          : ThemeMode.light;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    final appearance = ref.watch(appearanceProvider);
     ref.listen(syncStateProvider, (_, next) {
       if (!next.isLoading) return;
       _crmEnabled = true;
@@ -153,9 +160,9 @@ class _AlquiladosAppState extends ConsumerState<AlquiladosApp>
     return MaterialApp.router(
       title: 'Alquilados',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
+      theme: AppTheme.light(appearance.accent),
+      darkTheme: AppTheme.dark(appearance.accent),
+      themeMode: appearance.mode,
       routerConfig: router,
     );
   }
@@ -163,13 +170,8 @@ class _AlquiladosAppState extends ConsumerState<AlquiladosApp>
 
 /// Pantalla interactiva para validar visualmente el Sistema de Diseño de la Fase 2.
 class DesignSystemShowcasePage extends StatefulWidget {
-  const DesignSystemShowcasePage({
-    super.key,
-    required this.isDarkMode,
-    required this.onToggleTheme,
-  });
+  const DesignSystemShowcasePage({super.key, required this.onToggleTheme});
 
-  final bool isDarkMode;
   final VoidCallback onToggleTheme;
 
   @override

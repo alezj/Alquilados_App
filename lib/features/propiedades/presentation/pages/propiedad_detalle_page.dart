@@ -200,7 +200,7 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                         Text(
                           propiedad.precioMensual.toCurrency(),
                           style: AppTypography.currencyMedium.copyWith(
-                            color: AppColors.primary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -233,9 +233,9 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.location_on_rounded,
-                          color: AppColors.primary,
+                          color: Theme.of(context).colorScheme.primary,
                           size: 22,
                         ),
                         const SizedBox(width: 8),

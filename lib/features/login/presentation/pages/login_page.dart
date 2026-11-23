@@ -16,7 +16,7 @@ import '../../../pagos/presentation/providers/pagos_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_accent.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../sync/presentation/providers/sync_provider.dart';
 
@@ -121,6 +121,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final brand = AppBrandColors.of(context);
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -138,8 +139,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryDark, AppColors.primary],
+                      gradient: LinearGradient(
+                        colors: [brand.deep, brand.primary],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),

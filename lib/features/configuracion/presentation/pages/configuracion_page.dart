@@ -12,6 +12,7 @@ import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
 import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../widgets/appearance_settings.dart';
 import '../../../sync/presentation/providers/sync_provider.dart';
 
 class ConfiguracionPage extends ConsumerWidget {
@@ -107,6 +108,7 @@ class ConfiguracionPage extends ConsumerWidget {
                 icon: Icons.manage_accounts_outlined,
               ),
               const SizedBox(height: 8),
+              const AppearanceSettings(),
               FutureBuilder<Map<String, dynamic>?>(
                 future: ref.read(secureStorageProvider).getSessionContext(),
                 builder: (context, snapshot) {

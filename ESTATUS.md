@@ -29,6 +29,16 @@ Este documento registra el estatus actual de todos los procesos y solicitudes en
 | `AUTH_FAILED` | Fallo en autenticación | Reingresar credenciales |
 | `OFFLINE_MODE` | Modo offline activado | Funcionalidad limitada |
 
+### Selector de tema en Acciones
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-23 08:18:01
+**Fecha Fin**: 2026-11-23 08:22:59
+**Última Actualización**: 2026-11-23 08:22:59
+**Progreso**: 100%
+**Comentario**: Acciones incluye cuatro colores y los modos Claro, Oscuro y Sistema. La preferencia se guarda localmente y se aplica al iniciar la app.
+**Pruebas**: El análisis estático terminó sin errores ni advertencias. Aprobaron 121 pruebas, incluidas las del selector y contraste de Pagos. Continúan dos fallos previos en el importe de alquiler y el formato del comprobante PDF.
+**Validación en iOS**: Compilación instalada y proceso de la app activo en el iPhone 15 Pro Max. La interacción y persistencia del selector se verificaron en pruebas automatizadas.
+
 ### Inicio de sesión con `usuarioSesion` y ambientes
 **Estatus**: `COMPLETED`
 **Fecha Inicio**: 2026-11-11

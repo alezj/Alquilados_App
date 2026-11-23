@@ -32,6 +32,12 @@ class SecureStorageService {
   static const String _keyToken = 'auth_token_jwt';
   static const String _keyRefreshToken = 'auth_refresh_token_jwt';
   static const String _keyUserData = 'auth_user_data_json';
+  static const String _keyAppearance = 'app_appearance';
+
+  Future<String?> readAppearance() => _storage.read(key: _keyAppearance);
+
+  Future<void> saveAppearance(String value) =>
+      _storage.write(key: _keyAppearance, value: value);
 
   Future<void> saveSessionContext(
     String environment,

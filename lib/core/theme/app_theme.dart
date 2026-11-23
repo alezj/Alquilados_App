@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_accent.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
@@ -12,14 +13,16 @@ abstract final class AppTheme {
   // -------------------------------------------------------------
   // TEMA CLARO (Light Theme)
   // -------------------------------------------------------------
-  static ThemeData get lightTheme {
+  static ThemeData get lightTheme => light();
+
+  static ThemeData light([AppAccent accent = AppAccent.blue]) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
+      seedColor: accent.primary,
       brightness: Brightness.light,
-      primary: AppColors.primary,
+      primary: accent.primary,
       onPrimary: Colors.white,
-      secondary: AppColors.secondary,
-      onSecondary: Colors.white,
+      secondary: accent == AppAccent.blue ? AppColors.secondary : null,
+      onSecondary: accent == AppAccent.blue ? Colors.white : null,
       surface: AppColors.surfaceLight,
       onSurface: AppColors.textPrimaryLight,
       error: AppColors.error,
@@ -30,6 +33,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: colorScheme,
+      extensions: [AppBrandColors(accent.primary, accent.deep)],
       scaffoldBackgroundColor: AppColors.backgroundLight,
 
       // Tipografía global
@@ -100,7 +104,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -115,7 +119,7 @@ abstract final class AppTheme {
       // Botones Elevados (Primarios)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: colorScheme.primary,
           foregroundColor: Colors.white,
           minimumSize: const Size(0, 48),
           elevation: 0,
@@ -130,7 +134,7 @@ abstract final class AppTheme {
       // Botones Delineados (Secundarios)
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          foregroundColor: colorScheme.primary,
           minimumSize: const Size(0, 48),
           side: const BorderSide(color: AppColors.borderLight, width: 1.5),
           shape: RoundedRectangleBorder(
@@ -145,11 +149,13 @@ abstract final class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surfaceLight,
         elevation: 3,
-        indicatorColor: AppColors.infoLight,
+        indicatorColor: accent == AppAccent.blue
+            ? AppColors.infoLight
+            : colorScheme.primaryContainer,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return AppTypography.labelSmall.copyWith(
-              color: AppColors.primary,
+              color: colorScheme.primary,
               fontWeight: FontWeight.w700,
             );
           }
@@ -172,14 +178,16 @@ abstract final class AppTheme {
   // -------------------------------------------------------------
   // TEMA OSCURO (Dark Theme)
   // -------------------------------------------------------------
-  static ThemeData get darkTheme {
+  static ThemeData get darkTheme => dark();
+
+  static ThemeData dark([AppAccent accent = AppAccent.blue]) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
+      seedColor: accent.primary,
       brightness: Brightness.dark,
-      primary: AppColors.primaryLight,
+      primary: accent == AppAccent.blue ? AppColors.primaryLight : null,
       onPrimary: AppColors.backgroundDark,
-      secondary: AppColors.secondary,
-      onSecondary: AppColors.backgroundDark,
+      secondary: accent == AppAccent.blue ? AppColors.secondary : null,
+      onSecondary: accent == AppAccent.blue ? AppColors.backgroundDark : null,
       surface: AppColors.surfaceDark,
       onSurface: AppColors.textPrimaryDark,
       error: AppColors.error,
@@ -190,6 +198,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colorScheme,
+      extensions: [AppBrandColors(accent.primary, accent.deep)],
       scaffoldBackgroundColor: AppColors.backgroundDark,
 
       textTheme:
@@ -256,7 +265,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primaryLight, width: 2),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -270,7 +279,7 @@ abstract final class AppTheme {
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryLight,
+          backgroundColor: colorScheme.primary,
           foregroundColor: AppColors.backgroundDark,
           minimumSize: const Size(0, 48),
           elevation: 0,
@@ -284,7 +293,7 @@ abstract final class AppTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryLight,
+          foregroundColor: colorScheme.primary,
           minimumSize: const Size(0, 48),
           side: const BorderSide(color: AppColors.borderDark, width: 1.5),
           shape: RoundedRectangleBorder(
@@ -298,11 +307,13 @@ abstract final class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surfaceDark,
         elevation: 3,
-        indicatorColor: AppColors.primaryDark,
+        indicatorColor: accent == AppAccent.blue
+            ? AppColors.primaryDark
+            : colorScheme.primaryContainer,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return AppTypography.labelSmall.copyWith(
-              color: AppColors.primaryLight,
+              color: colorScheme.primary,
               fontWeight: FontWeight.w700,
             );
           }

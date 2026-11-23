@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
+
 import '../../theme/app_typography.dart';
 
 /// Widget centralizado para estados de carga.
@@ -7,11 +7,7 @@ import '../../theme/app_typography.dart';
 /// Comparación con Angular:
 /// Equivale a un `<app-spinner>` reutilizable.
 class AppLoading extends StatelessWidget {
-  const AppLoading({
-    super.key,
-    this.message,
-    this.size = 36.0,
-  });
+  const AppLoading({super.key, this.message, this.size = 36.0});
 
   /// Mensaje descriptivo opcional debajo del spinner (ej: "Cargando propiedades...")
   final String? message;
@@ -31,10 +27,7 @@ class AppLoading extends StatelessWidget {
             SizedBox(
               width: size,
               height: size,
-              child: const CircularProgressIndicator(
-                strokeWidth: 3.0,
-                color: AppColors.primary,
-              ),
+              child: const CircularProgressIndicator(strokeWidth: 3.0),
             ),
             if (message != null) ...[
               const SizedBox(height: 16),
@@ -42,7 +35,8 @@ class AppLoading extends StatelessWidget {
                 message!,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  color: Theme.of(context).colorScheme.onSurface
+                      .withValues(alpha: 0.7),
                 ),
               ),
             ],

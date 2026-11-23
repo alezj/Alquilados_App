@@ -7,7 +7,7 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_card.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_accent.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../app_shell.dart';
 import '../../../pagos/presentation/providers/pagos_provider.dart';
@@ -224,14 +224,15 @@ class _CollectionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brand = AppBrandColors.of(context);
     final progress = data.collectionProgress;
     final percent = progress == null ? null : (progress * 100).round();
 
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primary],
+        gradient: LinearGradient(
+          colors: [brand.deep, brand.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

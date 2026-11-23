@@ -11,7 +11,7 @@ import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
 import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/shared/widgets/status_badge.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_accent.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -69,7 +69,7 @@ class PagoDetallePage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppCard(
-                  color: AppColors.primaryDark,
+                  color: AppBrandColors.of(context).deep,
                   borderColor: Colors.transparent,
                   borderRadius: 20,
                   child: SizedBox(
