@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/shared/widgets/app_text_field.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
 import '../../domain/entities/alquiler.dart';
 
@@ -337,7 +337,7 @@ class _AlquilerFormSheetState extends State<AlquilerFormSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: AppTypography.titleMedium),
+            AppSectionHeader(title: title, icon: Icons.key_rounded),
             const SizedBox(height: 16),
             if (_isLoading)
               const Padding(

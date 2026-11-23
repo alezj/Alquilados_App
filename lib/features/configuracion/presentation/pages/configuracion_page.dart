@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../sync/presentation/providers/sync_provider.dart';
 
@@ -20,144 +22,135 @@ class ConfiguracionPage extends ConsumerWidget {
     final syncState = ref.watch(syncStateProvider);
     final syncStatus = syncState.hasValue ? syncState.requireValue : null;
 
+    final colors = Theme.of(context).colorScheme;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         AppCard(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const AppSectionHeader(
+                title: 'Gestión',
+                icon: Icons.domain_outlined,
+              ),
+              const SizedBox(height: 8),
+              _action(
+                'Propiedades',
+                Icons.home_work_outlined,
+                () => context.push('/propiedades'),
+              ),
+              _action(
+                'Inquilinos',
+                Icons.people_outline_rounded,
+                () => context.push('/inquilinos'),
+              ),
+              _action(
+                'Solicitudes de acceso',
+                Icons.how_to_reg_outlined,
+                () => context.push('/admin/solicitudes'),
+              ),
+              _action(
+                'Roles y permisos',
+                Icons.admin_panel_settings_outlined,
+                () => context.push('/admin/permisos'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppSectionHeader(
+                title: 'Sincronización',
+                icon: Icons.cloud_sync_outlined,
+                subtitle: syncState.isLoading
+                    ? 'Sincronizando…'
+                    : syncStatus?.message ??
+                          (syncState.hasError
+                              ? 'No se pudo completar la sincronización.'
+                              : 'Sin sincronizaciones ejecutadas.'),
+              ),
+              const SizedBox(height: 12),
+              AppButton(
+                text: 'Sincronizar ahora',
+                icon: Icons.sync_rounded,
+                variant: AppButtonVariant.secondary,
+                isLoading: syncState.isLoading,
+                onPressed: () async {
+                  await ref.read(syncStateProvider.notifier).syncNow();
+                  if (!context.mounted) return;
+                  final result = ref.read(syncStateProvider);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result.hasValue
+                            ? result.requireValue.message
+                            : 'No se pudo completar la sincronización.',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        AppCard(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          child: Column(
+            children: [
+              const AppSectionHeader(
+                title: 'Cuenta y preferencias',
+                icon: Icons.manage_accounts_outlined,
+              ),
+              const SizedBox(height: 8),
               FutureBuilder<Map<String, dynamic>?>(
                 future: ref.read(secureStorageProvider).getSessionContext(),
                 builder: (context, snapshot) {
                   final username = snapshot.data?['username']?.toString() ?? '';
-                  if (!AppConfig.canChooseEnvironment(username)) {
+                  if (!AppConfig.canChooseEnvironment(username))
                     return const SizedBox.shrink();
-                  }
                   return ListTile(
-                    leading: const Icon(Icons.swap_horiz),
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.swap_horiz_rounded),
                     title: const Text('Cambiar ambiente'),
                     subtitle: Text(
                       AppConfig.backend == BackendEnvironment.test
-                          ? 'Actual: Pruebas (Alquilados_Test)'
-                          : 'Actual: Producción',
+                          ? 'Pruebas (Alquilados_Test)'
+                          : 'Producción',
                     ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () async {
                       await PaymentNotificationService.instance.cancel();
                       await ref.read(supabaseAuthServiceProvider).signOut();
-                      if (context.mounted) {
+                      if (context.mounted)
                         context.go('/login?usuario=Johancel');
-                      }
                     },
                   );
                 },
               ),
               _PaymentNotificationSettings(),
-              const Text('Acciones', style: AppTypography.titleMedium),
-              const SizedBox(height: 12),
-              ListTile(
-                leading: const Icon(Icons.home_rounded),
-                title: const Text('Propiedades'),
-                subtitle: const Text('Gestionar inmuebles y disponibilidad.'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/propiedades'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.people_rounded),
-                title: const Text('Inquilinos'),
-                subtitle: const Text('Consultar y administrar ocupantes.'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/inquilinos'),
+              _action(
+                'Políticas',
+                Icons.policy_outlined,
+                () => context.push(AppRoutes.politicas),
               ),
               const Divider(height: 1),
-              const ListTile(
-                leading: Icon(Icons.sync_rounded),
-                title: Text('Sincronización local'),
-                subtitle: Text(
-                  'Sincronización manual de la base SQLite local.',
-                ),
-              ),
               ListTile(
-                leading: const Icon(Icons.admin_panel_settings_outlined),
-                title: const Text('Solicitudes de acceso'),
-                subtitle: const Text(
-                  'Aprobar o rechazar la incorporación de usuarios.',
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.logout_rounded, color: colors.error),
+                title: Text(
+                  'Cerrar sesión',
+                  style: TextStyle(color: colors.error),
                 ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/admin/solicitudes'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.tune_rounded),
-                title: const Text('Roles y permisos'),
-                subtitle: const Text(
-                  'Configurar los permisos por módulo de cada empresa.',
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/admin/permisos'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.policy_outlined),
-                title: const Text('Políticas'),
-                subtitle: const Text(
-                  'Revisar y aceptar las políticas de privacidad y términos.',
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/políticas'),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: AppButton(
-                  text: 'Sincronizar ahora',
-                  icon: Icons.sync_rounded,
-                  isLoading: syncState.isLoading,
-                  onPressed: () async {
-                    await ref.read(syncStateProvider.notifier).syncNow();
-                    if (!context.mounted) return;
-                    final result = ref.read(syncStateProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          result.hasValue
-                              ? result.requireValue.message
-                              : 'No se pudo completar la sincronización.',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // Boton de cerrar sesión
-              const Divider(height: 1),
-              const ListTile(
-                leading: Icon(Icons.logout_rounded),
-                title: Text('Cerrar sesión'),
-                subtitle: Text('Cerrar la sesión actual de la aplicación.'),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: AppButton(
-                  text: 'Cerrar sesión',
-                  icon: Icons.logout_rounded,
-                  // isLoading: syncState.isLoading, // Deshabilitado para el botón de cerrar sesión
-                  onPressed: () async {
-                    await PaymentNotificationService.instance.cancel();
-                    await ref.read(supabaseAuthServiceProvider).signOut();
-                    if (context.mounted) context.go('/login');
-                  },
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.info_outline_rounded),
-                title: const Text('Estado'),
-                subtitle: Text(
-                  syncStatus?.message ?? 'Sin sincronizaciones ejecutadas.',
-                ),
-              ),
-              const ListTile(
-                leading: Icon(Icons.dark_mode_rounded),
-                title: Text('Tema'),
-                subtitle: Text('Tema claro / oscuro disponible.'),
+                onTap: () async {
+                  await PaymentNotificationService.instance.cancel();
+                  await ref.read(supabaseAuthServiceProvider).signOut();
+                  if (context.mounted) context.go('/login');
+                },
               ),
             ],
           ),
@@ -165,34 +158,31 @@ class ConfiguracionPage extends ConsumerWidget {
         FutureBuilder<PackageInfo>(
           future: PackageInfo.fromPlatform(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return const Center(
-                child: Text(
-                  'Error al obtener la información de la aplicación.',
+            final info = snapshot.data;
+            if (info == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                'Alquilados ${info.version}+${info.buildNumber}',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySmall.copyWith(
+                  color: colors.onSurfaceVariant,
                 ),
-              );
-            } else if (snapshot.hasData) {
-              final packageInfo = snapshot.data!;
-              return Material(
-                color: Colors.transparent,
-                child: ListTile(
-                  leading: const Icon(Icons.info_rounded),
-                  title: const Text('Versión de la aplicación'),
-                  subtitle: Text(
-                    '${packageInfo.version}+${packageInfo.buildNumber}',
-                  ),
-                ),
-              );
-            } else {
-              return const SizedBox.shrink();
-            }
+              ),
+            );
           },
         ),
       ],
     );
   }
+
+  Widget _action(String title, IconData icon, VoidCallback onTap) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: Icon(icon),
+    title: Text(title),
+    trailing: const Icon(Icons.chevron_right_rounded),
+    onTap: onTap,
+  );
 }
 
 class _PaymentNotificationSettings extends StatefulWidget {

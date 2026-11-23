@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
+import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
+import '../../../../core/shared/widgets/status_badge.dart';
 import '../../../../core/shared/widgets/app_empty.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
@@ -65,6 +68,13 @@ class _PagosPageState extends ConsumerState<PagosPage> {
     });
 
     final filtro = ref.watch(pagosFiltroProvider);
+    final hoy = ref.watch(hoyPagosProvider);
+    ref.listen(pagosFiltroProvider.select((value) => value.busqueda), (
+      _,
+      query,
+    ) {
+      if (_searchController.text != query) _searchController.text = query;
+    });
     final pagosAsync = ref.watch(pagosFiltradosProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -171,6 +181,7 @@ class _PagosPageState extends ConsumerState<PagosPage> {
                         separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (_, i) => _PagoCard(
                           pago: items[i],
+                          isOverdue: items[i].estaVencido(hoy),
                           onTap: () => context.push('/pagos/${items[i].id}'),
                           onEdit: () => _showEditSheet(context, items[i]),
                           onDelete: () => _confirmDelete(context, items[i]),
@@ -191,6 +202,7 @@ class _PagosPageState extends ConsumerState<PagosPage> {
     FiltroEstadoPago.pendiente => 'Pendientes',
     FiltroEstadoPago.pagado => 'Pagados',
     FiltroEstadoPago.vencido => 'Vencidos',
+    FiltroEstadoPago.proximos => 'Próximos 7 días',
   };
 
   Future<void> _seleccionarMes(BuildContext context) async {
@@ -209,9 +221,9 @@ class _PagosPageState extends ConsumerState<PagosPage> {
           children: [
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text(
-                'Selecciona un mes',
-                style: AppTypography.titleMedium,
+              child: AppSectionHeader(
+                title: 'Selecciona un mes',
+                icon: Icons.calendar_month_outlined,
               ),
             ),
 
@@ -333,7 +345,10 @@ class _PagosPageState extends ConsumerState<PagosPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Nuevo pago', style: AppTypography.titleMedium),
+                const AppSectionHeader(
+                  title: 'Nuevo pago',
+                  icon: Icons.add_card_rounded,
+                ),
                 if (mutations.isOnline)
                   const Text('El pago se guarda en el CRM. Requiere conexión.'),
                 const SizedBox(height: 16),
@@ -465,7 +480,10 @@ class _PagosPageState extends ConsumerState<PagosPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Editar pago', style: AppTypography.titleMedium),
+                const AppSectionHeader(
+                  title: 'Editar pago',
+                  icon: Icons.receipt_long_outlined,
+                ),
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'ID inquilino',
@@ -593,12 +611,14 @@ class _FiltroChip extends StatelessWidget {
 class _PagoCard extends StatelessWidget {
   const _PagoCard({
     required this.pago,
+    required this.isOverdue,
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
     required this.onEstadoChange,
   });
   final Pago pago;
+  final bool isOverdue;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -607,227 +627,69 @@ class _PagoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final (estadoColor, estadoIcon) = switch (pago.estado) {
-      'pagado' => (Colors.green, Icons.check_circle_rounded),
-      'vencido' => (Colors.red, Icons.cancel_rounded),
-      _ => (Colors.orange, Icons.schedule_rounded),
-    };
-
-    debugPrint(
-      'Inquilino: ${pago.idInquilino}, Nombre: ${pago.inquilinoNombre}',
-    );
-    debugPrint('Pago: $pago');
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final estadoVisible = isOverdue ? 'vencido' : pago.estadoNormalizado;
+    final tenantName = pago.inquilinoNombre.trim();
+    return AppCard(
+      borderRadius: 18,
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              // ── Cabecera ──────────────────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      pago.monto.toCurrency(),
-                      style: AppTypography.currencyMedium,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: estadoColor.withAlpha(25),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: estadoColor.withAlpha(80)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(estadoIcon, size: 14, color: estadoColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          pago.estado.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: estadoColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              Expanded(
+                child: AppSectionHeader(
+                  title: tenantName.isEmpty
+                      ? 'Inquilino #${pago.idInquilino}'
+                      : tenantName,
+                  subtitle: pago.fechaPago.isEmpty ? null : pago.fechaPago,
+                  icon: Icons.receipt_long_outlined,
+                ),
               ),
-              const SizedBox(height: 8),
-              // ── Detalles ──────────────────────────────────────
-              Wrap(
-                spacing: 12,
-                runSpacing: 4,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.person_rounded,
-                        size: 14,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Inquilino #(${pago.idInquilino}) ${pago.inquilinoNombre}',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 14,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        pago.fechaPago,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-
-              // ── Detalles ──────────────────────────────────────
-              // Row(
-              //   children: [
-              //     Icon(Icons.person_rounded,
-              //         size: 14,
-              //         color: colorScheme.onSurfaceVariant),
-              //     const SizedBox(width: 4),
-              //     Text('Inquilino #${pago.idInquilino}',
-              //         style: AppTypography.bodySmall.copyWith(
-              //             color: colorScheme.onSurfaceVariant)),
-              //     const Spacer(),
-              //     Icon(Icons.calendar_today_rounded,
-              //         size: 14,
-              //         color: colorScheme.onSurfaceVariant),
-              //     const SizedBox(width: 4),
-              //     Text(pago.fechaPago,
-              //         style: AppTypography.bodySmall.copyWith(
-              //             color: colorScheme.onSurfaceVariant)),
-              //   ],
-              // ),
-              const SizedBox(height: 10),
-              // ── Acciones rápidas ──────────────────────────────
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _QuickAction(
-                    icon: Icons.check_circle_outline_rounded,
-                    label: 'Pagado',
-                    color: Colors.green,
-                    active: pago.estado == 'pagado',
-                    onTap: () => onEstadoChange('pagado'),
-                  ),
-                  _QuickAction(
-                    icon: Icons.schedule_rounded,
-                    label: 'Pendiente',
-                    color: Colors.orange,
-                    active: pago.estado == 'pendiente',
-                    onTap: () => onEstadoChange('pendiente'),
-                  ),
-                  _QuickAction(
-                    icon: Icons.cancel_outlined,
-                    label: 'Vencido',
-                    color: Colors.red,
-                    active: pago.estado == 'vencido',
-                    onTap: () => onEstadoChange('vencido'),
-                  ),
-
-                  IconButton(
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit_rounded),
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 20,
-                    tooltip: 'Editar',
-                  ),
-
-                  IconButton(
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_rounded),
-                    color: colorScheme.error,
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 20,
-                    tooltip: 'Eliminar',
-                  ),
+              PopupMenuButton<bool>(
+                tooltip: 'Acciones del pago',
+                onSelected: (edit) => edit ? onEdit() : onDelete(),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: true, child: Text('Editar pago')),
+                  PopupMenuItem(value: false, child: Text('Eliminar pago')),
                 ],
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.active,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String label;
-  final Color color;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: active ? color.withAlpha(30) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: active ? color : Colors.transparent),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: active ? color : Colors.grey),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: active ? color : Colors.grey,
-                fontWeight: active ? FontWeight.bold : FontWeight.normal,
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                pago.monto.toCurrency(),
+                style: AppTypography.currencyMedium.copyWith(
+                  color: colorScheme.primary,
+                ),
               ),
-            ),
-          ],
-        ),
+              StatusBadge.fromString(estadoVisible),
+            ],
+          ),
+          const Divider(height: 24),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              for (final (value, label) in const [
+                ('pagado', 'Pagado'),
+                ('pendiente', 'Pendiente'),
+                ('vencido', 'Vencido'),
+              ])
+                ChoiceChip(
+                  label: Text(label),
+                  selected: pago.estadoNormalizado == value,
+                  showCheckmark: false,
+                  onSelected: (_) => onEstadoChange(value),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

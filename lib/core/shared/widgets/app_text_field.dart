@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
+
 import '../../theme/app_typography.dart';
 
 /// Campo de texto reutilizable para formularios de Alquilados App.
@@ -65,6 +65,7 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -74,7 +75,7 @@ class _AppTextFieldState extends State<AppTextField> {
             widget.label!,
             style: AppTypography.labelMedium.copyWith(
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: colors.onSurface,
             ),
           ),
           const SizedBox(height: 6),
@@ -92,19 +93,28 @@ class _AppTextFieldState extends State<AppTextField> {
           readOnly: widget.readOnly,
           maxLines: widget.maxLines,
           autofillHints: widget.autofillHints,
-          style: AppTypography.bodyLarge,
+          style: AppTypography.bodyLarge.copyWith(color: colors.onSurface),
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon, size: 20, color: AppColors.textSecondaryLight)
+                ? Icon(
+                    widget.prefixIcon,
+                    size: 20,
+                    color: colors.onSurfaceVariant,
+                  )
                 : null,
             suffixIcon: widget.isPassword
                 ? IconButton(
                     icon: Icon(
-                      _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      _obscureText
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                       size: 20,
-                      color: AppColors.textSecondaryLight,
+                      color: colors.onSurfaceVariant,
                     ),
+                    tooltip: _obscureText
+                        ? 'Mostrar contraseña'
+                        : 'Ocultar contraseña',
                     onPressed: () {
                       setState(() {
                         _obscureText = !_obscureText;

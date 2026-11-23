@@ -59,39 +59,58 @@ class SyncController extends StateNotifier<AsyncValue<SyncStatus>> {
   final SecureStorageService _storage;
   final void Function() onCrmChanges;
   Future<void>? _active;
+  bool _manualRun = false;
 
-  Future<void> syncFromCrm() async {
-    if (AppConfig.backend == BackendEnvironment.test) await syncNow();
-  }
+  Future<void> syncFromCrm() => _start(manual: false);
 
   Future<void> refreshAfterCrmWrite() async {
     await _active;
     if (mounted) await syncFromCrm();
   }
 
-  Future<void> syncNow() =>
-      _active ??= _run().whenComplete(() => _active = null);
+  Future<void> syncNow() async {
+    if (!_manualRun && AppConfig.backend == BackendEnvironment.production) {
+      await _active;
+    }
+    if (mounted) await _start(manual: true);
+  }
 
-  Future<void> _run() async {
+  Future<void> _start({required bool manual}) {
+    final active = _active;
+    if (active != null) return active;
+    _manualRun = manual;
+    return _active = _run(manual: manual).whenComplete(() => _active = null);
+  }
+
+  Future<void> _run({required bool manual}) async {
     try {
-      final isPilot = AppConfig.backend == BackendEnvironment.test;
-      String? tenant;
-      String? companyId;
-      if (isPilot) {
-        final session = await _storage.getSessionContext();
-        if (session?['environment'] != BackendEnvironment.test.name ||
-            !await _storage.hasToken()) {
-          return;
-        }
-        tenant = session?['tenant'] as String?;
-        companyId = session?['companyId'] as String?;
-        if (tenant == null) return;
+      final environment = AppConfig.backend;
+      final session = await _storage.getSessionContext();
+      if (session?['environment'] != environment.name ||
+          !await _storage.hasToken() ||
+          !mounted ||
+          AppConfig.backend != environment) {
+        return;
       }
-      if (!mounted) return;
+      final tenant = session?['tenant'] as String?;
+      if (tenant == null) return;
+      final companyId = session?['companyId'] as String?;
       state = const AsyncValue.loading();
-      final result = tenant == null
-          ? await _repository.syncNow()
-          : await _repository.pullCrm(tenant: tenant, companyId: companyId);
+      final result = switch (environment) {
+        BackendEnvironment.test => await _repository.pullCrm(
+          tenant: tenant,
+          companyId: companyId,
+        ),
+        BackendEnvironment.production when manual => await _repository.syncNow(
+          tenant: tenant,
+          companyId: companyId,
+        ),
+        BackendEnvironment.production =>
+          await _repository.pullProductionTenants(
+            tenant: tenant,
+            companyId: companyId,
+          ),
+      };
       if (mounted) {
         if (result.localChanges > 0) onCrmChanges();
         state = AsyncValue.data(result);

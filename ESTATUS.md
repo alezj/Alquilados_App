@@ -116,6 +116,46 @@ Este documento registra el estatus actual de todos los procesos y solicitudes en
 **Comentario**: Primera fase de la opción en línea, activada para Pagos en Alquilados_Test. Las altas, ediciones, cambios de estado y bajas del móvil esperan la confirmación de Supabase. El CRM Angular de pruebas consulta pagos directamente y refresca la pantalla cada 30 segundos mientras está visible. SQLite v9 conserva lecturas y la identidad de reintentos manuales inciertos. La operación autenticada y su clave de idempotencia se pueden reutilizar desde una futura cola offline. Los registros anteriores en SQLite no se enviaron automáticamente. Producción conserva su configuración.
 **Verificación**: Migraciones `20261119212555_online_payment_operations.sql` y `20261119213009_qualify_online_payment_result.sql` aplicadas en Alquilados_Test. Transacción SQL revertida verificó alta, reintento con un único ID, actualización concurrente rechazada, cobro, edición, baja y rechazo de otra cuenta. Advisors sin hallazgos sobre las funciones nuevas. Compilación Angular de pruebas correcta con advertencias existentes de tamaño y Leaflet. Se comprobó que localhost:4200 sirve el código actualizado y el ambiente de pruebas. Release instalada y abierta en el iPhone con sesión de pruebas restaurada. Suite Flutter: 107 aprobadas y dos fallos históricos de alquiler y comprobante PDF. Pendiente validación manual de un alta desde la pantalla física y visualización simultánea en el navegador. No se creó un pago de prueba persistente.
 
+### Propuesta visual para el Dashboard
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-23 07:27:58
+**Fecha Fin**: 2026-11-23 07:29:40
+**Comentario**: Preparadas dos opciones de diseño con datos de ejemplo, Cobros primero y Agenda primero. Se recomienda priorizar el estado de los cobros, el acceso a Registrar pago y los vencimientos próximos. Consulta DNS desde el entorno aislado sin respuesta. La propuesta visual se generó localmente y no requirió token de Supabase. El código de la aplicación no se modificó.
+
+### Dashboard Cobros primero en Flutter
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-23 07:32:18
+**Fecha Fin**: 2026-11-23 07:38:36
+**Comentario**: Inicio usa el diseño Cobros primero con importes de SQLite, avance del período programado, Registrar pago, Alquileres, alertas navegables y ocupación. El filtro de vencidos y el de próximos siete días usan los mismos criterios que los contadores. La comprobación DNS del entorno aislado no respondió. El trabajo local no requirió token de Supabase.
+**Verificación**: Release instalada en el iPhone físico. Tras iniciar sesión, se comprobó visualmente el resumen con los datos de la cuenta. Pasaron seis pruebas específicas, incluida pantalla estrecha con texto ampliado, filtros y apertura de Registrar pago. La suite completa registró 109 aprobadas y los mismos dos fallos históricos de alquiler y comprobante PDF. Análisis sin errores ni advertencias.
+
+### Consulta de descarga de inquilinos al móvil
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-23 07:41:26
+**Fecha Fin**: 2026-11-23 07:41:35
+**Comentario**: Acceso de lectura a Alquilados_Test verificado con el conector. Un inquilino existente figura en el feed de la cuenta piloto. Confirmado el acceso desde Acciones, la sincronización periódica y el filtro legado de Producción. No se cambiaron datos o configuración.
+
+### Descarga de inquilinos de Producción
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-23 07:44:12
+**Fecha Fin**: 2026-11-23 07:53:37
+**Comentario**: RLS y permisos de lectura por empresa ya existían en Producción. No se aplicaron cambios de esquema, políticas ni datos remotos. El móvil consulta inquilinos con la sesión y el identificador de la empresa activa, sin filtrar por origen, al iniciar sesión, volver a la app y cada 45 segundos mientras está visible. La descarga conserva registros y ediciones locales y traduce los identificadores relacionados en la sincronización manual. El flujo incorpora altas y cambios de inquilinos; la ausencia de un registro remoto no se interpreta como baja.
+**Verificación**: SQL de solo lectura confirmó dos filas accesibles en la empresa activa, una de origen web, cero con una cuenta externa y ausencia de lectura anónima. Release instalada en iPhone; SQLite confirmó dos inquilinos vinculados de Producción, uno del CRM web. Doce pruebas específicas aprobadas. Suite completa con 110 aprobadas y los dos fallos históricos de alquiler y comprobante PDF. Análisis sin errores ni advertencias y git diff --check correcto.
+
+### Renovación visual de las pantallas de la app
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-23 07:55:12
+**Fecha Fin**: 2026-11-23 08:06:24
+**Comentario**: Renovados acceso, listas, detalles, formularios, Acciones, solicitudes, roles y políticas. Los pagos y alquileres agrupan edición y eliminación en un menú. Se corrigió la navegación de las políticas públicas desde el acceso; la lógica de aceptación se conservó. Dashboard y navegación inferior conservaron su diseño. El cambio no requirió token de Supabase.
+**Verificación**: Release final instalada en iPhone y acceso verificado visualmente. Pruebas de las cuatro listas en modo oscuro, ancho de 320 y letra ampliada; pruebas de botones en ambos temas, navegación a políticas y Dashboard aprobadas. Suite completa con 117 aprobadas y los dos fallos históricos de alquiler y comprobante PDF. Análisis sin errores ni advertencias y git diff --check correcto.
+
+### Corrección de contraste en Pagos
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-23 08:10:36
+**Fecha Fin**: 2026-11-23 08:14:20
+**Comentario**: Se asignaron colores contrastantes a los títulos de barra, encabezados, selector de mes y etiquetas de filtros y estados seleccionados y sin seleccionar. El ajuste es local y no requirió token de Supabase.
+**Verificación**: Pasaron las pruebas de contraste de lista, selector de mes y detalle de Pagos en claro y oscuro, con relación mínima de 4.5:1 en los textos evaluados. Suite completa con 119 aprobadas y los dos fallos históricos de alquiler y comprobante PDF. Análisis sin errores ni advertencias. Release instalada y abierta en el iPhone; el dispositivo quedó en inicio de sesión y luego se apagó la pantalla, por lo que quedó pendiente la verificación visual dentro de Pagos en el teléfono.
+
 ### Procesos Individuales
 Cada proceso debe registrar su estatus en el siguiente formato:
 

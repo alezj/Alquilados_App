@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../sync/data/datasources/local_database_service.dart';
@@ -8,16 +10,17 @@ import '../../domain/entities/pago.dart';
 // ──────────────────────────────────────────────
 
 Pago _rowToPago(Map<String, dynamic> row) => Pago(
-      id: row['id'] as int,
-      idInquilino: (row['id_inquilino'] ?? '').toString(),
-      inquilinoNombre: (row['inquilino_nombre'] ?? '').toString(),
-      fechaPago: (row['fecha_pago'] ?? '').toString(),
-      monto: (row['monto'] as num?)?.toDouble() ?? 0,
-      estado: (row['estado'] ?? 'pendiente').toString(),
-      syncState: (row['sync_state'] ?? 'pending').toString(),
-      syncedAt: row['synced_at']?.toString(),
-      crmRevision: row['crm_revision'] as int?,
-    );
+  id: row['id'] as int,
+  idInquilino: (row['id_inquilino'] ?? '').toString(),
+  inquilinoNombre: (row['inquilino_nombre'] ?? '').toString(),
+  fechaPago: (row['fecha_pago'] ?? '').toString(),
+  monto: (row['monto'] as num?)?.toDouble() ?? 0,
+  estado: (row['estado'] ?? 'pendiente').toString(),
+  syncState: (row['sync_state'] ?? 'pending').toString(),
+  syncedAt: row['synced_at']?.toString(),
+  crmRevision: row['crm_revision'] as int?,
+  periodo: row['periodo']?.toString(),
+);
 
 // ──────────────────────────────────────────────
 // Providers base
@@ -32,8 +35,7 @@ final pagosProvider = FutureProvider<List<Pago>>((ref) async {
 });
 
 /// Detalle de un pago individual por ID.
-final pagoDetalleProvider =
-    FutureProvider.family<Pago?, int>((ref, id) async {
+final pagoDetalleProvider = FutureProvider.family<Pago?, int>((ref, id) async {
   final database = LocalDatabaseService();
   final row = await database.getPagoByIdConDetalle(id);
   return row == null ? null : _rowToPago(row);
@@ -44,7 +46,15 @@ final pagoDetalleProvider =
 // ──────────────────────────────────────────────
 
 /// Opciones de filtro disponibles.
-enum FiltroEstadoPago { todos, pendiente, pagado, vencido }
+enum FiltroEstadoPago { todos, pendiente, pagado, vencido, proximos }
+
+final hoyPagosProvider = Provider.autoDispose<DateTime>((ref) {
+  final now = DateTime.now();
+  final tomorrow = DateTime(now.year, now.month, now.day + 1);
+  final timer = Timer(tomorrow.difference(now), ref.invalidateSelf);
+  ref.onDispose(timer.cancel);
+  return DateTime.utc(now.year, now.month, now.day);
+});
 
 class PagosFiltroState {
   const PagosFiltroState({
@@ -61,12 +71,11 @@ class PagosFiltroState {
     FiltroEstadoPago? estado,
     Object? yearMonth = const _Sentinel(),
     String? busqueda,
-  }) =>
-      PagosFiltroState(
-        estado: estado ?? this.estado,
-        yearMonth: yearMonth is _Sentinel ? this.yearMonth : yearMonth as String?,
-        busqueda: busqueda ?? this.busqueda,
-      );
+  }) => PagosFiltroState(
+    estado: estado ?? this.estado,
+    yearMonth: yearMonth is _Sentinel ? this.yearMonth : yearMonth as String?,
+    busqueda: busqueda ?? this.busqueda,
+  );
 }
 
 class _Sentinel {
@@ -90,28 +99,40 @@ class PagosFiltroNotifier extends Notifier<PagosFiltroState> {
   }
 
   void reset() => state = const PagosFiltroState();
+
+  void abrirDesdeInicio(FiltroEstadoPago estado) {
+    state = PagosFiltroState(estado: estado);
+  }
 }
 
 final pagosFiltroProvider =
     NotifierProvider<PagosFiltroNotifier, PagosFiltroState>(
-  PagosFiltroNotifier.new,
-);
+      PagosFiltroNotifier.new,
+    );
 
 // ──────────────────────────────────────────────
 // Provider derivado con filtros aplicados
 // ──────────────────────────────────────────────
 
 final pagosFiltradosProvider = FutureProvider<List<Pago>>((ref) async {
-  final todos = await ref.watch(pagosProvider.future);
   final filtro = ref.watch(pagosFiltroProvider);
+  final hoy = ref.watch(hoyPagosProvider);
+  final todos = await ref.watch(pagosProvider.future);
 
   var resultado = todos;
 
   // Filtrar por estado
-  if (filtro.estado != FiltroEstadoPago.todos) {
-    final estadoStr = filtro.estado.name; // 'pendiente', 'pagado', 'vencido'
-    resultado = resultado.where((p) => p.estado == estadoStr).toList();
-  }
+  resultado = switch (filtro.estado) {
+    FiltroEstadoPago.todos => resultado,
+    FiltroEstadoPago.vencido =>
+      resultado.where((pago) => pago.estaVencido(hoy)).toList(),
+    FiltroEstadoPago.proximos =>
+      resultado.where((pago) => pago.venceEnSieteDias(hoy)).toList(),
+    _ =>
+      resultado
+          .where((pago) => pago.estadoNormalizado == filtro.estado.name)
+          .toList(),
+  };
 
   // Filtrar por mes (yearMonth: '2026-09')
   if (filtro.yearMonth != null && filtro.yearMonth!.isNotEmpty) {
@@ -151,5 +172,5 @@ class OpenCreatePagoSheetNotifier extends Notifier<bool> {
 
 final openCreatePagoSheetProvider =
     NotifierProvider<OpenCreatePagoSheetNotifier, bool>(
-  OpenCreatePagoSheetNotifier.new,
-);
+      OpenCreatePagoSheetNotifier.new,
+    );

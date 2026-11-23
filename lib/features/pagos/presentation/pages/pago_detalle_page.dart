@@ -8,6 +8,10 @@ import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
+import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
+import '../../../../core/shared/widgets/status_badge.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -28,7 +32,9 @@ class PagoDetallePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pagoAsync = ref.watch(pagoDetalleProvider(id));
-    final colorScheme = Theme.of(context).colorScheme;
+    final sectionTitle = AppTypography.titleSmall.copyWith(
+      color: Theme.of(context).colorScheme.onSurface,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -62,32 +68,35 @@ class PagoDetallePage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Monto destacado ──────────────────────────────
-                _SectionCard(
-                  children: [
-                    Center(
-                      child: Column(
-                        children: [
-                          Text(
-                            pago.monto.toCurrency(),
-                            style: AppTypography.currencyLarge.copyWith(
-                              color: colorScheme.primary,
-                              fontSize: 42,
-                            ),
+                AppCard(
+                  color: AppColors.primaryDark,
+                  borderColor: Colors.transparent,
+                  borderRadius: 20,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Monto del pago',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          pago.monto.toCurrency(),
+                          style: AppTypography.currencyLarge.copyWith(
+                            color: Colors.white,
                           ),
-                          const SizedBox(height: 8),
-                          _EstadoChip(estado: pago.estado),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 12),
+                        StatusBadge.fromString(pago.estadoNormalizado),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 // ── Información del pago ─────────────────────────
-                const Text(
-                  'Información del pago',
-                  style: AppTypography.labelSmall,
-                ),
+                Text('Información del pago', style: sectionTitle),
                 const SizedBox(height: 8),
                 _SectionCard(
                   children: [
@@ -120,7 +129,7 @@ class PagoDetallePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 // ── Sincronización ───────────────────────────────
-                const Text('Sincronización', style: AppTypography.labelSmall),
+                Text('Sincronización', style: sectionTitle),
                 const SizedBox(height: 8),
                 _SectionCard(
                   children: [
@@ -138,29 +147,28 @@ class PagoDetallePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 // ── Cambio rápido de estado ──────────────────────
-                const Text('Cambiar estado', style: AppTypography.labelSmall),
+                Text('Cambiar estado', style: sectionTitle),
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
-                    for (final estado in ['pendiente', 'pagado', 'vencido'])
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: _EstadoButton(
-                            label: estado,
-                            isActive: pago.estado == estado,
-                            onTap: () async {
-                              if (pago.estado == estado) return;
-                              final mutations = ref.read(
-                                paymentMutationsProvider,
-                              );
-                              await showPaymentResult(
-                                context,
-                                () => mutations.changeStatus(pago, estado),
-                              );
-                            },
-                          ),
-                        ),
+                    for (final (value, label) in const [
+                      ('pendiente', 'Pendiente'),
+                      ('pagado', 'Pagado'),
+                      ('vencido', 'Vencido'),
+                    ])
+                      ChoiceChip(
+                        label: Text(label),
+                        selected: pago.estadoNormalizado == value,
+                        onSelected: (_) async {
+                          if (pago.estadoNormalizado == value) return;
+                          final mutations = ref.read(paymentMutationsProvider);
+                          await showPaymentResult(
+                            context,
+                            () => mutations.changeStatus(pago, value),
+                          );
+                        },
                       ),
                   ],
                 ),
@@ -171,6 +179,7 @@ class PagoDetallePage extends ConsumerWidget {
                 ].contains(pago.estado.toLowerCase())) ...[
                   AppButton(
                     text: 'Recordar por WhatsApp',
+                    variant: AppButtonVariant.secondary,
                     icon: Icons.chat_outlined,
                     onPressed: () => _openWhatsApp(context, pago),
                   ),
@@ -261,7 +270,10 @@ class PagoDetallePage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Editar pago', style: AppTypography.titleMedium),
+                const AppSectionHeader(
+                  title: 'Editar pago',
+                  icon: Icons.receipt_long_outlined,
+                ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: idInquilinoController,
@@ -465,17 +477,9 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
+    return AppCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: children,
       ),
     );
@@ -499,7 +503,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: colorScheme.primary),
+          AppIconBadge(icon, size: 30),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -509,79 +513,14 @@ class _InfoRow extends StatelessWidget {
               ),
             ),
           ),
-          Text(value, style: AppTypography.bodyMedium),
-        ],
-      ),
-    );
-  }
-}
-
-class _EstadoChip extends StatelessWidget {
-  const _EstadoChip({required this.estado});
-  final String estado;
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, icon) = switch (estado) {
-      'pagado' => (Colors.green, Icons.check_circle_rounded),
-      'vencido' => (Colors.red, Icons.cancel_rounded),
-      _ => (Colors.orange, Icons.schedule_rounded),
-    };
-    return Chip(
-      avatar: Icon(icon, color: color, size: 18),
-      label: Text(
-        estado.toUpperCase(),
-        style: TextStyle(color: color, fontWeight: FontWeight.bold),
-      ),
-      backgroundColor: color.withAlpha(25),
-      side: BorderSide(color: color.withAlpha(80)),
-    );
-  }
-}
-
-class _EstadoButton extends StatelessWidget {
-  const _EstadoButton({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final color = switch (label) {
-      'pagado' => Colors.green,
-      'vencido' => Colors.red,
-      _ => Colors.orange,
-    };
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive
-              ? color.withAlpha(30)
-              : colorScheme.surfaceContainerLow,
-          border: Border.all(
-            color: isActive ? color : colorScheme.outlineVariant,
-            width: isActive ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? color : colorScheme.onSurface,
-              fontSize: 13,
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: AppTypography.bodyMedium,
             ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_empty.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/network_providers.dart';
@@ -207,9 +212,11 @@ class _SolicitudesEmpresaPageState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Empresas',
-                          style: Theme.of(context).textTheme.titleLarge,
+                        const Expanded(
+                          child: AppSectionHeader(
+                            title: 'Empresas',
+                            icon: Icons.domain_outlined,
+                          ),
                         ),
                         IconButton(
                           onPressed: _createCompany,
@@ -225,7 +232,12 @@ class _SolicitudesEmpresaPageState
                     else
                       ...companies.map(
                         (company) => Card(
+                          margin: const EdgeInsets.only(top: 8),
                           child: ListTile(
+                            leading: const AppIconBadge(
+                              Icons.domain_outlined,
+                              size: 34,
+                            ),
                             title: Text(company['name'].toString()),
                             subtitle: Text(
                               '${company['slug']} · ${company['status']}',
@@ -243,21 +255,20 @@ class _SolicitudesEmpresaPageState
                       ),
                     const SizedBox(height: 16),
                   ],
-                  Text(
-                    'Solicitudes pendientes',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  const AppSectionHeader(
+                    title: 'Solicitudes pendientes',
+                    icon: Icons.how_to_reg_outlined,
                   ),
+                  const SizedBox(height: 12),
                   if (requests.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(
-                        child: Text('No hay solicitudes pendientes.'),
-                      ),
+                    const AppCard(
+                      child: AppEmpty(title: 'No hay solicitudes pendientes.'),
                     ),
                   ...requests.map((request) {
                     final profile =
                         request['profile'] as Map<String, dynamic>? ?? const {};
                     return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(

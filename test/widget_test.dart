@@ -12,6 +12,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:alquilados_app/main.dart';
 
 void main() {
+  testWidgets('Las políticas se pueden consultar desde el inicio de sesión', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const ProviderScope(child: AlquiladosApp()));
+    await tester.pumpAndSettle();
+
+    final policies = find.text('Políticas');
+    await tester.ensureVisible(policies);
+    await tester.pumpAndSettle();
+    await tester.tap(policies);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Política de Privacidad'));
+    await tester.pumpAndSettle();
+    expect(find.text('Política de Privacidad'), findsOneWidget);
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('AlquiladosApp renders the login screen', (
     WidgetTester tester,
   ) async {

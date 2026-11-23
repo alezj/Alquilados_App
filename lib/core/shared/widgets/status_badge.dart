@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 
@@ -31,14 +32,15 @@ class StatusBadge extends StatelessWidget {
         normalized.contains('al dia') ||
         normalized.contains('al día') ||
         normalized.contains('pagado') ||
-        normalized.contains('activo')) {
+        normalized == 'activo' ||
+        normalized == 'activa') {
       return StatusBadge(
         label: status,
         type: StatusBadgeType.success,
         icon: Icons.check_circle_outline_rounded,
       );
-    } else if (normalized.contains('alquilado') ||
-        normalized.contains('ocupado') ||
+    } else if (normalized.startsWith('alquilad') ||
+        normalized.startsWith('ocupad') ||
         normalized.contains('contrato')) {
       return StatusBadge(
         label: status,
@@ -65,10 +67,7 @@ class StatusBadge extends StatelessWidget {
       );
     }
 
-    return StatusBadge(
-      label: status,
-      type: StatusBadgeType.neutral,
-    );
+    return StatusBadge(label: status, type: StatusBadgeType.neutral);
   }
 
   final String label;
@@ -83,7 +82,7 @@ class StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -92,9 +91,11 @@ class StatusBadge extends StatelessWidget {
             Icon(icon, size: 14, color: textColor),
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: AppTypography.statusBadge.copyWith(color: textColor),
+          Flexible(
+            child: Text(
+              label,
+              style: AppTypography.statusBadge.copyWith(color: textColor),
+            ),
           ),
         ],
       ),
@@ -107,22 +108,30 @@ class StatusBadge extends StatelessWidget {
     switch (type) {
       case StatusBadgeType.success:
         return (
-          isDark ? AppColors.successDark.withValues(alpha: 0.3) : AppColors.successLight,
+          isDark
+              ? AppColors.successDark.withValues(alpha: 0.3)
+              : AppColors.successLight,
           isDark ? AppColors.successLight : AppColors.successDark,
         );
       case StatusBadgeType.info:
         return (
-          isDark ? AppColors.infoDark.withValues(alpha: 0.3) : AppColors.infoLight,
+          isDark
+              ? AppColors.infoDark.withValues(alpha: 0.3)
+              : AppColors.infoLight,
           isDark ? AppColors.infoLight : AppColors.infoDark,
         );
       case StatusBadgeType.warning:
         return (
-          isDark ? AppColors.warningDark.withValues(alpha: 0.3) : AppColors.warningLight,
+          isDark
+              ? AppColors.warningDark.withValues(alpha: 0.3)
+              : AppColors.warningLight,
           isDark ? AppColors.warningLight : AppColors.warningDark,
         );
       case StatusBadgeType.error:
         return (
-          isDark ? AppColors.errorDark.withValues(alpha: 0.3) : AppColors.errorLight,
+          isDark
+              ? AppColors.errorDark.withValues(alpha: 0.3)
+              : AppColors.errorLight,
           isDark ? AppColors.errorLight : AppColors.errorDark,
         );
       case StatusBadgeType.neutral:

@@ -30,26 +30,72 @@ class CrmSyncStore {
       ) ??
       0;
 
+  /// Production tenants use a scoped snapshot as their source. Persist only
+  /// changed payloads so polling does not refresh timestamps or reapply rows.
+  Future<({int applied, int pending, Map<int, int> localByRemote})>
+  applyTenantSnapshot(Database db, Map<int, Map<String, Object?>> snapshot) {
+    return db.transaction((txn) async {
+      const resource = 'inquilinos';
+      final previous = {
+        for (final row in await txn.query(
+          'crm_sync_records',
+          where: 'resource = ?',
+          whereArgs: [resource],
+        ))
+          row['remote_id'] as int: row['payload'] as String?,
+      };
+      var revision =
+          Sqflite.firstIntValue(
+            await txn.rawQuery('SELECT MAX(revision) FROM crm_sync_records'),
+          ) ??
+          0;
+      for (final entry in snapshot.entries) {
+        final payload = jsonEncode(entry.value);
+        if (previous[entry.key] == payload) continue;
+        await _stage(txn, resource, entry.key, ++revision, payload);
+      }
+      final applied = await _applyResource(
+        txn,
+        resource,
+        deleted: false,
+        authorizedIds: snapshot.keys.toSet(),
+      );
+      final bindings = await txn.rawQuery('''
+        SELECT r.remote_id, r.needs_apply, i.id AS local_id
+        FROM crm_sync_records r LEFT JOIN inquilinos i ON i.id = r.local_id
+        WHERE r.resource = 'inquilinos'
+      ''');
+      return (
+        applied: applied,
+        pending: bindings
+            .where(
+              (row) =>
+                  snapshot.containsKey(row['remote_id']) &&
+                  row['needs_apply'] == 1,
+            )
+            .length,
+        localByRemote: {
+          for (final row in bindings)
+            if (row['local_id'] != null &&
+                snapshot.containsKey(row['remote_id']))
+              row['remote_id'] as int: row['local_id'] as int,
+        },
+      );
+    });
+  }
+
   Future<({int applied, int pending})> apply(
     Database db,
     List<CrmChange> changes,
   ) {
     return db.transaction((txn) async {
       for (final change in changes) {
-        await txn.rawInsert(
-          '''
-          INSERT INTO crm_sync_records(resource, remote_id, revision, payload)
-          VALUES (?, ?, ?, ?)
-          ON CONFLICT(resource, remote_id) DO UPDATE SET
-            revision = excluded.revision, payload = excluded.payload, needs_apply = 1
-          WHERE excluded.revision > crm_sync_records.revision
-          ''',
-          [
-            change.resource,
-            change.remoteId,
-            change.revision,
-            change.values == null ? null : jsonEncode(change.values),
-          ],
+        await _stage(
+          txn,
+          change.resource,
+          change.remoteId,
+          change.revision,
+          change.values == null ? null : jsonEncode(change.values),
         );
       }
 
@@ -69,10 +115,30 @@ class CrmSyncStore {
     });
   }
 
+  Future<void> _stage(
+    Transaction txn,
+    String resource,
+    int remoteId,
+    int revision,
+    String? payload,
+  ) async {
+    await txn.rawInsert(
+      '''
+      INSERT INTO crm_sync_records(resource, remote_id, revision, payload)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(resource, remote_id) DO UPDATE SET
+        revision = excluded.revision, payload = excluded.payload, needs_apply = 1
+      WHERE excluded.revision > crm_sync_records.revision
+      ''',
+      [resource, remoteId, revision, payload],
+    );
+  }
+
   Future<int> _applyResource(
     Transaction txn,
     String resource, {
     required bool deleted,
+    Set<int>? authorizedIds,
   }) async {
     final changes = await txn.query(
       'crm_sync_records',
@@ -84,6 +150,7 @@ class CrmSyncStore {
     var applied = 0;
     for (final change in changes) {
       final remoteId = change['remote_id']! as int;
+      if (authorizedIds != null && !authorizedIds.contains(remoteId)) continue;
       var localId = change['local_id'] as int?;
       final current = await _localRow(txn, resource, localId ?? remoteId);
       if (deleted) {
@@ -107,6 +174,10 @@ class CrmSyncStore {
           continue;
         }
         if (!await _resolveReferences(txn, resource, values)) continue;
+        values.putIfAbsent(
+          'synced_at',
+          () => DateTime.now().toUtc().toIso8601String(),
+        );
         if (localId == null &&
             current != null &&
             current['Origen'] == values['Origen'] &&

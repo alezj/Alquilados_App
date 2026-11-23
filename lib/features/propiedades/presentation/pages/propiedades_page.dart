@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/shared/widgets/app_empty.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
@@ -836,22 +837,13 @@ class _PropiedadCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(propiedad.nombre, style: AppTypography.titleSmall),
-              ),
-              _estadoBadge(propiedad.estado),
-            ],
+          AppSectionHeader(
+            title: propiedad.nombre,
+            icon: Icons.apartment_rounded,
+            subtitle: propiedad.direccion,
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.location_on_outlined, size: 18),
-              const SizedBox(width: 6),
-              Expanded(child: Text(propiedad.direccion)),
-            ],
-          ),
+          const SizedBox(height: 10),
+          _estadoBadge(propiedad.estado),
           const Divider(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -871,51 +863,53 @@ class _PropiedadCard extends StatelessWidget {
                   ],
                 ),
               ),
-              FutureBuilder<int>(
-                future: LocalDatabaseService()
-                    .countMantenimientosPendientesByPropiedadId(propiedad.id),
-                builder: (context, snapshot) {
-                  final cantidad = snapshot.data ?? 0;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'Mantenimientos',
-                        style: AppTypography.labelMedium,
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                           // Icons.build_circle_outlined,
-                            icon: Icon(
-                              Icons.build_circle_outlined,
-                              size: 18,
-                              color: cantidad > 0
-                                  ? AppColors.warning
-                                  : Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+              Expanded(
+                child: FutureBuilder<int>(
+                  future: LocalDatabaseService()
+                      .countMantenimientosPendientesByPropiedadId(propiedad.id),
+                  builder: (context, snapshot) {
+                    final cantidad = snapshot.data ?? 0;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'Mantenimientos',
+                          style: AppTypography.labelMedium,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Ver mantenimientos',
+                              icon: Icon(
+                                Icons.build_circle_outlined,
+                                size: 18,
+                                color: cantidad > 0
+                                    ? AppColors.warning
+                                    : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                              ),
+                              onPressed: onMaintenance,
                             ),
-                            onPressed: onMaintenance,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            cantidad.toString(),
-                            style: AppTypography.titleMedium.copyWith(
-                              color: cantidad > 0
-                                  ? AppColors.warning
-                                  : Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                            const SizedBox(width: 4),
+                            Text(
+                              cantidad.toString(),
+                              style: AppTypography.titleMedium.copyWith(
+                                color: cantidad > 0
+                                    ? AppColors.warning
+                                    : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -940,7 +934,10 @@ class _PropiedadCard extends StatelessWidget {
               IconButton(
                 tooltip: 'Eliminar',
                 onPressed: onDelete,
-                icon: const Icon(Icons.delete_rounded, color: Colors.red),
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
             ],
           ),

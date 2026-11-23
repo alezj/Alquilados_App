@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/shared/widgets/app_empty.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
@@ -60,6 +61,7 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
     final detalleAsync = ref.watch(inquilinoDetalleProvider(widget.id));
     final pagosAsync = ref.watch(pagosDeInquilinoProvider(widget.id));
 
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalle de inquilino'),
@@ -111,11 +113,11 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                   children: [
                     CircleAvatar(
                       radius: 28,
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: colors.primaryContainer,
                       child: Text(
                         initials,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: colors.onPrimaryContainer,
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
                         ),
@@ -145,9 +147,9 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Datos de contacto y contrato',
-                      style: AppTypography.titleSmall,
+                    const AppSectionHeader(
+                      title: 'Datos de contacto y contrato',
+                      icon: Icons.contact_mail_outlined,
                     ),
                     const SizedBox(height: 14),
                     _buildInfoRow(
@@ -219,13 +221,13 @@ class _InquilinoDetallePageState extends ConsumerState<InquilinoDetallePage> {
                       ),
                       data: (pagos) {
                         if (pagos.isEmpty) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Center(
                               child: Text(
                                 'No hay pagos registrados para este inquilino.',
                                 style: TextStyle(
-                                  color: AppColors.textSecondaryLight,
+                                  color: colors.onSurfaceVariant,
                                 ),
                               ),
                             ),

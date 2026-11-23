@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/shared/widgets/app_empty.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
@@ -50,16 +51,27 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
           onRetry: () => ref.invalidate(alquileresProvider),
         ),
         data: (items) {
-          final filtered = items.where((alquiler) {
-            final busqueda = filtro.busqueda.trim().toLowerCase();
-            final matchesSearch = busqueda.isEmpty ||
-                alquiler.propiedadNombre?.toLowerCase().contains(busqueda) == true ||
-                alquiler.inquilinoNombre?.toLowerCase().contains(busqueda) == true ||
-                alquiler.estado.toLowerCase().contains(busqueda);
-            final matchesEstado = filtro.estado == 'todos' ||
-                alquiler.estado.toLowerCase() == filtro.estado.toLowerCase();
-            return matchesSearch && matchesEstado;
-          }).toList(growable: false);
+          final filtered = items
+              .where((alquiler) {
+                final busqueda = filtro.busqueda.trim().toLowerCase();
+                final matchesSearch =
+                    busqueda.isEmpty ||
+                    alquiler.propiedadNombre?.toLowerCase().contains(
+                          busqueda,
+                        ) ==
+                        true ||
+                    alquiler.inquilinoNombre?.toLowerCase().contains(
+                          busqueda,
+                        ) ==
+                        true ||
+                    alquiler.estado.toLowerCase().contains(busqueda);
+                final matchesEstado =
+                    filtro.estado == 'todos' ||
+                    alquiler.estado.toLowerCase() ==
+                        filtro.estado.toLowerCase();
+                return matchesSearch && matchesEstado;
+              })
+              .toList(growable: false);
 
           return RefreshIndicator(
             onRefresh: () => ref.refresh(alquileresProvider.future),
@@ -77,10 +89,19 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
                 ),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
-                      for (final estado in ['todos', 'activo', 'finalizado', 'pendiente', 'cancelado'])
+                      for (final estado in [
+                        'todos',
+                        'activo',
+                        'finalizado',
+                        'pendiente',
+                        'cancelado',
+                      ])
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: FilterChip(
@@ -101,87 +122,90 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
                       : ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: filtered.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final alquiler = filtered[index];
+                            final colors = Theme.of(context).colorScheme;
                             return AppCard(
-                              onTap: () => context.push('${AppRoutes.alquileres}/${alquiler.id}'),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            alquiler.propiedadNombre ?? 'Propiedad sin nombre',
-                                            style: AppTypography.titleSmall,
+                              onTap: () => context.push(
+                                '${AppRoutes.alquileres}/${alquiler.id}',
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: AppSectionHeader(
+                                          title:
+                                              alquiler.propiedadNombre ??
+                                              'Propiedad sin nombre',
+                                          subtitle:
+                                              alquiler.inquilinoNombre ??
+                                              'Inquilino sin asignar',
+                                          icon: Icons.key_rounded,
+                                        ),
+                                      ),
+                                      PopupMenuButton<bool>(
+                                        tooltip: 'Acciones del alquiler',
+                                        onSelected: (edit) {
+                                          if (edit) {
+                                            _openAlquilerSheet(
+                                              context,
+                                              alquiler: alquiler,
+                                            );
+                                          } else {
+                                            _deleteAlquiler(alquiler.id);
+                                          }
+                                        },
+                                        itemBuilder: (_) => const [
+                                          PopupMenuItem(
+                                            value: true,
+                                            child: Text('Editar alquiler'),
                                           ),
-                                        ),
-                                        Row(
-                                          children: [
-                                            IconButton(
-                                              tooltip: 'Editar alquiler',
-                                              icon: const Icon(Icons.edit_rounded, size: 18),
-                                              onPressed: () => _openAlquilerSheet(context, alquiler: alquiler),
-                                            ),
-                                            IconButton(
-                                              tooltip: 'Eliminar alquiler',
-                                              icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                                              onPressed: () => _deleteAlquiler(alquiler.id),
-                                            ),
-                                            StatusBadge.fromString(alquiler.estado),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.person_outline_rounded, size: 16),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            alquiler.inquilinoNombre ?? 'Inquilino sin asignar',
-                                            style: AppTypography.bodyMedium,
+                                          PopupMenuItem(
+                                            value: false,
+                                            child: Text('Eliminar alquiler'),
                                           ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 6,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      StatusBadge.fromString(alquiler.estado),
+                                      Text(
+                                        '${_formatDate(alquiler.fechaInicio)} – ${_formatDate(alquiler.fechaFin ?? 'Sin fecha fin')}',
+                                        style: AppTypography.bodySmall.copyWith(
+                                          color: colors.onSurfaceVariant,
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      '${_formatDate(alquiler.fechaInicio)} - ${_formatDate(alquiler.fechaFin ?? 'Sin fecha fin')}',
-                                      style: AppTypography.bodySmall,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.event_repeat_rounded,
-                                          size: 16,
-                                          color: Theme.of(context).colorScheme.primary,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            'Meses pendientes: ${alquiler.pagosPendientes} (de ${alquiler.cantidadMeses} acordados)',
-                                            style: AppTypography.bodySmall.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: Theme.of(context).colorScheme.primary,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Monto a pagar: ${_currency(alquiler.montoPago)}',
-                                      style: AppTypography.currencyMedium,
-                                    ),
-                                  ],
-                                ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Divider(height: 24),
+                                  Wrap(
+                                    alignment: WrapAlignment.spaceBetween,
+                                    runSpacing: 6,
+                                    spacing: 12,
+                                    children: [
+                                      Text(
+                                        _currency(alquiler.montoPago),
+                                        style: AppTypography.currencyMedium
+                                            .copyWith(color: colors.primary),
+                                      ),
+                                      Text(
+                                        'Meses pendientes: ${alquiler.pagosPendientes} de ${alquiler.cantidadMeses}',
+                                        style: AppTypography.bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             );
                           },
@@ -195,7 +219,10 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
     );
   }
 
-  Future<void> _openAlquilerSheet(BuildContext context, {Alquiler? alquiler}) async {
+  Future<void> _openAlquilerSheet(
+    BuildContext context, {
+    Alquiler? alquiler,
+  }) async {
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -210,7 +237,9 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              alquiler == null ? 'Alquiler creado y pagos generados.' : 'Alquiler actualizado localmente.',
+              alquiler == null
+                  ? 'Alquiler creado y pagos generados.'
+                  : 'Alquiler actualizado localmente.',
             ),
           ),
         );
@@ -252,13 +281,13 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
   }
 
   String _estadoLabel(String key) => switch (key) {
-        'todos' => 'Todos',
-        'activo' => 'Activos',
-        'finalizado' => 'Finalizados',
-        'pendiente' => 'Pendientes',
-        'cancelado' => 'Cancelados',
-        _ => 'Todos',
-      };
+    'todos' => 'Todos',
+    'activo' => 'Activos',
+    'finalizado' => 'Finalizados',
+    'pendiente' => 'Pendientes',
+    'cancelado' => 'Cancelados',
+    _ => 'Todos',
+  };
 
   String _formatDate(String? value) {
     if (value == null || value.isEmpty) return 'No disponible';
@@ -272,7 +301,11 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
   }
 
   String _currency(double amount) {
-    final format = NumberFormat.currency(locale: 'en_US', symbol: 'RD\$', decimalDigits: 2);
+    final format = NumberFormat.currency(
+      locale: 'en_US',
+      symbol: 'RD\$',
+      decimalDigits: 2,
+    );
     return format.format(amount);
   }
 }

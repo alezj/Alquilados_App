@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/network_providers.dart';
+import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_error.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 
 class PermisosEmpresaPage extends ConsumerStatefulWidget {
   const PermisosEmpresaPage({super.key});
@@ -151,14 +154,21 @@ class _PermisosEmpresaPageState extends ConsumerState<PermisosEmpresaPage> {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Roles y permisos')),
+      body: _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null)
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(_error!, textAlign: TextAlign.center),
-        ),
+    if (_error != null) {
+      return AppError(
+        title: 'No se pudieron cargar los permisos',
+        message: _error!,
+        onRetry: _load,
       );
+    }
     final permissionsByModule = <String, List<Map<String, dynamic>>>{};
     for (final permission in _permissions) {
       permissionsByModule
@@ -168,48 +178,62 @@ class _PermisosEmpresaPageState extends ConsumerState<PermisosEmpresaPage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        DropdownButtonFormField<String>(
-          value: _companyId,
-          decoration: const InputDecoration(labelText: 'Empresa'),
-          items: _companies
-              .map(
-                (company) => DropdownMenuItem(
-                  value: company['id'].toString(),
-                  child: Text(company['name'].toString()),
-                ),
-              )
-              .toList(),
-          onChanged: (value) async {
-            if (value == null) return;
-            final company = _companies.firstWhere(
-              (item) => item['id'].toString() == value,
-            );
-            setState(() {
-              _companyId = value;
-              _canEdit = _isPlatformAdmin || company['role'] == 'admin_empresa';
-            });
-            await _loadAssignments();
-            if (mounted) setState(() {});
-          },
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          value: _roleId,
-          decoration: const InputDecoration(labelText: 'Rol'),
-          items: _roles
-              .map(
-                (role) => DropdownMenuItem(
-                  value: role['id'].toString(),
-                  child: Text(role['name'].toString()),
-                ),
-              )
-              .toList(),
-          onChanged: (value) async {
-            if (value == null) return;
-            setState(() => _roleId = value);
-            await _loadAssignments();
-            if (mounted) setState(() {});
-          },
+        AppCard(
+          child: Column(
+            children: [
+              const AppSectionHeader(
+                title: 'Empresa y rol',
+                icon: Icons.admin_panel_settings_outlined,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _companyId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Empresa'),
+                items: _companies
+                    .map(
+                      (company) => DropdownMenuItem(
+                        value: company['id'].toString(),
+                        child: Text(company['name'].toString()),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) async {
+                  if (value == null) return;
+                  final company = _companies.firstWhere(
+                    (item) => item['id'].toString() == value,
+                  );
+                  setState(() {
+                    _companyId = value;
+                    _canEdit =
+                        _isPlatformAdmin || company['role'] == 'admin_empresa';
+                  });
+                  await _loadAssignments();
+                  if (mounted) setState(() {});
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _roleId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Rol'),
+                items: _roles
+                    .map(
+                      (role) => DropdownMenuItem(
+                        value: role['id'].toString(),
+                        child: Text(role['name'].toString()),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) async {
+                  if (value == null) return;
+                  setState(() => _roleId = value);
+                  await _loadAssignments();
+                  if (mounted) setState(() {});
+                },
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         if (!_canEdit)
@@ -223,7 +247,9 @@ class _PermisosEmpresaPageState extends ConsumerState<PermisosEmpresaPage> {
           ),
         ...permissionsByModule.entries.map(
           (entry) => Card(
+            margin: const EdgeInsets.only(bottom: 8),
             child: ExpansionTile(
+              leading: const AppIconBadge(Icons.tune_rounded, size: 34),
               title: Text(entry.key),
               children: entry.value.map((permission) {
                 final permissionId = permission['id'].toString();

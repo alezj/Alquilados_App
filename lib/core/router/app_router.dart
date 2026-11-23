@@ -28,9 +28,19 @@ abstract final class AppRouter {
     return GoRouter(
       initialLocation: initialLocation,
       redirect: (context, state) async {
+        final segments = state.uri.pathSegments;
+        if (segments.firstOrNull == 'políticas') {
+          return state.uri
+              .replace(pathSegments: ['', 'politicas', ...segments.skip(1)])
+              .toString();
+        }
         final location = state.matchedLocation;
-        if (location == AppRoutes.login || location == AppRoutes.designSystem)
+        if (location == AppRoutes.login ||
+            location == AppRoutes.designSystem ||
+            location == AppRoutes.politicas ||
+            location.startsWith('${AppRoutes.politicas}/')) {
           return null;
+        }
         if (!await SecureStorageService().hasToken()) return AppRoutes.login;
         return null;
       },
@@ -91,7 +101,10 @@ abstract final class AppRouter {
         ),
         GoRoute(
           path: AppRoutes.configuracion,
-          builder: (_, _) => const ConfiguracionPage(),
+          builder: (_, _) => Scaffold(
+            appBar: AppBar(title: const Text('Acciones')),
+            body: const ConfiguracionPage(),
+          ),
         ),
         GoRoute(
           path: AppRoutes.solicitudes,

@@ -69,6 +69,7 @@ class AlquiladosApp extends ConsumerStatefulWidget {
 class _AlquiladosAppState extends ConsumerState<AlquiladosApp>
     with WidgetsBindingObserver {
   Timer? _crmRefreshTimer;
+  late bool _crmEnabled = widget.restoreTestSession;
 
   @override
   void initState() {
@@ -97,7 +98,7 @@ class _AlquiladosAppState extends ConsumerState<AlquiladosApp>
   }
 
   void _startCrmRefresh() {
-    if (AppConfig.backend != BackendEnvironment.test) return;
+    if (!_crmEnabled) return;
     _refreshCrm();
     _scheduleCrmRefresh();
   }
@@ -110,11 +111,6 @@ class _AlquiladosAppState extends ConsumerState<AlquiladosApp>
   }
 
   void _refreshCrm() {
-    if (AppConfig.backend != BackendEnvironment.test) {
-      _crmRefreshTimer?.cancel();
-      _crmRefreshTimer = null;
-      return;
-    }
     unawaited(ref.read(syncStateProvider.notifier).syncFromCrm());
   }
 
@@ -147,9 +143,10 @@ class _AlquiladosAppState extends ConsumerState<AlquiladosApp>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(syncStateProvider, (_, _) {
-      if (AppConfig.backend == BackendEnvironment.test &&
-          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+    ref.listen(syncStateProvider, (_, next) {
+      if (!next.isLoading) return;
+      _crmEnabled = true;
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
         _scheduleCrmRefresh();
       }
     });

@@ -8,6 +8,7 @@ import '../../../../core/router/app_routes.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/shared/widgets/app_empty.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
@@ -425,12 +426,14 @@ class _InquilinoCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(inquilino.nombreApellido, style: AppTypography.titleSmall),
-        if (inquilino.correo?.isNotEmpty ?? false) ...[
-          const SizedBox(height: 6),
-          Text(inquilino.correo!),
-        ],
-        const SizedBox(height: 10),
+        AppSectionHeader(
+          title: inquilino.nombreApellido,
+          subtitle: inquilino.correo?.isNotEmpty == true
+              ? inquilino.correo
+              : null,
+          icon: Icons.person_outline_rounded,
+        ),
+        const SizedBox(height: 12),
         if (inquilino.fechaInicioContrato?.isNotEmpty ?? false)
           Text(
             'Inicio de contrato: ${inquilino.fechaInicioContrato}',
@@ -453,7 +456,10 @@ class _InquilinoCard extends StatelessWidget {
             IconButton(
               tooltip: 'Eliminar',
               onPressed: onDelete,
-              icon: const Icon(Icons.delete_rounded, color: Colors.red),
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
           ],
         ),

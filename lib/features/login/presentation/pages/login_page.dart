@@ -15,6 +15,9 @@ import '../../../alquileres/presentation/providers/alquileres_provider.dart';
 import '../../../pagos/presentation/providers/pagos_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_button.dart';
+import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../sync/presentation/providers/sync_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -118,7 +121,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(12));
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -128,167 +130,207 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
                 children: [
-                  Image.asset(
-                    'assets/app_icon.png',
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    _registering ? 'Solicitar acceso' : 'Iniciar sesión',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 20),
-                  if (_registering) ...[
-                    TextField(
-                      controller: _name,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                        labelText: 'Nombre completo',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        border: border,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primaryDark, AppColors.primary],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                  ],
-                  TextField(
-                    controller: _username,
-                    enabled: !_loading,
-                    autocorrect: false,
-                    autofillHints: const [AutofillHints.username],
-                    onChanged: (_) => setState(() {
-                      _environment = BackendEnvironment.test;
-                    }),
-                    decoration: InputDecoration(
-                      labelText: 'Usuario',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      border: border,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  if (!_registering &&
-                      AppConfig.canChooseEnvironment(_username.text)) ...[
-                    DropdownButtonFormField<BackendEnvironment>(
-                      isExpanded: true,
-                      key: ValueKey(_environment),
-                      initialValue: _environment,
-                      decoration: InputDecoration(
-                        labelText: 'Ambiente',
-                        border: border,
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: BackendEnvironment.test,
-                          child: Text('Pruebas (Alquilados_Test)'),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Image.asset(
+                            'assets/app_icon.png',
+                            width: 58,
+                            height: 58,
+                            fit: BoxFit.contain,
+                          ),
                         ),
-                        DropdownMenuItem(
-                          value: BackendEnvironment.production,
-                          child: Text('Producción'),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Alquilados',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _registering ? 'Solicitar acceso' : 'Iniciar sesión',
+                          style: AppTypography.displayMedium.copyWith(
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
-                      onChanged: _loading
-                          ? null
-                          : (value) => setState(() {
-                              _environment = value ?? BackendEnvironment.test;
-                            }),
                     ),
-                    const SizedBox(height: 14),
-                  ],
-                  if (_registering)
-                    TextField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
-                      decoration: InputDecoration(
-                        labelText: 'Correo',
-                        hintText: 'usuario@empresa.com',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        border: border,
-                      ),
-                    ),
+                  ),
                   const SizedBox(height: 14),
-                  TextField(
-                    controller: _password,
-                    obscureText: true,
-                    autofillHints: [
-                      _registering
-                          ? AutofillHints.newPassword
-                          : AutofillHints.password,
-                    ],
-                    decoration: InputDecoration(
-                      labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: border,
-                    ),
-                  ),
-                  if (_registering) ...[
-                    const SizedBox(height: 14),
-                    FutureBuilder<List<Map<String, dynamic>>>(
-                      future: _companies,
-                      builder: (context, snapshot) {
-                        if (snapshot.hasError) {
-                          return const Text(
-                            'No se pudieron cargar las empresas disponibles.',
-                          );
-                        }
-                        if (!snapshot.hasData) {
-                          return const LinearProgressIndicator();
-                        }
-                        final companies = snapshot.data!;
-                        return DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          initialValue:
-                              companies.any((item) => item['id'] == _companyId)
-                              ? _companyId
-                              : null,
-                          decoration: InputDecoration(
-                            labelText: 'Empresa',
-                            border: border,
+                  AppCard(
+                    borderRadius: 20,
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      children: [
+                        if (_registering) ...[
+                          TextField(
+                            controller: _name,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(
+                              labelText: 'Nombre completo',
+                              prefixIcon: const Icon(Icons.person_outline),
+                            ),
                           ),
-                          items: companies
-                              .map(
-                                (item) => DropdownMenuItem(
-                                  value: item['id'].toString(),
-                                  child: Text(item['name'].toString()),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) =>
-                              setState(() => _companyId = value),
-                        );
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 22),
-                  AppButton(
-                    text: _registering ? 'Enviar solicitud' : 'Iniciar sesión',
-                    isLoading: _loading,
-                    onPressed: _loading ? null : _submit,
-                  ),
-                  TextButton(
-                    onPressed: _loading
-                        ? null
-                        : () => setState(() {
-                            _registering = !_registering;
-                            if (_registering) {
-                              AppConfig.backend = BackendEnvironment.production;
-                              ref.invalidate(supabaseAuthServiceProvider);
-                              _companyId = null;
-                              _companies = ref
-                                  .read(supabaseAuthServiceProvider)
-                                  .activeCompanies();
-                            }
+                          const SizedBox(height: 14),
+                        ],
+                        TextField(
+                          controller: _username,
+                          enabled: !_loading,
+                          autocorrect: false,
+                          autofillHints: const [AutofillHints.username],
+                          onChanged: (_) => setState(() {
+                            _environment = BackendEnvironment.test;
                           }),
-                    child: Text(
-                      _registering
-                          ? 'Ya tengo una cuenta'
-                          : 'Solicitar incorporación a una empresa',
+                          decoration: InputDecoration(
+                            labelText: 'Usuario',
+                            prefixIcon: const Icon(Icons.person_outline),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        if (!_registering &&
+                            AppConfig.canChooseEnvironment(_username.text)) ...[
+                          DropdownButtonFormField<BackendEnvironment>(
+                            isExpanded: true,
+                            key: ValueKey(_environment),
+                            initialValue: _environment,
+                            decoration: InputDecoration(labelText: 'Ambiente'),
+                            items: const [
+                              DropdownMenuItem(
+                                value: BackendEnvironment.test,
+                                child: Text('Pruebas (Alquilados_Test)'),
+                              ),
+                              DropdownMenuItem(
+                                value: BackendEnvironment.production,
+                                child: Text('Producción'),
+                              ),
+                            ],
+                            onChanged: _loading
+                                ? null
+                                : (value) => setState(() {
+                                    _environment =
+                                        value ?? BackendEnvironment.test;
+                                  }),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+                        if (_registering) ...[
+                          TextField(
+                            controller: _email,
+                            keyboardType: TextInputType.emailAddress,
+                            autofillHints: const [AutofillHints.email],
+                            decoration: InputDecoration(
+                              labelText: 'Correo',
+                              hintText: 'usuario@empresa.com',
+                              prefixIcon: const Icon(Icons.email_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+                        TextField(
+                          controller: _password,
+                          obscureText: true,
+                          autofillHints: [
+                            _registering
+                                ? AutofillHints.newPassword
+                                : AutofillHints.password,
+                          ],
+                          decoration: InputDecoration(
+                            labelText: 'Contraseña',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                          ),
+                        ),
+                        if (_registering) ...[
+                          const SizedBox(height: 14),
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                            future: _companies,
+                            builder: (context, snapshot) {
+                              if (snapshot.hasError) {
+                                return const Text(
+                                  'No se pudieron cargar las empresas disponibles.',
+                                );
+                              }
+                              if (!snapshot.hasData) {
+                                return const LinearProgressIndicator();
+                              }
+                              final companies = snapshot.data!;
+                              return DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                initialValue:
+                                    companies.any(
+                                      (item) => item['id'] == _companyId,
+                                    )
+                                    ? _companyId
+                                    : null,
+                                decoration: InputDecoration(
+                                  labelText: 'Empresa',
+                                ),
+                                items: companies
+                                    .map(
+                                      (item) => DropdownMenuItem(
+                                        value: item['id'].toString(),
+                                        child: Text(item['name'].toString()),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) =>
+                                    setState(() => _companyId = value),
+                              );
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 22),
+                        AppButton(
+                          text: _registering
+                              ? 'Enviar solicitud'
+                              : 'Iniciar sesión',
+                          isLoading: _loading,
+                          onPressed: _loading ? null : _submit,
+                        ),
+                        TextButton(
+                          onPressed: _loading
+                              ? null
+                              : () => setState(() {
+                                  _registering = !_registering;
+                                  if (_registering) {
+                                    AppConfig.backend =
+                                        BackendEnvironment.production;
+                                    ref.invalidate(supabaseAuthServiceProvider);
+                                    _companyId = null;
+                                    _companies = ref
+                                        .read(supabaseAuthServiceProvider)
+                                        .activeCompanies();
+                                  }
+                                }),
+                          child: Text(
+                            _registering
+                                ? 'Ya tengo una cuenta'
+                                : 'Solicitar incorporación a una empresa',
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Políticas de aceptación
-                  OutlinedButton.icon(
+                  const SizedBox(height: 8),
+                  TextButton.icon(
                     onPressed: () => context.push(AppRoutes.politicas),
                     icon: const Icon(Icons.policy_outlined),
                     label: const Text('Políticas'),

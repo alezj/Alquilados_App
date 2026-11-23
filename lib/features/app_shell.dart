@@ -18,8 +18,9 @@ class AppShellTabNotifier extends Notifier<int> {
   void goToAcciones() => state = 3;
 }
 
-final appShellTabProvider =
-    NotifierProvider<AppShellTabNotifier, int>(AppShellTabNotifier.new);
+final appShellTabProvider = NotifierProvider<AppShellTabNotifier, int>(
+  AppShellTabNotifier.new,
+);
 
 class AppShell extends ConsumerWidget {
   const AppShell({super.key});
@@ -35,23 +36,13 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(appShellTabProvider);
 
-    final title = switch (selectedIndex) {
-      0 => 'Dashboard',
-      1 => 'Alquileres',
-      2 => 'Pagos',
-      _ => 'Acciones',
-    };
-
     return Scaffold(
-      appBar: (selectedIndex == 0 || selectedIndex == 3)
+      appBar: selectedIndex == 3
           ? AppBar(
-              title: Text(title, style: AppTypography.titleMedium),
+              title: const Text('Acciones', style: AppTypography.titleMedium),
             )
           : null,
-      body: IndexedStack(
-        index: selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: selectedIndex, children: _pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) =>
@@ -59,7 +50,7 @@ class AppShell extends ConsumerWidget {
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_rounded),
-            label: 'Dashboard',
+            label: 'Inicio',
           ),
           NavigationDestination(
             icon: Icon(Icons.home_work_rounded),

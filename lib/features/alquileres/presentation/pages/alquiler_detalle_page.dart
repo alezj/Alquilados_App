@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/shared/widgets/status_badge.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../pagos/domain/entities/pago.dart';
@@ -72,33 +73,55 @@ class AlquilerDetallePage extends ConsumerWidget {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MetricCard(
-                          label: 'Meses acordados',
-                          value: '$cantidadMeses',
-                          icon: Icons.calendar_month_rounded,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _MetricCard(
-                          label: 'Pagos realizados',
-                          value: '$pagosRealizados',
-                          icon: Icons.check_circle_outline_rounded,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _MetricCard(
-                          label: 'Pendientes',
-                          value: '$pendientes',
-                          icon: Icons.pending_actions_rounded,
-                          highlight: pendientes > 0,
-                        ),
-                      ),
-                    ],
+                  AppCard(
+                    child: AppSectionHeader(
+                      title: propertyName,
+                      subtitle: tenantName,
+                      icon: Icons.key_rounded,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final textScale =
+                          MediaQuery.textScalerOf(context).scale(14) / 14;
+                      final columns = constraints.maxWidth >= 360 * textScale
+                          ? 3
+                          : 2;
+                      final width =
+                          (constraints.maxWidth - (columns - 1) * 8) / columns;
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          SizedBox(
+                            width: width,
+                            child: _MetricCard(
+                              label: 'Meses acordados',
+                              value: '$cantidadMeses',
+                              icon: Icons.calendar_month_rounded,
+                            ),
+                          ),
+                          SizedBox(
+                            width: width,
+                            child: _MetricCard(
+                              label: 'Pagos realizados',
+                              value: '$pagosRealizados',
+                              icon: Icons.check_circle_outline_rounded,
+                            ),
+                          ),
+                          SizedBox(
+                            width: width,
+                            child: _MetricCard(
+                              label: 'Pendientes',
+                              value: '$pendientes',
+                              icon: Icons.pending_actions_rounded,
+                              highlight: pendientes > 0,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   AppCard(
@@ -120,8 +143,6 @@ class AlquilerDetallePage extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          _InfoRow(label: 'Propiedad', value: propertyName),
-                          _InfoRow(label: 'Inquilino', value: tenantName),
                           _InfoRow(
                             label: 'Fecha de inicio',
                             value: _formatDate(alquiler.fechaInicio),

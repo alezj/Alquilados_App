@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
 import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../../../core/shared/widgets/app_empty.dart';
 import '../../../../core/shared/widgets/app_error.dart';
 import '../../../../core/shared/widgets/app_loading.dart';
@@ -43,6 +44,7 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
   Widget build(BuildContext context) {
     final detalleAsync = ref.watch(propiedadDetalleProvider(widget.id));
 
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalle de propiedad'),
@@ -94,19 +96,7 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withAlpha(25),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.apartment_rounded,
-                            size: 30,
-                            color: AppColors.primary,
-                          ),
-                        ),
+                        const AppIconBadge(Icons.apartment_rounded, size: 52),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -117,10 +107,11 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                                 style: AppTypography.titleMedium,
                               ),
                               const SizedBox(height: 6),
-                              Row(
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
                                 children: [
                                   _estadoBadge(propiedad.estado),
-                                  const SizedBox(width: 8),
                                   _syncBadge(propiedad.syncState),
                                 ],
                               ),
@@ -170,7 +161,7 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                           label: 'Inactiva',
                           estadoValor: 4,
                           actual: propiedad.estado,
-                          color: AppColors.textMutedLight,
+                          color: colors.onSurfaceVariant,
                         ),
                       ],
                     ),
@@ -278,7 +269,7 @@ class _PropiedadDetallePageState extends ConsumerState<PropiedadDetallePage> {
                       style: AppTypography.bodyMedium.copyWith(
                         color: propiedad.notas.isNotEmpty
                             ? null
-                            : AppColors.textSecondaryLight,
+                            : colors.onSurfaceVariant,
                       ),
                     ),
                   ],

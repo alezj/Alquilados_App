@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
+import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_section_header.dart';
 import '../../domain/entities/policy_document.dart';
 import '../providers/policy_provider.dart';
 import 'policy_detail_page.dart';
@@ -15,9 +17,7 @@ class PolicyAcceptancePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final catalog = PolicyCatalog.catalog;
     final accepted = ref.watch(policyAcceptanceProvider);
-    final allAccepted = catalog.documents.every(
-      (d) => accepted.contains(d.id),
-    );
+    final allAccepted = catalog.documents.every((d) => accepted.contains(d.id));
 
     return Scaffold(
       appBar: AppBar(
@@ -32,31 +32,14 @@ class PolicyAcceptancePage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.policy_outlined, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: 12),
-                        Text('Políticas', style: Theme.of(context).textTheme.titleLarge),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Para continuar con el registro o inicio de sesión, revise y acepte las políticas.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+            const AppCard(
+              child: AppSectionHeader(
+                title: 'Aceptación de políticas',
+                subtitle: 'Para continuar con el registro o inicio de sesión, revise y acepte las políticas.',
+                icon: Icons.policy_outlined,
               ),
             ),
+            const SizedBox(height: 12),
             ...catalog.documents.map((doc) {
               final isAccepted = accepted.contains(doc.id);
               return Card(
@@ -68,7 +51,7 @@ class PolicyAcceptancePage extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(doc.icono, color: Theme.of(context).colorScheme.primary),
+                          AppIconBadge(doc.icono),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -79,7 +62,11 @@ class PolicyAcceptancePage extends ConsumerWidget {
                           if (isAccepted)
                             const Padding(
                               padding: EdgeInsets.only(right: 8),
-                              child: Icon(Icons.check_circle, color: Colors.green, size: 20),
+                              child: Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 20,
+                              ),
                             ),
                         ],
                       ),
@@ -105,12 +92,18 @@ class PolicyAcceptancePage extends ConsumerWidget {
                           Expanded(
                             child: AppButton(
                               text: isAccepted ? 'Revocado' : 'Aceptar',
-                              variant: isAccepted ? AppButtonVariant.danger : AppButtonVariant.primary,
+                              variant: isAccepted
+                                  ? AppButtonVariant.danger
+                                  : AppButtonVariant.primary,
                               onPressed: () {
-                                ref.read(policyAcceptanceProvider.notifier).accept(doc.id);
+                                ref
+                                    .read(policyAcceptanceProvider.notifier)
+                                    .accept(doc.id);
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('${doc.titulo} aceptada.')),
+                                  SnackBar(
+                                    content: Text('${doc.titulo} aceptada.'),
+                                  ),
                                 );
                               },
                             ),
@@ -132,7 +125,11 @@ class PolicyAcceptancePage extends ConsumerWidget {
                   isFullWidth: true,
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Complete todos los términos para continuar.')),
+                      const SnackBar(
+                        content: Text(
+                          'Complete todos los términos para continuar.',
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -145,10 +142,8 @@ class PolicyAcceptancePage extends ConsumerWidget {
   }
 
   void _showDetail(BuildContext context, PolicyDocument doc) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PolicyDetailPage(document: doc),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => PolicyDetailPage(document: doc)));
   }
 }

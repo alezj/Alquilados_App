@@ -5,8 +5,31 @@ import '../datasources/crm_sync_store.dart';
 import '../datasources/local_database_service.dart';
 
 abstract interface class SyncRepository {
-  Future<SyncStatus> syncNow();
+  Future<SyncStatus> syncNow({String? tenant, String? companyId});
   Future<SyncStatus> pullCrm({required String tenant, String? companyId});
+  Future<SyncStatus> pullProductionTenants({
+    required String tenant,
+    String? companyId,
+  });
+}
+
+class _CompanyTenants {
+  _CompanyTenants(
+    this.tenant,
+    this.companyId,
+    this.remoteIds,
+    this.localByRemote,
+    this.status,
+  ) : remoteByLocal = localByRemote.map(
+        (remote, local) => MapEntry(local, remote),
+      );
+
+  final String tenant;
+  final String companyId;
+  final Set<int> remoteIds;
+  final Map<int, int> localByRemote;
+  final Map<int, int> remoteByLocal;
+  final SyncStatus status;
 }
 
 class SyncRepositoryImpl implements SyncRepository {
@@ -25,6 +48,74 @@ class SyncRepositoryImpl implements SyncRepository {
     'pagos': ApiEndpoints.pagos,
     'mantenimientos': ApiEndpoints.mantenimientos,
   };
+
+  @override
+  Future<SyncStatus> pullProductionTenants({
+    required String tenant,
+    String? companyId,
+  }) async => (await _loadProductionTenants(tenant, companyId)).status;
+
+  Future<_CompanyTenants> _loadProductionTenants(
+    String tenant,
+    String? companyId,
+  ) async {
+    final client = _apiClient!;
+    if (_databaseService.tenantKey != tenant) {
+      throw StateError('La empresa activa cambió.');
+    }
+    final db = await _databaseService.database;
+    final company = companyId ?? await _resolveCompany(client, tenant);
+    final snapshot = <int, Map<String, Object?>>{};
+    const pageSize = 100;
+    var lastId = 0;
+    while (true) {
+      final response = await client.get<List<dynamic>>(
+        'inquilinos',
+        queryParameters: {
+          'select': 'id,nombreApellido,correo,telefono,fechaInicioContrato,fechaPagos,created_at,Origen,usuario,company_id',
+          'company_id': 'eq.$company',
+          'id': 'gt.$lastId',
+          'order': 'id.asc',
+          'limit': pageSize,
+        },
+      );
+      final rows = response.data!;
+      for (final item in rows) {
+        final row = item as Map<String, dynamic>;
+        final id = _asInt(row['id']);
+        if (id <= lastId || row['company_id'] != company) {
+          throw const FormatException(
+            'El servidor devolvió un inquilino fuera de la consulta.',
+          );
+        }
+        lastId = id;
+        final values = _remoteToLocal('inquilinos', row)!..remove('id');
+        snapshot[id] = {...values, 'sync_state': 'synced'};
+      }
+      if (rows.length < pageSize) break;
+    }
+    if (_databaseService.tenantKey != tenant) {
+      throw StateError('La empresa activa cambió.');
+    }
+    final result = await CrmSyncStore().applyTenantSnapshot(db, snapshot);
+    if (result.applied > 0) _databaseService.notifyCrmChanges();
+    return _CompanyTenants(
+      tenant,
+      company,
+      snapshot.keys.toSet(),
+      result.localByRemote,
+      SyncStatus(
+        isRunning: false,
+        message: result.pending > 0
+            ? 'Inquilinos: ${result.applied} cambios aplicados y ${result.pending} pendientes de revisar.'
+            : result.applied > 0
+            ? 'Inquilinos: ${result.applied} cambios aplicados.'
+            : 'Inquilinos al día.',
+        lastUpdatedAt: DateTime.now(),
+        localChanges: result.applied,
+      ),
+    );
+  }
 
   @override
   Future<SyncStatus> pullCrm({
@@ -90,18 +181,22 @@ class SyncRepositoryImpl implements SyncRepository {
     if (!tenant.startsWith(prefix)) {
       throw StateError('Empresa de pruebas inválida.');
     }
+    return _resolveCompany(client, tenant.substring(prefix.length));
+  }
+
+  Future<String> _resolveCompany(ApiClient client, String slug) async {
     final response = await client.get<List<dynamic>>(
       'companies',
       queryParameters: {
         'select': 'id',
-        'slug': 'eq.${tenant.substring(prefix.length)}',
+        'slug': 'eq.$slug',
         'status': 'eq.active',
         'limit': 1,
       },
     );
     final company = (response.data?.firstOrNull as Map?)?['id'] as String?;
     if (company == null) {
-      throw StateError('No se pudo resolver la empresa de pruebas.');
+      throw StateError('No se pudo resolver la empresa activa.');
     }
     return company;
   }
@@ -174,18 +269,22 @@ class SyncRepositoryImpl implements SyncRepository {
   }
 
   @override
-  Future<SyncStatus> syncNow() async {
+  Future<SyncStatus> syncNow({String? tenant, String? companyId}) async {
+    final scope = tenant == null
+        ? null
+        : await _loadProductionTenants(tenant, companyId);
     final tables = _apiClient == null
         ? const ['propiedades', 'inquilinos', 'pagos']
         : _remoteTables.keys.toList(growable: false);
     final pending = <String, List<Map<String, dynamic>>>{};
     for (final table in tables) {
+      _checkScope(scope);
       pending[table] = await _databaseService.getPendingRows(table);
     }
 
     final syncErrors = _apiClient == null
         ? const <String>[]
-        : await _syncRemote(tables, pending);
+        : await _syncRemote(tables, pending, scope: scope);
 
     if (_apiClient == null) {
       for (final entry in pending.entries) {
@@ -207,9 +306,10 @@ class SyncRepositoryImpl implements SyncRepository {
       return SyncStatus(
         isRunning: false,
         message: syncErrors.isEmpty
-            ? 'Todo está sincronizado.'
+            ? scope?.status.message ?? 'Todo está sincronizado.'
             : 'Consulta remota con incidencias: ${syncErrors.join('; ')}',
         lastUpdatedAt: syncErrors.isEmpty ? null : DateTime.now(),
+        localChanges: scope?.status.localChanges ?? 0,
       );
     }
 
@@ -219,20 +319,28 @@ class SyncRepositoryImpl implements SyncRepository {
           ? 'Se sincronizaron $total registros locales.'
           : 'Se procesaron $total registros con incidencias: ${syncErrors.join('; ')}',
       lastUpdatedAt: DateTime.now(),
+      localChanges: scope?.status.localChanges ?? 0,
     );
   }
 
   Future<List<String>> _syncRemote(
     List<String> tables,
-    Map<String, List<Map<String, dynamic>>> pending,
-  ) async {
+    Map<String, List<Map<String, dynamic>>> pending, {
+    _CompanyTenants? scope,
+  }) async {
     final errors = <String>[];
     final remoteIds = <String, Set<int>>{};
     final dependencyUploads = <String, Set<int>>{};
     for (final table in tables) {
+      if (scope != null && table == 'inquilinos') {
+        remoteIds[table] = {...scope.remoteIds};
+        continue;
+      }
       late final List<Map<String, dynamic>> rows;
       try {
-        rows = await _getRemoteRows(_remoteTables[table]!);
+        rows = await _getRemoteRows(
+          _withCompany(_remoteTables[table]!, table, scope),
+        );
       } catch (error) {
         errors.add('$table (lectura: $error)');
         continue;
@@ -251,7 +359,20 @@ class SyncRepositoryImpl implements SyncRepository {
             values['id'] is int &&
             values['id'] > 0 &&
             !pendingIds.contains(values['id'])) {
+          final reference = _tenantReferenceKey(table);
+          final remoteTenant = _asInt(values[reference]);
+          if (scope != null && reference != null && remoteTenant > 0) {
+            final localTenant = scope.localByRemote[remoteTenant];
+            if (localTenant == null) {
+              errors.add(
+                '$table/${values['id']} (falta el inquilino autorizado)',
+              );
+              continue;
+            }
+            values[reference] = localTenant;
+          }
           try {
+            _checkScope(scope);
             await _databaseService.upsertSyncedRow(table, values);
           } catch (error) {
             errors.add('$table (guardado: $error)');
@@ -262,7 +383,15 @@ class SyncRepositoryImpl implements SyncRepository {
 
     for (final entry in pending.entries) {
       for (final row in entry.value) {
+        _checkScope(scope);
         final id = _asInt(row['id']);
+        if (scope != null &&
+            entry.key == 'inquilinos' &&
+            (scope.remoteByLocal.containsKey(id) ||
+                scope.remoteIds.contains(id))) {
+          errors.add('inquilinos/$id (se conservó el cambio local)');
+          continue;
+        }
         final dependencies = _parentReferences(entry.key, row);
         var dependenciesReady = true;
         for (final dependency in dependencies.entries) {
@@ -274,6 +403,7 @@ class SyncRepositoryImpl implements SyncRepository {
             remoteIds,
             dependencyUploads,
             errors,
+            scope: scope,
           );
           if (!ready) dependenciesReady = false;
         }
@@ -292,14 +422,29 @@ class SyncRepositoryImpl implements SyncRepository {
         try {
           final response = method == 'patch'
               ? await _apiClient!.patch<dynamic>(
-                  '${path.split('?').first}?id=eq.$id&Origen=eq.movil&usuario=eq.${row['usuario']}',
-                  data: _localToRemote(entry.key, row),
+                  _withCompany(
+                    '${path.split('?').first}?id=eq.$id&Origen=eq.movil&usuario=eq.${row['usuario']}',
+                    entry.key,
+                    scope,
+                  ),
+                  data: _scopedRemotePayload(entry.key, row, scope),
                 )
               : await _apiClient!.post<dynamic>(
                   '${path.split('?').first}?select=*',
-                  data: _localToRemote(entry.key, row),
+                  data: _scopedRemotePayload(entry.key, row, scope),
                 );
           if (response.statusCode != null && response.statusCode! < 300) {
+            _checkScope(scope);
+            if (scope != null &&
+                method == 'patch' &&
+                response.data is List &&
+                (response.data as List).isEmpty) {
+              errors.add(
+                '${entry.key}/$id (el servidor no confirmó el cambio)',
+              );
+              continue;
+            }
+            remoteIds.putIfAbsent(entry.key, () => <int>{}).add(id);
             await _databaseService.markSynced(entry.key, id);
             await _databaseService.logSync(
               entry.key,
@@ -314,6 +459,40 @@ class SyncRepositoryImpl implements SyncRepository {
       }
     }
     return errors;
+  }
+
+  void _checkScope(_CompanyTenants? scope) {
+    if (scope != null && _databaseService.tenantKey != scope.tenant) {
+      throw StateError('La empresa activa cambió.');
+    }
+  }
+
+  String? _tenantReferenceKey(String table) => switch (table) {
+    'alquileres' => 'inquilino_id',
+    'pagos' => 'id_inquilino',
+    _ => null,
+  };
+
+  String _withCompany(String path, String table, _CompanyTenants? scope) =>
+      scope == null || table == 'estados'
+      ? path
+      : '$path&company_id=eq.${scope.companyId}';
+
+  Map<String, dynamic> _scopedRemotePayload(
+    String table,
+    Map<String, dynamic> row,
+    _CompanyTenants? scope,
+  ) {
+    if (scope == null || table == 'estados') return _localToRemote(table, row);
+    final reference = _tenantReferenceKey(table);
+    final remoteTenant = scope.remoteByLocal[_asInt(row[reference])];
+    return {
+      ..._localToRemote(table, {
+        ...row,
+        if (reference != null && remoteTenant != null) reference: remoteTenant,
+      }),
+      'company_id': scope.companyId,
+    };
   }
 
   Map<String, int?> _parentReferences(String table, Map<String, dynamic> row) =>
@@ -335,8 +514,14 @@ class SyncRepositoryImpl implements SyncRepository {
     int id,
     Map<String, Set<int>> remoteIds,
     Map<String, Set<int>> dependencyUploads,
-    List<String> errors,
-  ) async {
+    List<String> errors, {
+    _CompanyTenants? scope,
+  }) async {
+    _checkScope(scope);
+    if (scope != null && table == 'inquilinos') {
+      if (scope.remoteByLocal.containsKey(id)) return true;
+      if (scope.remoteIds.contains(id)) return false;
+    }
     if (remoteIds[table]?.contains(id) == true) return true;
 
     final localRow = await _databaseService.getRowById(table, id);
@@ -354,6 +539,7 @@ class SyncRepositoryImpl implements SyncRepository {
         remoteIds,
         dependencyUploads,
         errors,
+        scope: scope,
       );
       if (!ready) return false;
     }
@@ -361,7 +547,7 @@ class SyncRepositoryImpl implements SyncRepository {
     try {
       final response = await _apiClient!.post<dynamic>(
         _remoteTables[table]!.split('?').first,
-        data: _localToRemote(table, localRow),
+        data: _scopedRemotePayload(table, localRow, scope),
       );
       if (response.statusCode == null || response.statusCode! >= 300) {
         errors.add('$table/$id (no se pudo crear el registro relacionado)');
@@ -369,6 +555,7 @@ class SyncRepositoryImpl implements SyncRepository {
       }
       remoteIds.putIfAbsent(table, () => <int>{}).add(id);
       dependencyUploads.putIfAbsent(table, () => <int>{}).add(id);
+      _checkScope(scope);
       await _databaseService.markSynced(table, id);
       await _databaseService.logSync(
         table,

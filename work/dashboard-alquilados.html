@@ -1,0 +1,132 @@
+<style>
+  #alquilados-dashboard-preview {
+    --brand: #284ad7;
+    --brand-dark: #172963;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  #alquilados-dashboard-preview .stage {
+    box-sizing: border-box;
+    min-height: 650px;
+    padding: 12px 8px;
+  }
+  #alquilados-dashboard-preview .phone {
+    --paper: light-dark(#f4f6fa, #151924);
+    --panel: light-dark(#ffffff, #202637);
+    --ink: light-dark(#151f39, #f3f5ff);
+    --dim: light-dark(#4f5c74, #bbc4db);
+    --line: light-dark(#e4e8f2, #353e55);
+    --soft: light-dark(#e7ecff, #2d395b);
+    --emphasis: light-dark(#924119, #ffd0a8);
+    --signal: light-dark(#fff0e3, #462e25);
+    box-sizing: border-box;
+    width: min(100%, 380px);
+    margin: auto;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 25px;
+    overflow: hidden;
+    box-shadow: 0 12px 34px #111a3420;
+    font-size: 14px;
+  }
+  #alquilados-dashboard-preview .inside { display: grid; gap: 14px; padding: 17px; }
+  #alquilados-dashboard-preview .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  #alquilados-dashboard-preview .wordmark { display: flex; gap: 7px; align-items: center; font-weight: 650; }
+  #alquilados-dashboard-preview .wordmark svg { color: light-dark(var(--brand), #a9b8ff); }
+  #alquilados-dashboard-preview .month, #alquilados-dashboard-preview .caption { color: var(--dim); font-size: 12px; }
+  #alquilados-dashboard-preview h2 { margin: 0; font-size: 23px; font-weight: 675; letter-spacing: -.025em; line-height: 1.15; }
+  #alquilados-dashboard-preview h3 { margin: 0; font-size: 14px; font-weight: 650; }
+  #alquilados-dashboard-preview .hero {
+    padding: 16px;
+    border-radius: 17px;
+    background: linear-gradient(142deg, var(--brand-dark), var(--brand));
+    color: #ffffff;
+  }
+  #alquilados-dashboard-preview .value { display: block; margin: 4px 0 9px; font-size: clamp(24px, 5vw, 32px); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.045em; }
+  #alquilados-dashboard-preview .collection-track { height: 5px; background: #ffffff4d; border-radius: 8px; overflow: hidden; margin-top: 10px; }
+  #alquilados-dashboard-preview .collection-track span { display: block; height: 100%; width: 75%; background: #e4f2ff; }
+  #alquilados-dashboard-preview .hero-caption { margin-top: 6px; font-size: 12px; color: #f0f3ff; }
+  #alquilados-dashboard-preview .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #alquilados-dashboard-preview .action { min-height: 44px; display: flex; padding: 4px; gap: 6px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); font-weight: 600; text-align: center; }
+  #alquilados-dashboard-preview .action.main { background: var(--brand); border-color: transparent; color: #ffffff; }
+  #alquilados-dashboard-preview .block { padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+  #alquilados-dashboard-preview .rows { list-style: none; padding: 0; margin: 4px 0 0; }
+  #alquilados-dashboard-preview .rows li { display: flex; align-items: center; gap: 8px; justify-content: space-between; min-height: 38px; }
+  #alquilados-dashboard-preview .rows li + li { border-top: 1px solid var(--line); }
+  #alquilados-dashboard-preview .tag { border-radius: 7px; padding: 3px 6px; background: var(--signal); color: var(--emphasis); font-weight: 650; font-size: 12px; text-align: center; }
+  #alquilados-dashboard-preview .occupancy { display: flex; gap: 8px; align-items: center; }
+  #alquilados-dashboard-preview .occupancy span { display: block; margin-top: 3px; }
+  #alquilados-dashboard-preview .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #alquilados-dashboard-preview .metrics strong { display: block; margin-top: 3px; font-size: 24px; }
+  #alquilados-dashboard-preview .nav {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 7px 5px 12px;
+    background: var(--panel); border-top: 1px solid var(--line); color: var(--dim);
+    text-align: center; font-size: 11px;
+  }
+  #alquilados-dashboard-preview .nav span { display: grid; justify-items: center; gap: 3px; }
+  #alquilados-dashboard-preview .nav .current { color: light-dark(var(--brand), #c1ccff); font-weight: 700; }
+  #alquilados-dashboard-preview .nav .current svg { background: var(--soft); border-radius: 12px; padding: 4px 10px; margin-top: -4px; margin-bottom: -4px; }
+  @media (max-width: 380px) {
+    #alquilados-dashboard-preview .inside { padding: 13px; }
+    #alquilados-dashboard-preview .stage { min-height: 665px; padding-inline: 4px; }
+    #alquilados-dashboard-preview .action { flex-direction: column; gap: 3px; }
+    #alquilados-dashboard-preview .metrics strong { font-size: 20px; }
+  }
+</style>
+<div id="alquilados-dashboard-preview">
+  <div class="viz-carousel viz-dotted-background" aria-label="Dos propuestas para el Dashboard de Alquilados" data-previous-label="Anterior" data-next-label="Siguiente">
+    <section class="stage" data-variant="Cobros primero" aria-label="Cobros primero">
+      <div class="phone">
+        <div class="inside">
+          <header class="top"><span class="wordmark"><i data-lucide="building-2" aria-hidden="true"></i> Alquilados</span><span class="month">Noviembre 2026</span></header>
+          <h2>Resumen</h2>
+          <section class="hero" aria-label="Cobros del mes">
+            <h3>Cobrado este mes</h3>
+            <strong class="value">RD$45,000</strong>
+            <span>RD$15,000 por cobrar</span>
+            <div class="collection-track" role="progressbar" aria-label="Porcentaje cobrado" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+            <div class="hero-caption">75 % de RD$60,000 previstos</div>
+          </section>
+          <div class="actions" aria-label="Accesos rápidos"><span class="action main"><i data-lucide="plus" aria-hidden="true"></i> Registrar pago</span><span class="action"><i data-lucide="key-round" aria-hidden="true"></i> Alquileres</span></div>
+          <section class="block" aria-label="Por atender">
+            <h3>Por atender</h3>
+            <ul class="rows"><li><span>Pagos vencidos</span><span class="tag">2 pagos</span></li><li><span>Vencen en 7 días</span><span>1 pago</span></li></ul>
+          </section>
+          <section class="block occupancy" aria-label="Ocupación">
+            <i data-lucide="building-2" aria-hidden="true"></i>
+            <div><h3>Ocupación</h3><span class="caption">6 de 8 propiedades ocupadas</span></div>
+          </section>
+        </div>
+        <div class="nav" aria-label="Navegación de la app"><span class="current"><i data-lucide="layout-grid" aria-hidden="true"></i> Inicio</span><span><i data-lucide="key-round" aria-hidden="true"></i> Alquileres</span><span><i data-lucide="wallet" aria-hidden="true"></i> Pagos</span><span><i data-lucide="settings" aria-hidden="true"></i> Acciones</span></div>
+      </div>
+    </section>
+    <section class="stage" data-variant="Agenda primero" aria-label="Agenda primero" hidden>
+      <div class="phone">
+        <div class="inside">
+          <header class="top"><span class="wordmark"><i data-lucide="building-2" aria-hidden="true"></i> Alquilados</span><span class="month">Noviembre 2026</span></header>
+          <h2>Por atender</h2>
+          <section class="block" aria-label="Agenda de pagos">
+            <ul class="rows"><li><span>Local 02<br><span class="caption">Pago de noviembre</span></span><span class="tag">Vencido</span></li><li><span>Apto. 3B<br><span class="caption">Pago de noviembre</span></span><span class="tag">Vencido</span></li><li><span>Apto. 1A<br><span class="caption">Próximo pago</span></span><span>28 nov.</span></li></ul>
+          </section>
+          <div class="actions" aria-label="Accesos rápidos"><span class="action main"><i data-lucide="plus" aria-hidden="true"></i> Registrar pago</span><span class="action"><i data-lucide="key-round" aria-hidden="true"></i> Alquileres</span></div>
+          <h3>Resumen del mes</h3>
+          <div class="metrics"><div class="block"><span class="caption">Cobrado</span><strong>RD$45,000</strong></div><div class="block"><span class="caption">Por cobrar</span><strong>RD$15,000</strong></div></div>
+          <section class="block occupancy" aria-label="Ocupación">
+            <i data-lucide="building-2" aria-hidden="true"></i>
+            <div><h3>Ocupación</h3><span class="caption">6 de 8 propiedades ocupadas</span></div>
+          </section>
+        </div>
+        <div class="nav" aria-label="Navegación de la app"><span class="current"><i data-lucide="layout-grid" aria-hidden="true"></i> Inicio</span><span><i data-lucide="key-round" aria-hidden="true"></i> Alquileres</span><span><i data-lucide="wallet" aria-hidden="true"></i> Pagos</span><span><i data-lucide="settings" aria-hidden="true"></i> Acciones</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById("alquilados-dashboard-preview");
+  if (!root || !globalThis.Tweak) return;
+  const design = { accent: "#284ad7" };
+  const tweak = new Tweak({ container: root, onChange: () => root.style.setProperty("--brand", design.accent) });
+  tweak.addColorPicker(design, "accent", { label: "Azul principal", reference: "--brand" });
+})();
+</script>

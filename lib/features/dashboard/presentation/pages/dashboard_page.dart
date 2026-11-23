@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared/widgets/app_card.dart';
+import '../../../../core/shared/widgets/app_error.dart';
+import '../../../../core/shared/widgets/app_loading.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../app_shell.dart';
 import '../../../pagos/presentation/providers/pagos_provider.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
+import '../../domain/dashboard_collections.dart';
 
 final dashboardSummaryProvider = FutureProvider<Map<String, int>>((ref) async {
   final database = LocalDatabaseService();
@@ -15,242 +20,359 @@ final dashboardSummaryProvider = FutureProvider<Map<String, int>>((ref) async {
   return database.getDashboardSummary();
 });
 
-class DashboardPage extends ConsumerStatefulWidget {
+final dashboardCollectionsProvider = Provider<AsyncValue<DashboardCollections>>(
+  (ref) {
+    final today = ref.watch(hoyPagosProvider);
+    return ref
+        .watch(pagosProvider)
+        .whenData(
+          (payments) => DashboardCollections.fromPayments(
+            today: today,
+            payments: payments,
+          ),
+        );
+  },
+);
+
+final _currency = NumberFormat.currency(
+  locale: 'es_US',
+  symbol: 'RD\$',
+  decimalDigits: 2,
+);
+
+class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
 
   @override
-  ConsumerState<DashboardPage> createState() => _DashboardPageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(dashboardSummaryProvider);
+    final collections = ref.watch(dashboardCollectionsProvider);
+    final colors = Theme.of(context).colorScheme;
+
+    void openPayments(FiltroEstadoPago filter) {
+      ref.read(pagosFiltroProvider.notifier).abrirDesdeInicio(filter);
+      ref.read(appShellTabProvider.notifier).goToPagos();
+    }
+
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: () async {
+          try {
+            await Future.wait([
+              ref.refresh(dashboardSummaryProvider.future),
+              ref.refresh(pagosProvider.future),
+            ]);
+          } catch (_) {
+            // The affected section displays its retry state.
+          }
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.apartment_rounded, color: colors.primary),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Alquilados',
+                            style: AppTypography.titleSmall,
+                          ),
+                        ),
+                        collections.maybeWhen(
+                          data: (data) => Flexible(
+                            child: Text(
+                              _monthLabel(data.today),
+                              textAlign: TextAlign.end,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          orElse: () => const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('Resumen', style: AppTypography.displayMedium),
+                    const SizedBox(height: 14),
+                    collections.when(
+                      data: (data) => _CollectionsCard(data: data),
+                      loading: () => const AppCard(
+                        child: AppLoading(message: 'Cargando cobros…'),
+                      ),
+                      error: (_, _) => AppError(
+                        title: 'No pudimos cargar los cobros',
+                        message: 'Vuelve a cargar los datos de pagos.',
+                        onRetry: () => ref.invalidate(pagosProvider),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const DashboardQuickActions(),
+                    const SizedBox(height: 18),
+                    if (collections.hasValue) ...[
+                      AppCard(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text(
+                              'Por atender',
+                              style: AppTypography.titleSmall,
+                            ),
+                            const SizedBox(height: 4),
+                            _AlertRow(
+                              label: 'Pagos vencidos',
+                              count: collections.requireValue.overdue,
+                              icon: Icons.error_outline_rounded,
+                              urgent: true,
+                              onTap: () =>
+                                  openPayments(FiltroEstadoPago.vencido),
+                            ),
+                            const Divider(height: 1),
+                            _AlertRow(
+                              label: 'Próximos 7 días',
+                              count: collections.requireValue.upcoming,
+                              icon: Icons.event_outlined,
+                              onTap: () =>
+                                  openPayments(FiltroEstadoPago.proximos),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    summary.when(
+                      data: (data) => AppCard(
+                        onTap: () => context.push(AppRoutes.propiedades),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.apartment_rounded,
+                              color: colors.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Ocupación',
+                                    style: AppTypography.titleSmall,
+                                  ),
+                                  Text(
+                                    '${data['ocupadas'] ?? 0} de ${data['totalPropiedades'] ?? 0} propiedades ocupadas',
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: colors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
+                      ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, _) => AppError(
+                        title: 'No pudimos cargar la ocupación',
+                        message: 'Vuelve a cargar el resumen de propiedades.',
+                        onRetry: () => ref.invalidate(dashboardSummaryProvider),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _monthLabel(DateTime date) {
+    const months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
 }
 
-class _DashboardPageState extends ConsumerState<DashboardPage> {
-  @override
-  void initState() {
-    super.initState();
+class _CollectionsCard extends StatelessWidget {
+  const _CollectionsCard({required this.data});
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(dashboardSummaryProvider);
-    });
-  }
+  final DashboardCollections data;
 
   @override
   Widget build(BuildContext context) {
-    final summary = ref.watch(dashboardSummaryProvider);
+    final progress = data.collectionProgress;
+    final percent = progress == null ? null : (progress * 100).round();
 
-    return summary.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>
-          const Center(child: Text('No pudimos cargar el resumen.')),
-      data: (data) {
-        final stats = [
-          _StatCard(
-            title: 'Propiedades',
-            value: '${data['totalPropiedades'] ?? 0}',
-            subtitle: 'total',
-            icon: Icons.apartment_rounded,
-            color: const Color(0xFF6C63FF),
-            route: AppRoutes.propiedades,
-          ),
-          _StatCard(
-            title: 'Ocupadas',
-            value: '${data['ocupadas'] ?? 0}',
-            subtitle: 'alquiladas',
-            icon: Icons.lock_rounded,
-            color: const Color(0xFFE53935),
-            route: AppRoutes.propiedades,
-          ),
-          _StatCard(
-            title: 'Disponibles',
-            value: '${data['disponibles'] ?? 0}',
-            subtitle: 'libres',
-            icon: Icons.lock_open_rounded,
-            color: const Color(0xFF43A047),
-            route: AppRoutes.propiedades,
-          ),
-          _StatCard(
-            title: 'Alquileres',
-            value: '${data['alquileresActivos'] ?? 0}',
-            subtitle: 'activos',
-            icon: Icons.home_work_rounded,
-            color: const Color(0xFF1E88E5),
-            onTap: () =>
-                ref.read(appShellTabProvider.notifier).goToAlquileres(),
-          ),
-          _StatCard(
-            title: 'Pagos pendientes',
-            value: '${data['pagosPendientes'] ?? 0}',
-            subtitle: 'por revisar',
-            icon: Icons.pending_actions_rounded,
-            color: const Color(0xFFF4511E),
-            onTap: () {
-              ref.read(appShellTabProvider.notifier).goToPagos();
-              ref
-                  .read(pagosFiltroProvider.notifier)
-                  .setEstado(FiltroEstadoPago.pendiente);
-            },
-          ),
-          _StatCard(
-            title: 'Inquilinos',
-            value: '${data['inquilinos'] ?? 0}',
-            subtitle: 'activos',
-            icon: Icons.people_alt_rounded,
-            color: const Color(0xFF00897B),
-            route: AppRoutes.inquilinos,
-          ),
-        ];
-
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              const DashboardQuickActions(),
-              const SizedBox(height: 16),
-              Expanded(
-                child: GridView.builder(
-                  itemCount: stats.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.45,
-                  ),
-                  itemBuilder: (context, index) => stats[index],
-                ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [AppColors.primaryDark, AppColors.primary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Cobrado este mes',
+              style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _currency.format(data.collected),
+              style: AppTypography.displayLarge.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              '${_currency.format(data.outstanding)} por cobrar del mes',
+              style: AppTypography.bodyMedium.copyWith(color: Colors.white),
+            ),
+            if (progress != null) ...[
+              const SizedBox(height: 12),
+              LinearProgressIndicator(
+                value: progress,
+                minHeight: 5,
+                borderRadius: BorderRadius.circular(6),
+                color: Colors.white,
+                backgroundColor: Colors.white30,
+                semanticsLabel: 'Avance de cobro de los pagos del período',
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$percent % de ${_currency.format(data.expected)} previstos para el mes',
+                style: AppTypography.bodySmall.copyWith(color: Colors.white),
               ),
             ],
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
+class _AlertRow extends StatelessWidget {
+  const _AlertRow({
+    required this.label,
+    required this.count,
     required this.icon,
-    required this.color,
-    this.route,
-    this.onTap,
+    required this.onTap,
+    this.urgent = false,
   });
 
-  final String title;
-  final String value;
-  final String subtitle;
+  final String label;
+  final int count;
   final IconData icon;
-  final Color color;
-  final String? route;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
+  final bool urgent;
 
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final needsAttention = urgent && count > 0;
 
-@override
-Widget build(BuildContext context) {
-  return AppCard(
-    onTap: onTap ?? (route != null ? () => context.push(route!) : null),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        icon,
+        color: needsAttention ? colors.error : colors.onSurfaceVariant,
+      ),
+      title: Text(label, style: AppTypography.bodyMedium),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Icono y valor en la misma fila
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 20, color: color),
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Text(
-                  value,
-                  style: AppTypography.displayMedium.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          // Título
           Text(
-            title,
-            style: AppTypography.labelMedium,
-          ),
-
-          // Subtítulo
-          Text(
-            subtitle,
-            style: AppTypography.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            '$count',
+            style: AppTypography.labelLarge.copyWith(
+              color: needsAttention ? colors.error : colors.onSurfaceVariant,
             ),
           ),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right_rounded),
         ],
       ),
-    ),
-  );
-}
+      onTap: onTap,
+    );
+  }
 }
 
 class DashboardQuickActions extends ConsumerWidget {
   const DashboardQuickActions({super.key});
 
+  static const _payments = 'Registrar pago';
+  static const _rentals = 'Alquileres';
+  static const _gap = 8.0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isMobile = MediaQuery.sizeOf(context).width < 600;
-    const rentalsTitle = 'Alquileres';
-    const paymentsTitle = 'Pagos';
-    const actionGap = 6.0;
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cardWidth = (constraints.maxWidth - actionGap) / 2;
-        final stacked = [rentalsTitle, paymentsTitle].any(
-          (title) => cardWidth < _ActionCard.horizontalWidth(context, title),
+        final width = (constraints.maxWidth - _gap) / 2;
+        final labelWidth = TextPainter.computeWidth(
+          text: const TextSpan(
+            text: _payments,
+            style: AppTypography.labelLarge,
+          ),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
         );
+        final stacked = width < labelWidth.ceilToDouble() + 72;
 
-        return Row(
-          spacing: actionGap,
-          children: [
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.home_work_rounded,
-                color: const Color(0xFF1E88E5),
-                title: rentalsTitle,
-                subtitle: isMobile
-                    ? null
-                    : 'Ver contratos activos, pendientes y finalizados.',
-                stacked: stacked,
-                onTap: () =>
-                    ref.read(appShellTabProvider.notifier).goToAlquileres(),
+        return IntrinsicHeight(
+          child: Row(
+            spacing: _gap,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _ActionCard(
+                  icon: Icons.payment_rounded,
+                  title: _payments,
+                  primary: true,
+                  stacked: stacked,
+                  onTap: () {
+                    ref.read(appShellTabProvider.notifier).goToPagos();
+                    ref.read(openCreatePagoSheetProvider.notifier).trigger();
+                  },
+                ),
               ),
-            ),
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.payment_rounded,
-                color: const Color(0xFF43A047),
-                title: paymentsTitle,
-                subtitle: isMobile ? null : 'Crear pago',
-                stacked: stacked,
-                onTap: () {
-                  ref.read(appShellTabProvider.notifier).goToPagos();
-                  ref.read(openCreatePagoSheetProvider.notifier).trigger();
-                },
+              Expanded(
+                child: _ActionCard(
+                  icon: Icons.home_work_rounded,
+                  title: _rentals,
+                  stacked: stacked,
+                  onTap: () =>
+                      ref.read(appShellTabProvider.notifier).goToAlquileres(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -260,85 +382,49 @@ class DashboardQuickActions extends ConsumerWidget {
 class _ActionCard extends StatelessWidget {
   const _ActionCard({
     required this.icon,
-    required this.color,
     required this.title,
     required this.stacked,
     required this.onTap,
-    this.subtitle,
+    this.primary = false,
   });
 
-  static const _padding = EdgeInsets.symmetric(horizontal: 24, vertical: 16);
-  static const _iconPadding = EdgeInsets.all(8);
-  static const _iconSize = 20.0;
-  static const _horizontalGap = 16.0;
-
   final IconData icon;
-  final Color color;
   final String title;
   final bool stacked;
   final VoidCallback onTap;
-  final String? subtitle;
-
-  static double horizontalWidth(BuildContext context, String title) {
-    final titleWidth = TextPainter.computeWidth(
-      text: TextSpan(text: title, style: Theme.of(context).textTheme.bodyLarge),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    );
-
-    return _padding.horizontal +
-        _iconPadding.horizontal +
-        2 * _iconSize +
-        2 * _horizontalGap +
-        titleWidth.ceilToDouble();
-  }
+  final bool primary;
 
   @override
   Widget build(BuildContext context) {
-    final iconBadge = Container(
-      padding: _iconPadding,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(icon, size: _iconSize, color: color),
+    final colors = Theme.of(context).colorScheme;
+    final foreground = primary ? colors.onPrimary : colors.onSurface;
+    final badge = Icon(
+      icon,
+      size: 20,
+      color: primary ? foreground : colors.primary,
     );
-    final textTheme = Theme.of(context).textTheme;
-    final labels = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: stacked
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: textTheme.bodyLarge,
-          textAlign: stacked ? TextAlign.center : TextAlign.start,
-        ),
-        if (subtitle case final subtitle?)
-          Text(
-            subtitle,
-            style: textTheme.bodyMedium,
-            textAlign: stacked ? TextAlign.center : TextAlign.start,
-          ),
-      ],
+    final label = Text(
+      title,
+      textAlign: TextAlign.center,
+      style: AppTypography.labelLarge.copyWith(color: foreground),
     );
 
     return AppCard(
-      padding: _padding,
+      color: primary ? colors.primary : null,
+      borderColor: primary ? Colors.transparent : null,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       onTap: onTap,
       child: stacked
-          ? Column(children: [iconBadge, const SizedBox(height: 8), labels])
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [badge, const SizedBox(height: 6), label],
+            )
           : Row(
-              spacing: _horizontalGap,
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 8,
               children: [
-                iconBadge,
-                Expanded(child: labels),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  color: color,
-                  size: _iconSize,
-                ),
+                badge,
+                Flexible(child: label),
               ],
             ),
     );
