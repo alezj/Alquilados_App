@@ -29,6 +29,87 @@ Este documento registra el estatus actual de todos los procesos y solicitudes en
 | `AUTH_FAILED` | Fallo en autenticación | Reingresar credenciales |
 | `OFFLINE_MODE` | Modo offline activado | Funcionalidad limitada |
 
+### Diagnóstico del error de sincronización
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 14:31:57
+**Fecha Fin**: 2026-11-25 14:35:14
+**Comentario**: La versión instalada en el iPhone pudo leer los recursos de Producción. Una copia temporal de SQLite en modo de solo lectura confirmó dos inquilinos pendientes y un alquiler pendiente. El inquilino local 1 tiene el mismo ID que un registro remoto vinculado al inquilino local 3, por lo que el flujo omite el envío del inquilino local 1 y del alquiler que depende de él. El inquilino local 2 ya está vinculado a su registro remoto y el flujo conserva su edición pendiente. La revisión se limitó al diagnóstico.
+**Verificación en pantalla**: La captura de Acciones confirma «se conservó el cambio local» para los dos inquilinos y «no se envió: faltan registros relacionados» para el alquiler. El contador incluye los tres registros evaluados y ninguno de esos tres se envió en ese intento.
+
+### Consulta sobre exclusión de pendientes desde el móvil
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 14:37:19
+**Fecha Fin**: 2026-11-25 14:37:32
+**Comentario**: La revisión local confirmó que Acciones no ofrece exclusión por registro ni reversión de ediciones pendientes. Eliminar un alquiler borra también sus pagos locales y eliminar un inquilino borra la ficha local. La sincronización manual de Producción intenta enviar los pendientes. La consulta no requirió otra sesión remota.
+
+### Descarte de cambios locales de Producción
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 14:39:28
+**Fecha Fin**: 2026-11-25 14:46:03
+**Comentario**: Se descartaron el inquilino y el alquiler locales 1, y se restauró el inquilino 2 con los datos de la web. El pago local 1 se conservó como independiente. El respaldo previo conserva sus vínculos originales. Supabase se consultó en modo de solo lectura.
+**Verificación**: La copia recibida desde el iPhone coincide con la instalada. SQLite devolvió integridad correcta y cero pendientes en inquilinos, alquileres y pagos. Se reabrió la app en el iPhone.
+
+### Recuperación de la base local de Pruebas
+**Estatus**: `FAILED`
+**Última Actualización**: 2026-11-25 14:46:03
+**Comentario**: Una transferencia de Xcode usó la carpeta Documentos como destino de un archivo y la reemplazó, incluida la base SQLite de Pruebas. Se restauró la carpeta con la base verificada de Producción. El feed remoto de Pruebas conserva cambios de propiedades, inquilinos, alquileres y pagos. No se recuperó la copia local exacta.
+**Punto Detención**: La búsqueda en rutas accesibles no encontró la base local de Pruebas. macOS denegó el listado de respaldos del iPhone bajo MobileSync. Un respaldo previo del dispositivo permitiría verificar si la base puede recuperarse.
+
+### Consulta de descarga del contrato 3
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 14:49:36
+**Fecha Fin**: 2026-11-25 14:49:45
+**Comentario**: La lectura autenticada de Supabase confirmó que el contrato 3 de Producción tiene origen web y queda fuera del filtro de alquileres del móvil, que exige origen móvil y usuario legado. La descarga automática de Producción solo consulta inquilinos. La versión instalada carece de una acción para descargar el contrato 3.
+
+### Retiro de accesos administrativos en Acciones
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 15:52:52
+**Fecha Fin**: 2026-11-25 15:54:23
+**Comentario**: Se retiraron Solicitudes de acceso y Roles y permisos del menú Gestión de Acciones. La administración se realiza desde el CRM.
+**Verificación**: Pruebas de interfaz confirmaron la ausencia de ambos accesos y la presencia de Propiedades e Inquilinos. Compilación firmada instalada y abierta en el iPhone.
+
+### Vinculación del pago 1 al contrato 2
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 15:48:38
+**Fecha Fin**: 2026-11-25 15:51:09
+**Comentario**: Se respaldó SQLite y se verificó que únicamente cambiaron los dos campos locales que vinculan el pago 1 con el contrato 2. El inquilino del pago y del contrato es el mismo.
+**Verificación**: Tras la sincronización manual, Supabase registró el pago 1 con el contrato 2 y el inquilino 2. La base del iPhone lo marcó sincronizado y devolvió cero pagos pendientes.
+
+### Diagnóstico de la nueva incidencia de sincronización
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 15:45:08
+**Fecha Fin**: 2026-11-25 15:46:58
+**Comentario**: Producción y la copia temporal del iPhone confirmaron que los pagos 4 y 5 se sincronizaron correctamente. El único pendiente es el pago 1. Su inquilino local 2 está vinculado a Producción, pero el pago hace referencia al alquiler 1, ausente del iPhone y de la empresa en Supabase. El contrato 2 corresponde al mismo inquilino. El envío se detiene al resolver esa dependencia. No se modificaron registros locales ni remotos.
+**Verificación en pantalla**: Acciones muestra que falta el alquiler 1 y que por esa dependencia no se envió el pago 1. La misma pantalla confirma que los contratos web están al día. Falta indicar si el pago 1 corresponde al contrato 2 o se manejará como independiente.
+
+### Propiedad en el recibo PDF
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 15:28:16
+**Fecha Fin**: 2026-11-25 15:30:34
+**Comentario**: El recibo usa el nombre asociado por el contrato del pago, incluido el nombre de la propiedad descargada desde la web. La verificación local encontró tres pagos con propiedad y que el pago 5 sigue sin contrato. No se cambiaron datos de pagos.
+**Verificación**: Siete pruebas de recibo y SQLite aprobadas. PDF de muestra verificó nombre de propiedad, forma y banco. Compilación instalada y abierta en el iPhone.
+
+### Forma de pago en el recibo PDF
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 15:24:18
+**Fecha Fin**: 2026-11-25 15:26:31
+**Comentario**: El recibo usa la forma de pago y el banco registrados. Para pagos anteriores sin forma se muestra «Forma de pago sin indicar». Se eliminó la referencia ficticia. El cambio usa datos locales y no requiere token de Supabase.
+**Verificación**: Tres pruebas de recibo aprobadas y PDF de ejemplo renderizado y revisado. Suite con 127 pruebas aprobadas y el fallo previo de monto del alquiler. Análisis estático del cambio sin hallazgos. Compilación firmada instalada y abierta en el iPhone.
+
+### Inquilino, forma de pago y banco en Pagos
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 15:11:14
+**Fecha Fin**: 2026-11-25 15:21:12
+**Comentario**: Formulario único para alta y edición con inquilino, forma de pago y banco condicionado. Catálogos activos por empresa guardados en SQLite v11. Se aplicó en Alquilados_Test la migración 20261125191755 del RPC y se verificó por transacción revertida. Producción usa los permisos y columnas existentes.
+**Verificación**: Análisis estático sin errores ni advertencias. Suite con 125 pruebas aprobadas y los dos fallos históricos de alquiler y comprobante PDF. Instalación en iPhone correcta. SQLite v11 conserva cuatro pagos de Producción. El iPhone descargó y guardó las cinco formas de pago y los cinco bancos activos de la empresa al abrir el formulario. No se guardó un pago de prueba en Producción.
+
+### Descarga de contratos web de Producción
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 14:51:36
+**Fecha Fin**: 2026-11-25 14:59:26
+**Comentario**: Producción descarga contratos web por empresa al iniciar sesión, volver a la app o sincronizar manualmente. Las copias se guardan en SQLite con edición y eliminación bloqueadas. La descarga reutiliza los permisos de lectura existentes y conserva los registros locales con IDs en conflicto.
+**Verificación**: Consulta de solo lectura con el rol autenticado confirmó acceso al contrato 3 y su propiedad. Flutter analyze sin errores ni advertencias. Suite con 122 pruebas aprobadas y dos fallos previos de alquiler y comprobante PDF. Release instalada y abierta en el iPhone, con SQLite v10 comprobada. Después de iniciar sesión en Producción, una lectura de SQLite del iPhone confirmó que el contrato remoto 3 se descargó con ID local 3 y solo lectura activada.
+
 ### Selector de tema en Acciones
 **Estatus**: `COMPLETED`
 **Fecha Inicio**: 2026-11-23 08:18:01

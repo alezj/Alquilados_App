@@ -10,8 +10,17 @@ import '../../../inquilinos/presentation/providers/inquilinos_provider.dart';
 import '../../../sync/data/datasources/local_database_service.dart';
 import '../../../sync/presentation/providers/sync_provider.dart';
 import '../../data/repositories/online_payment_repository.dart';
+import '../../data/repositories/payment_catalog_repository.dart';
 import '../../domain/entities/pago.dart';
 import 'pagos_provider.dart';
+
+final paymentCatalogProvider = Provider<PaymentCatalogRepository>((ref) {
+  return PaymentCatalogRepository(
+    LocalDatabaseService(),
+    ref.watch(secureStorageProvider),
+    ref.watch(apiClientProvider),
+  );
+});
 
 final paymentMutationsProvider = Provider<PaymentMutations>((ref) {
   return PaymentMutations(
@@ -60,17 +69,24 @@ class PaymentMutations {
     ''');
   }
 
+  Future<double?> suggestedAmount(int tenantId) async {
+    final rental = await _database.getAlquilerActivoByInquilinoId(tenantId);
+    return ((rental?['montoPago'] ?? rental?['importe']) as num?)?.toDouble();
+  }
+
   Future<String?> create({
     required String idInquilino,
     required String fechaPago,
     required double monto,
     required String estado,
+    PaymentMethod? method,
   }) => _write(
     local: () => _database.insertPago(
       idInquilino: idInquilino,
       fechaPago: fechaPago,
       monto: monto,
       estado: estado,
+      method: method,
     ),
     online: (db) async {
       final tenantId = int.tryParse(idInquilino);
@@ -90,6 +106,8 @@ class PaymentMutations {
         'date': fechaPago,
         'amount': monto,
         'status': estado,
+        if (method != null) 'method': method.name,
+        if (method != null) 'bank': method.bank,
       };
     },
     onlineMessage: 'Pago guardado en el CRM.',
@@ -102,6 +120,7 @@ class PaymentMutations {
     required String fechaPago,
     required double monto,
     required String estado,
+    PaymentMethod? method,
   }) => _write(
     local: () => _database.updatePago(
       id: pago.id,
@@ -109,6 +128,7 @@ class PaymentMutations {
       fechaPago: fechaPago,
       monto: monto,
       estado: estado,
+      method: method,
     ),
     online: (db) async => {
       'action': 'update',
@@ -119,6 +139,8 @@ class PaymentMutations {
       'date': fechaPago,
       'amount': monto,
       'status': estado,
+      if (method != null) 'method': method.name,
+      if (method != null) 'bank': method.bank,
     },
     onlineMessage: 'Pago actualizado en el CRM.',
     localMessage: 'Pago actualizado localmente.',

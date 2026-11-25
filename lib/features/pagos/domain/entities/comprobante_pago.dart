@@ -38,6 +38,19 @@ class ComprobantePagoData {
         ? pago.fechaPago
         : DateFormat('dd/MM/yyyy').format(parsedDate);
 
+    final propiedad = pago.propiedadNombre?.trim();
+    final forma = pago.metodoPago?.trim();
+    final banco = pago.banco?.trim();
+    final tieneForma = forma != null && forma.isNotEmpty;
+    final descripcion = [
+      if (propiedad != null && propiedad.isNotEmpty)
+        'Alquiler de $propiedad'
+      else
+        'Alquiler con propiedad sin indicar',
+      tieneForma ? forma : 'Forma de pago sin indicar',
+      if (tieneForma && banco != null && banco.isNotEmpty) banco,
+    ].join(' · ');
+
     return ComprobantePagoData(
       idPago: pago.id,
       numeroRecibo: pago.id.toString(),
@@ -47,7 +60,7 @@ class ComprobantePagoData {
       direccion: '-',
       monto: pago.monto,
       estado: pago.estado,
-      descripcionDetallada: 'Pago de propiedad: - · Transferencia · Banreservas · Ref. 123456',
+      descripcionDetallada: descripcion,
       subtotal: pago.monto,
       retaso: 0.0,
       isFiscal: false,

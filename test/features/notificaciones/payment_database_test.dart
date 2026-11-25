@@ -35,6 +35,10 @@ void main() {
           await db.execute(
             'CREATE TABLE inquilinos (id INTEGER PRIMARY KEY, nombre_apellido TEXT)',
           );
+          await db.execute(
+            'CREATE TABLE pagos (id INTEGER PRIMARY KEY, monto REAL)',
+          );
+          await db.insert('pagos', {'id': 1, 'monto': 12000});
           await db.insert('alquileres', {'id': 1, 'importe': 12000});
           await db.insert('inquilinos', {'id': 1, 'nombre_apellido': 'José'});
         },
@@ -45,15 +49,107 @@ void main() {
         'id': 1,
         'importe': 12000.0,
         'diasProrroga': 0,
+        'solo_lectura': 0,
+        'nombre_propiedad_web': null,
       });
       expect(
         (await migrated.query('inquilinos')).single['nombre_apellido'],
         'José',
       );
       expect((await migrated.query('inquilinos')).single['telefono'], isNull);
-      expect(await migrated.getVersion(), 9);
+      expect((await migrated.query('pagos')).single, {
+        'id': 1,
+        'monto': 12000.0,
+        'metodo_pago': null,
+        'banco': null,
+      });
+      expect(await migrated.getVersion(), 11);
     },
   );
+
+  test(
+    'conserva la forma de pago y limpia el banco y el alquiler al editar',
+    () async {
+      final payment = await service.insertPago(
+        idInquilino: '1',
+        fechaPago: '2026-11-25',
+        monto: 250,
+        estado: 'pendiente',
+        alquilerId: 7,
+        method: (name: 'Transferencia', bank: 'Banco de prueba'),
+      );
+      await service.updatePago(
+        id: payment,
+        idInquilino: '1',
+        fechaPago: '2026-11-25',
+        monto: 250,
+        estado: 'pagado',
+      );
+      final paid = (await service.getPagoById(payment))!;
+      expect(paid['metodo_pago'], 'Transferencia');
+      expect(paid['banco'], 'Banco de prueba');
+      expect(paid['id_alquiler'], 7);
+
+      await service.updatePago(
+        id: payment,
+        idInquilino: '2',
+        fechaPago: '2026-11-25',
+        monto: 250,
+        estado: 'pagado',
+        method: (name: 'Efectivo', bank: null),
+      );
+      final updated = (await service.getPagoById(payment))!;
+      expect(updated['id_inquilino'], '2');
+      expect(updated['id_alquiler'], isNull);
+      expect(updated['alquiler_id'], isNull);
+      expect(updated['metodo_pago'], 'Efectivo');
+      expect(updated['banco'], isNull);
+    },
+  );
+
+  test('el detalle usa la propiedad del contrato vinculado al pago', () async {
+    final property = await service.insertPropiedad(
+      nombre: 'Residencial Las Palmas',
+      direccion: '',
+      estado: 1,
+      precioMensual: 250,
+      notas: '',
+    );
+    final tenant = await service.insertInquilino(nombreApellido: 'Ana');
+    final rental = await service.insertAlquiler(
+      propiedadId: property,
+      inquilinoId: tenant,
+      fechaInicio: '2026-11-01',
+      importe: 250,
+      estado: 'Activo',
+      generarPagosPendientes: false,
+    );
+    final payment = await service.insertPago(
+      idInquilino: '$tenant',
+      fechaPago: '2026-11-25',
+      monto: 250,
+      estado: 'pagado',
+      alquilerId: rental,
+    );
+    final db = await service.database;
+    await db.update(
+      'pagos',
+      {'id_alquiler': null},
+      where: 'id = ?',
+      whereArgs: [payment],
+    );
+    final detail = (await service.getPagoByIdConDetalle(payment))!;
+    expect(detail['propiedad_nombre'], 'Residencial Las Palmas');
+
+    await db.update(
+      'alquileres',
+      {'nombre_propiedad_web': 'Residencial Las Palmas II'},
+      where: 'id = ?',
+      whereArgs: [rental],
+    );
+    final webDetail = (await service.getPagoByIdConDetalle(payment))!;
+    expect(webDetail['propiedad_nombre'], 'Residencial Las Palmas II');
+  });
 
   test(
     'incluye solo deudas activas y elimina avisos al pagar o cerrar contrato',

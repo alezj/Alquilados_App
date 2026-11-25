@@ -147,29 +147,35 @@ class _AlquileresPageState extends ConsumerState<AlquileresPage> {
                                           icon: Icons.key_rounded,
                                         ),
                                       ),
-                                      PopupMenuButton<bool>(
-                                        tooltip: 'Acciones del alquiler',
-                                        onSelected: (edit) {
-                                          if (edit) {
-                                            _openAlquilerSheet(
-                                              context,
-                                              alquiler: alquiler,
-                                            );
-                                          } else {
-                                            _deleteAlquiler(alquiler.id);
-                                          }
-                                        },
-                                        itemBuilder: (_) => const [
-                                          PopupMenuItem(
-                                            value: true,
-                                            child: Text('Editar alquiler'),
-                                          ),
-                                          PopupMenuItem(
-                                            value: false,
-                                            child: Text('Eliminar alquiler'),
-                                          ),
-                                        ],
-                                      ),
+                                      if (alquiler.soloLectura)
+                                        const Tooltip(
+                                          message: 'Solo lectura. Gestionar en la web.',
+                                          child: Icon(Icons.lock_outline),
+                                        )
+                                      else
+                                        PopupMenuButton<bool>(
+                                          tooltip: 'Acciones del alquiler',
+                                          onSelected: (edit) {
+                                            if (edit) {
+                                              _openAlquilerSheet(
+                                                context,
+                                                alquiler: alquiler,
+                                              );
+                                            } else {
+                                              _deleteAlquiler(alquiler.id);
+                                            }
+                                          },
+                                          itemBuilder: (_) => const [
+                                            PopupMenuItem(
+                                              value: true,
+                                              child: Text('Editar alquiler'),
+                                            ),
+                                            PopupMenuItem(
+                                              value: false,
+                                              child: Text('Eliminar alquiler'),
+                                            ),
+                                          ],
+                                        ),
                                     ],
                                   ),
                                   const SizedBox(height: 12),

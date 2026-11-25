@@ -41,7 +41,7 @@ class AlquilerDetallePage extends ConsumerWidget {
           body: FutureBuilder<List<Map<String, dynamic>>>(
             future: LocalDatabaseService().getPagosByAlquilerId(
               id,
-              inquilinoId: alquiler.inquilinoId,
+              inquilinoId: alquiler.soloLectura ? null : alquiler.inquilinoId,
             ),
             builder: (context, pagosSnapshot) {
               final pagos = (pagosSnapshot.data ?? [])
@@ -76,7 +76,9 @@ class AlquilerDetallePage extends ConsumerWidget {
                   AppCard(
                     child: AppSectionHeader(
                       title: propertyName,
-                      subtitle: tenantName,
+                      subtitle: alquiler.soloLectura
+                          ? '$tenantName • Solo lectura'
+                          : tenantName,
                       icon: Icons.key_rounded,
                     ),
                   ),

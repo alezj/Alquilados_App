@@ -46,16 +46,6 @@ class ConfiguracionPage extends ConsumerWidget {
                 Icons.people_outline_rounded,
                 () => context.push('/inquilinos'),
               ),
-              _action(
-                'Solicitudes de acceso',
-                Icons.how_to_reg_outlined,
-                () => context.push('/admin/solicitudes'),
-              ),
-              _action(
-                'Roles y permisos',
-                Icons.admin_panel_settings_outlined,
-                () => context.push('/admin/permisos'),
-              ),
             ],
           ),
         ),

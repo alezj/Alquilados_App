@@ -30,12 +30,15 @@ class CrmSyncStore {
       ) ??
       0;
 
-  /// Production tenants use a scoped snapshot as their source. Persist only
+  /// Production uses a scoped snapshot as its source. Persist only
   /// changed payloads so polling does not refresh timestamps or reapply rows.
   Future<({int applied, int pending, Map<int, int> localByRemote})>
-  applyTenantSnapshot(Database db, Map<int, Map<String, Object?>> snapshot) {
+  applyProductionSnapshot(
+    Database db,
+    String resource,
+    Map<int, Map<String, Object?>> snapshot,
+  ) {
     return db.transaction((txn) async {
-      const resource = 'inquilinos';
       final previous = {
         for (final row in await txn.query(
           'crm_sync_records',
@@ -59,12 +62,16 @@ class CrmSyncStore {
         resource,
         deleted: false,
         authorizedIds: snapshot.keys.toSet(),
+        productionRentals: resource == 'alquileres',
       );
-      final bindings = await txn.rawQuery('''
-        SELECT r.remote_id, r.needs_apply, i.id AS local_id
-        FROM crm_sync_records r LEFT JOIN inquilinos i ON i.id = r.local_id
-        WHERE r.resource = 'inquilinos'
-      ''');
+      final bindings = await txn.rawQuery(
+        '''
+        SELECT r.remote_id, r.needs_apply, t.id AS local_id
+        FROM crm_sync_records r LEFT JOIN $resource t ON t.id = r.local_id
+        WHERE r.resource = ?
+      ''',
+        [resource],
+      );
       return (
         applied: applied,
         pending: bindings
@@ -139,6 +146,7 @@ class CrmSyncStore {
     String resource, {
     required bool deleted,
     Set<int>? authorizedIds,
+    bool productionRentals = false,
   }) async {
     final changes = await txn.query(
       'crm_sync_records',
@@ -173,7 +181,10 @@ class CrmSyncStore {
         if (localId != null && (current == null || _locallyEdited(current))) {
           continue;
         }
-        if (!await _resolveReferences(txn, resource, values)) continue;
+        if (!productionRentals &&
+            !await _resolveReferences(txn, resource, values)) {
+          continue;
+        }
         values.putIfAbsent(
           'synced_at',
           () => DateTime.now().toUtc().toIso8601String(),
@@ -195,9 +206,18 @@ class CrmSyncStore {
             whereArgs: [localId],
           );
         } else {
+          // Keep collisions outside IDs used by legacy sync and local inserts.
+          final collisionId = productionRentals && current != null
+              ? Sqflite.firstIntValue(
+                  await txn.rawQuery(
+                    'SELECT MIN(id, 0) - 1 FROM alquileres ORDER BY id LIMIT 1',
+                  ),
+                )
+              : null;
           localId = await txn.insert(resource, {
             ...values,
             if (current == null) 'id': remoteId,
+            if (collisionId != null) 'id': collisionId,
           });
           applied++;
         }

@@ -38,12 +38,37 @@ void main() {
     expect(comprobante.numeroRecibo, '42');
     expect(comprobante.fecha, '15/09/2026');
     expect(comprobante.telefono, 'ana@ejemplo.com');
-    expect(comprobante.direccion, '—');
+    expect(comprobante.direccion, '-');
     expect(comprobante.subtotalFormateado, '\$1,250.00');
     expect(comprobante.retasoFormateado, '\$0.00');
     expect(comprobante.totalFormateado, '\$1,250.00');
-    expect(comprobante.descripcionDetallada, isNotEmpty);
+    expect(
+      comprobante.descripcionDetallada,
+      'Alquiler con propiedad sin indicar · Forma de pago sin indicar',
+    );
     expect(comprobante.fileName, contains('recibo_pago_42'));
+  });
+
+  test('usa la forma y el banco guardados sin agregar valores ficticios', () {
+    String description(String method, {String? bank}) =>
+        ComprobantePagoData.fromPayment(
+          Pago(
+            id: 42,
+            idInquilino: '7',
+            inquilinoNombre: 'Ana García',
+            fechaPago: '2026-09-15',
+            monto: 1250,
+            metodoPago: method,
+            banco: bank,
+            propiedadNombre: 'Residencial Las Palmas',
+          ),
+        ).descripcionDetallada;
+
+    expect(description('Efectivo'), 'Alquiler de Residencial Las Palmas · Efectivo');
+    expect(
+      description('Transferencia', bank: 'Banco Popular'),
+      'Alquiler de Residencial Las Palmas · Transferencia · Banco Popular',
+    );
   });
 
   test('genera un PDF sin errores', () async {
@@ -53,6 +78,9 @@ void main() {
       inquilinoNombre: 'Ana García',
       fechaPago: '2026-09-15',
       monto: 1250.0,
+      metodoPago: 'Transferencia',
+      banco: 'Banco Popular',
+      propiedadNombre: 'Residencial Las Palmas',
       estado: 'pagado',
       syncState: 'synced',
       syncedAt: '2026-09-15T12:00:00Z',

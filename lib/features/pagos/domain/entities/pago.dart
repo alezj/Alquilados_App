@@ -1,3 +1,5 @@
+typedef PaymentMethod = ({String name, String? bank});
+
 class Pago {
   const Pago({
     required this.id,
@@ -10,6 +12,9 @@ class Pago {
     this.syncedAt,
     this.crmRevision,
     this.periodo,
+    this.metodoPago,
+    this.banco,
+    this.propiedadNombre,
   });
   final int id;
   final String idInquilino;
@@ -21,6 +26,9 @@ class Pago {
   final String? syncedAt;
   final int? crmRevision;
   final String? periodo;
+  final String? metodoPago;
+  final String? banco;
+  final String? propiedadNombre;
 
   String get estadoNormalizado => switch (estado.trim().toLowerCase()) {
     'pagado' || 'paid' || 'completado' || 'completada' => 'pagado',

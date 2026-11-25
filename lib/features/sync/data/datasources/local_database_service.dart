@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../../pagos/domain/entities/pago.dart';
 import 'crm_sync_store.dart';
 
 class LocalDatabaseService {
@@ -204,7 +205,7 @@ class LocalDatabaseService {
 
     return openDatabase(
       path,
-      version: 9,
+      version: 11,
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
     );
@@ -270,6 +271,8 @@ class LocalDatabaseService {
         periodo TEXT,
         fecha_pago TEXT,
         monto REAL,
+        metodo_pago TEXT,
+        banco TEXT,
         estado TEXT,
         "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
         usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
@@ -283,6 +286,8 @@ class LocalDatabaseService {
     await db.execute('''
       CREATE TABLE alquileres (
         id INTEGER PRIMARY KEY,
+        solo_lectura INTEGER NOT NULL DEFAULT 0,
+        nombre_propiedad_web TEXT,
         propiedad_id INTEGER NOT NULL,
         inquilino_id INTEGER NOT NULL,
         fecha_inicio TEXT NOT NULL,
@@ -347,6 +352,7 @@ class LocalDatabaseService {
     await _ensureNotificationSchema(db);
     await CrmSyncStore.createSchema(db);
     await _createOnlinePaymentRequests(db);
+    await _createPaymentCatalog(db);
   }
 
   Future<void> _upgradeSchema(
@@ -441,7 +447,33 @@ class LocalDatabaseService {
     if (oldVersion < 7) await _ensureNotificationSchema(db);
     if (oldVersion < 8) await CrmSyncStore.createSchema(db);
     if (oldVersion < 9) await _createOnlinePaymentRequests(db);
+    if (oldVersion < 10) {
+      await _addColumnIfNotExists(
+        db,
+        'alquileres',
+        'solo_lectura',
+        'INTEGER NOT NULL DEFAULT 0',
+      );
+      await _addColumnIfNotExists(
+        db,
+        'alquileres',
+        'nombre_propiedad_web',
+        'TEXT',
+      );
+    }
+    if (oldVersion < 11) {
+      await _addColumnIfNotExists(db, 'pagos', 'metodo_pago', 'TEXT');
+      await _addColumnIfNotExists(db, 'pagos', 'banco', 'TEXT');
+      await _createPaymentCatalog(db);
+    }
   }
+
+  Future<void> _createPaymentCatalog(Database db) => db.execute('''
+    CREATE TABLE IF NOT EXISTS payment_catalog (
+      company_id TEXT PRIMARY KEY,
+      payload TEXT NOT NULL
+    )
+  ''');
 
   Future<void> _createOnlinePaymentRequests(Database db) => db.execute('''
     CREATE TABLE IF NOT EXISTS online_payment_requests (
@@ -796,6 +828,7 @@ class LocalDatabaseService {
     required String estado,
     int? alquilerId,
     String? periodo,
+    PaymentMethod? method,
   }) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
@@ -809,6 +842,8 @@ class LocalDatabaseService {
         'fecha_pago': fechaPago,
         'monto': monto,
         'estado': estado,
+        if (method != null) 'metodo_pago': method.name,
+        if (method != null) 'banco': method.bank,
         'updated_at': now,
         'sync_state': 'pending',
         'synced_at': null,
@@ -1021,7 +1056,7 @@ class LocalDatabaseService {
           'sync_state': 'pending',
           'synced_at': null,
         },
-        where: 'id = ?',
+        where: 'id = ? AND solo_lectura = 0',
         whereArgs: [id],
       ),
     );
@@ -1203,7 +1238,7 @@ class LocalDatabaseService {
     await ensureDatabaseReady();
     return db.rawQuery('''
       SELECT a.*,
-        p.nombre AS propiedad_nombre,
+        COALESCE(a.nombre_propiedad_web, p.nombre) AS propiedad_nombre,
         i.nombre_apellido AS inquilino_nombre,
         (
           SELECT COUNT(1) FROM pagos pg
@@ -1223,7 +1258,7 @@ class LocalDatabaseService {
     final results = await db.rawQuery(
       '''
       SELECT a.*,
-        p.nombre AS propiedad_nombre,
+        COALESCE(a.nombre_propiedad_web, p.nombre) AS propiedad_nombre,
         i.nombre_apellido AS inquilino_nombre,
         (
           SELECT COUNT(1) FROM pagos pg
@@ -1286,23 +1321,39 @@ class LocalDatabaseService {
     required String fechaPago,
     required double monto,
     required String estado,
+    PaymentMethod? method,
   }) async {
     final db = await database;
     return _notify(
-      db.update(
-        'pagos',
-        {
-          'id_inquilino': idInquilino,
-          'fecha_pago': fechaPago,
-          'monto': monto,
-          'estado': estado,
-          'updated_at': DateTime.now().toIso8601String(),
-          'sync_state': 'pending',
-          'synced_at': null,
-        },
-        where: 'id = ?',
-        whereArgs: [id],
-      ),
+      db.transaction((txn) async {
+        final rows = await txn.query(
+          'pagos',
+          columns: ['id_inquilino'],
+          where: 'id = ?',
+          whereArgs: [id],
+          limit: 1,
+        );
+        final changedTenant =
+            rows.firstOrNull?['id_inquilino']?.toString() != idInquilino;
+        return txn.update(
+          'pagos',
+          {
+            'id_inquilino': idInquilino,
+            if (changedTenant) 'id_alquiler': null,
+            if (changedTenant) 'alquiler_id': null,
+            'fecha_pago': fechaPago,
+            'monto': monto,
+            'estado': estado,
+            if (method != null) 'metodo_pago': method.name,
+            if (method != null) 'banco': method.bank,
+            'updated_at': DateTime.now().toIso8601String(),
+            'sync_state': 'pending',
+            'synced_at': null,
+          },
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }),
     );
   }
 
@@ -1313,12 +1364,23 @@ class LocalDatabaseService {
 
   Future<int> deleteAlquiler(int id) async {
     final db = await database;
-    await db.delete(
-      'pagos',
-      where: 'id_alquiler = ? OR alquiler_id = ?',
-      whereArgs: [id, id],
+    return _notify(
+      db.transaction((txn) async {
+        final deleted = await txn.delete(
+          'alquileres',
+          where: 'id = ? AND solo_lectura = 0',
+          whereArgs: [id],
+        );
+        if (deleted > 0) {
+          await txn.delete(
+            'pagos',
+            where: 'id_alquiler = ? OR alquiler_id = ?',
+            whereArgs: [id, id],
+          );
+        }
+        return deleted;
+      }),
     );
-    return _notify(db.delete('alquileres', where: 'id = ?', whereArgs: [id]));
   }
 
   Future<int> deleteInquilino(int id) async {
@@ -1346,9 +1408,12 @@ class LocalDatabaseService {
     final db = await database;
     final rows = await db.rawQuery(
       '''
-      SELECT p.*, i.nombre_apellido AS inquilino_nombre, r.revision AS crm_revision
+      SELECT p.*, i.nombre_apellido AS inquilino_nombre, r.revision AS crm_revision,
+        COALESCE(NULLIF(TRIM(a.nombre_propiedad_web), ''), pr.nombre) AS propiedad_nombre
       FROM pagos p
       LEFT JOIN inquilinos i ON i.id = CAST(p.id_inquilino AS INTEGER)
+      LEFT JOIN alquileres a ON a.id = COALESCE(NULLIF(p.id_alquiler, 0), p.alquiler_id)
+      LEFT JOIN propiedades pr ON pr.id = a.propiedad_id
       LEFT JOIN crm_sync_records r
         ON r.resource = 'pagos' AND r.local_id = p.id AND r.needs_apply = 0
       WHERE p.id = ?
@@ -1382,7 +1447,13 @@ class LocalDatabaseService {
 
   Future<List<Map<String, dynamic>>> getPendingRows(String tableName) async {
     final db = await database;
-    return db.query(tableName, where: 'sync_state = ?', whereArgs: ['pending']);
+    return db.query(
+      tableName,
+      where: tableName == 'alquileres'
+          ? 'sync_state = ? AND solo_lectura = 0'
+          : 'sync_state = ?',
+      whereArgs: ['pending'],
+    );
   }
 
   Future<Map<String, dynamic>?> getRowById(String tableName, int id) async {

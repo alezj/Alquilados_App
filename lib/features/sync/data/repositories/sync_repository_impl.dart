@@ -7,7 +7,7 @@ import '../datasources/local_database_service.dart';
 abstract interface class SyncRepository {
   Future<SyncStatus> syncNow({String? tenant, String? companyId});
   Future<SyncStatus> pullCrm({required String tenant, String? companyId});
-  Future<SyncStatus> pullProductionTenants({
+  Future<SyncStatus> pullProduction({
     required String tenant,
     String? companyId,
   });
@@ -30,6 +30,8 @@ class _CompanyTenants {
   final Map<int, int> localByRemote;
   final Map<int, int> remoteByLocal;
   final SyncStatus status;
+  Map<int, int> rentalLocalByRemote = const {};
+  Map<int, int> rentalRemoteByLocal = const {};
 }
 
 class SyncRepositoryImpl implements SyncRepository {
@@ -49,11 +51,131 @@ class SyncRepositoryImpl implements SyncRepository {
     'mantenimientos': ApiEndpoints.mantenimientos,
   };
 
-  @override
   Future<SyncStatus> pullProductionTenants({
     required String tenant,
     String? companyId,
   }) async => (await _loadProductionTenants(tenant, companyId)).status;
+
+  @override
+  Future<SyncStatus> pullProduction({
+    required String tenant,
+    String? companyId,
+  }) async {
+    final scope = await _loadProductionTenants(tenant, companyId);
+    final contracts = await _refreshProductionRentals(scope);
+    return SyncStatus(
+      isRunning: false,
+      message: '${scope.status.message} ${contracts.message}',
+      lastUpdatedAt: DateTime.now(),
+      localChanges: scope.status.localChanges + contracts.applied,
+    );
+  }
+
+  Future<({int applied, String message})> _refreshProductionRentals(
+    _CompanyTenants scope,
+  ) async {
+    try {
+      return await _pullProductionRentals(scope);
+    } catch (_) {
+      _checkScope(scope);
+      return (
+        applied: 0,
+        message: 'No se pudieron descargar los contratos web.',
+      );
+    }
+  }
+
+  Future<({int applied, String message})> _pullProductionRentals(
+    _CompanyTenants scope,
+  ) async {
+    final db = await _databaseService.database;
+    const pageSize = 100;
+    var lastId = 0;
+    var unavailableTenants = 0;
+    final snapshot = <int, Map<String, Object?>>{};
+    while (true) {
+      _checkScope(scope);
+      final response = await _apiClient!.get<List<dynamic>>(
+        'alquileres',
+        queryParameters: {
+          'select': '*,propiedad:propiedades!alquileres_property_company_fkey(id,nombre,Origen,usuario,created_at)',
+          'company_id': 'eq.${scope.companyId}',
+          'Origen': 'eq.web',
+          'id': 'gt.$lastId',
+          'order': 'id.asc',
+          'limit': pageSize,
+        },
+      );
+      _checkScope(scope);
+      final rows = response.data!;
+      for (final item in rows) {
+        final row = item as Map<String, dynamic>;
+        final id = _asInt(row['id']);
+        if (id <= lastId ||
+            row['company_id'] != scope.companyId ||
+            row['Origen'] != 'web') {
+          throw const FormatException('Contrato fuera de la consulta.');
+        }
+        lastId = id;
+        final tenantId = scope.localByRemote[_asInt(row['inquilinoID'])];
+        if (tenantId == null) {
+          unavailableTenants++;
+          continue;
+        }
+        final property = row['propiedad'] as Map<String, dynamic>?;
+        final propertyId = _asInt(row['propiedadID']);
+        var localPropertyId = 0;
+        if (property
+            case {
+              'id': int embeddedId,
+              'Origen': String origin,
+              'usuario': String author,
+              'created_at': String createdAt,
+            }
+            when embeddedId == propertyId) {
+          final matches = await db.query(
+            'propiedades',
+            columns: ['id'],
+            where: 'id = ? AND Origen = ? AND usuario = ? AND created_at = ?',
+            whereArgs: [propertyId, origin, author, createdAt],
+          );
+          if (matches.isNotEmpty) localPropertyId = propertyId;
+        }
+        final values = _remoteToLocal('alquileres', row)!..remove('id');
+        snapshot[id] = {
+          ...values,
+          'propiedad_id': localPropertyId,
+          'nombre_propiedad_web': property?['nombre']?.toString(),
+          'inquilino_id': tenantId,
+          'estado': _crmRentalStatus(row),
+          'solo_lectura': 1,
+          'sync_state': 'synced',
+        };
+      }
+      if (rows.length < pageSize) break;
+    }
+
+    _checkScope(scope);
+    final result = await CrmSyncStore().applyProductionSnapshot(
+      db,
+      'alquileres',
+      snapshot,
+    );
+    scope.rentalLocalByRemote = result.localByRemote;
+    scope.rentalRemoteByLocal = result.localByRemote.map(
+      (remote, local) => MapEntry(local, remote),
+    );
+    if (result.applied > 0) _databaseService.notifyCrmChanges();
+    final pending = result.pending + unavailableTenants;
+    return (
+      applied: result.applied,
+      message: pending > 0
+          ? 'Contratos web: ${result.applied} actualizados y $pending pendientes.'
+          : result.applied > 0
+          ? 'Contratos web: ${result.applied} actualizados.'
+          : 'Contratos web al día.',
+    );
+  }
 
   Future<_CompanyTenants> _loadProductionTenants(
     String tenant,
@@ -97,7 +219,11 @@ class SyncRepositoryImpl implements SyncRepository {
     if (_databaseService.tenantKey != tenant) {
       throw StateError('La empresa activa cambió.');
     }
-    final result = await CrmSyncStore().applyTenantSnapshot(db, snapshot);
+    final result = await CrmSyncStore().applyProductionSnapshot(
+      db,
+      'inquilinos',
+      snapshot,
+    );
     if (result.applied > 0) _databaseService.notifyCrmChanges();
     return _CompanyTenants(
       tenant,
@@ -273,6 +399,9 @@ class SyncRepositoryImpl implements SyncRepository {
     final scope = tenant == null
         ? null
         : await _loadProductionTenants(tenant, companyId);
+    final contracts = scope == null
+        ? null
+        : await _refreshProductionRentals(scope);
     final tables = _apiClient == null
         ? const ['propiedades', 'inquilinos', 'pagos']
         : _remoteTables.keys.toList(growable: false);
@@ -302,24 +431,22 @@ class SyncRepositoryImpl implements SyncRepository {
 
     final total = pending.values.fold<int>(0, (sum, rows) => sum + rows.length);
 
-    if (total == 0) {
-      return SyncStatus(
-        isRunning: false,
-        message: syncErrors.isEmpty
-            ? scope?.status.message ?? 'Todo está sincronizado.'
-            : 'Consulta remota con incidencias: ${syncErrors.join('; ')}',
-        lastUpdatedAt: syncErrors.isEmpty ? null : DateTime.now(),
-        localChanges: scope?.status.localChanges ?? 0,
-      );
-    }
-
+    final message = switch ((total, syncErrors.isEmpty)) {
+      (0, true) => scope?.status.message ?? 'Todo está sincronizado.',
+      (0, false) => 'Consulta remota con incidencias: ${syncErrors.join('; ')}',
+      (_, true) => 'Se sincronizaron $total registros locales.',
+      (_, false) =>
+        'Se procesaron $total registros con incidencias: ${syncErrors.join('; ')}',
+    };
+    final localChanges =
+        (scope?.status.localChanges ?? 0) + (contracts?.applied ?? 0);
     return SyncStatus(
       isRunning: false,
-      message: syncErrors.isEmpty
-          ? 'Se sincronizaron $total registros locales.'
-          : 'Se procesaron $total registros con incidencias: ${syncErrors.join('; ')}',
-      lastUpdatedAt: DateTime.now(),
-      localChanges: scope?.status.localChanges ?? 0,
+      message: contracts == null ? message : '$message ${contracts.message}',
+      lastUpdatedAt: total > 0 || localChanges > 0 || syncErrors.isNotEmpty
+          ? DateTime.now()
+          : null,
+      localChanges: localChanges,
     );
   }
 
@@ -371,6 +498,14 @@ class SyncRepositoryImpl implements SyncRepository {
             }
             values[reference] = localTenant;
           }
+          if (scope != null && table == 'pagos') {
+            final rental =
+                scope.rentalLocalByRemote[_asInt(values['id_alquiler'])];
+            if (rental != null) {
+              values['id_alquiler'] = rental;
+              values['alquiler_id'] = rental;
+            }
+          }
           try {
             _checkScope(scope);
             await _databaseService.upsertSyncedRow(table, values);
@@ -396,7 +531,7 @@ class SyncRepositoryImpl implements SyncRepository {
         var dependenciesReady = true;
         for (final dependency in dependencies.entries) {
           final dependencyId = dependency.value ?? 0;
-          if (dependencyId <= 0) continue;
+          if (dependencyId == 0) continue;
           final ready = await _ensureRemoteParent(
             dependency.key,
             dependencyId,
@@ -486,10 +621,16 @@ class SyncRepositoryImpl implements SyncRepository {
     if (scope == null || table == 'estados') return _localToRemote(table, row);
     final reference = _tenantReferenceKey(table);
     final remoteTenant = scope.remoteByLocal[_asInt(row[reference])];
+    final remoteRental = table == 'pagos'
+        ? scope.rentalRemoteByLocal[_asInt(
+            row['id_alquiler'] ?? row['alquiler_id'],
+          )]
+        : null;
     return {
       ..._localToRemote(table, {
         ...row,
         if (reference != null && remoteTenant != null) reference: remoteTenant,
+        if (remoteRental != null) 'id_alquiler': remoteRental,
       }),
       'company_id': scope.companyId,
     };
@@ -522,6 +663,10 @@ class SyncRepositoryImpl implements SyncRepository {
       if (scope.remoteByLocal.containsKey(id)) return true;
       if (scope.remoteIds.contains(id)) return false;
     }
+    if (table == 'alquileres' &&
+        scope?.rentalRemoteByLocal.containsKey(id) == true) {
+      return true;
+    }
     if (remoteIds[table]?.contains(id) == true) return true;
 
     final localRow = await _databaseService.getRowById(table, id);
@@ -529,6 +674,7 @@ class SyncRepositoryImpl implements SyncRepository {
       errors.add('$table/$id (no existe localmente y Supabase lo requiere)');
       return false;
     }
+    if (table == 'alquileres' && localRow['solo_lectura'] == 1) return false;
 
     for (final dependency in _parentReferences(table, localRow).entries) {
       final dependencyId = dependency.value ?? 0;
@@ -617,6 +763,8 @@ class SyncRepositoryImpl implements SyncRepository {
           'idInquilino': _asInt(row['id_inquilino']),
           'fechaPago': row['fecha_pago'],
           'monto': row['monto'],
+          if (row['metodo_pago'] != null) 'metodoPago': row['metodo_pago'],
+          if (row['metodo_pago'] != null) 'banco': row['banco'],
           'idAlquiler': _asNullableInt(
             row['id_alquiler'] ?? row['alquiler_id'],
           ),
@@ -702,6 +850,8 @@ class SyncRepositoryImpl implements SyncRepository {
           'periodo': row['periodo']?.toString(),
           'fecha_pago': row['fechaPago']?.toString() ?? '',
           'monto': _asDouble(row['monto']),
+          'metodo_pago': row['metodoPago']?.toString(),
+          'banco': row['banco']?.toString(),
           'estado': row['estado']?.toString() ?? 'Pendiente',
           'Origen': row['Origen']?.toString() ?? 'movil',
           'usuario': row['usuario']?.toString() ?? _anonymousUserId,

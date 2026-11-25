@@ -15,6 +15,7 @@ class Alquiler {
     this.propiedadNombre,
     this.inquilinoNombre,
     this.pagosRealizados = 0,
+    this.soloLectura = false,
   });
 
   final int id;
@@ -32,6 +33,7 @@ class Alquiler {
   final String? propiedadNombre;
   final String? inquilinoNombre;
   final int pagosRealizados;
+  final bool soloLectura;
 
   /// Cantidad de meses pendientes por pagar (meses acordados menos pagos realizados)
   int get pagosPendientes {
@@ -96,6 +98,7 @@ class Alquiler {
       propiedadNombre: map['propiedad_nombre']?.toString(),
       inquilinoNombre: map['inquilino_nombre']?.toString(),
       pagosRealizados: pagosRealizados,
+      soloLectura: map['solo_lectura'] == 1,
     );
   }
 

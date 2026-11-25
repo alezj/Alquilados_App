@@ -105,11 +105,10 @@ class SyncController extends StateNotifier<AsyncValue<SyncStatus>> {
           tenant: tenant,
           companyId: companyId,
         ),
-        BackendEnvironment.production =>
-          await _repository.pullProductionTenants(
-            tenant: tenant,
-            companyId: companyId,
-          ),
+        BackendEnvironment.production => await _repository.pullProduction(
+          tenant: tenant,
+          companyId: companyId,
+        ),
       };
       if (mounted) {
         if (result.localChanges > 0) onCrmChanges();

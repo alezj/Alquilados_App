@@ -116,4 +116,116 @@ void main() {
       'Cambio móvil',
     );
   });
+
+  test(
+    'downloads read-only web contracts and preserves colliding mobile rentals',
+    () async {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+      final local = LocalDatabaseService.forTesting(inMemoryDatabasePath);
+      addTearDown(local.close);
+      final db = await local.database;
+      await db.insert('inquilinos', {
+        'id': 1,
+        'nombre_apellido': 'Inquilino local',
+      });
+      await db.insert('alquileres', {
+        'id': 3,
+        'propiedad_id': 9,
+        'inquilino_id': 1,
+        'fecha_inicio': '2026-01-01',
+        'importe': 100,
+      });
+      final api = MockTenantApi();
+      final repo = SyncRepositoryImpl(local, api);
+      when(
+        () => api.get<List<dynamic>>(
+          'inquilinos',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(),
+          data: [
+            {
+              'id': 1,
+              'company_id': 'company-a',
+              'Origen': 'web',
+              'nombreApellido': 'Inquilino web',
+            },
+          ],
+        ),
+      );
+      var remoteCompany = 'company-a';
+      var amount = 200;
+      when(
+        () => api.get<List<dynamic>>(
+          'alquileres',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer((call) async {
+        final params = call.namedArguments[#queryParameters] as Map;
+        expect(params['company_id'], 'eq.company-a');
+        expect(params['Origen'], 'eq.web');
+        expect(params.containsKey('usuario'), isFalse);
+        return Response(
+          requestOptions: RequestOptions(),
+          data: [
+            {
+              'id': 3,
+              'company_id': remoteCompany,
+              'Origen': 'web',
+              'propiedadID': 9,
+              'propiedad': {'id': 9, 'nombre': 'Propiedad web'},
+              'inquilinoID': 1,
+              'fechaInicio': '2026-11-01',
+              'importe': amount,
+              'estado': 'pendiente',
+            },
+          ],
+        );
+      });
+
+      Future<int> pull() async => (await repo.pullProduction(
+        tenant: 'admin',
+        companyId: 'company-a',
+      )).localChanges;
+
+      expect(await pull(), 2);
+      expect(await pull(), 0);
+      final contracts = await local.getAlquileresConDetalles();
+      final mobile = contracts.singleWhere((row) => row['id'] == 3);
+      final web = contracts.singleWhere((row) => row['solo_lectura'] == 1);
+      final webId = web['id'] as int;
+      expect(mobile['sync_state'], 'pending');
+      expect(mobile['importe'], 100);
+      expect(webId, isNegative);
+      expect(web['propiedad_nombre'], 'Propiedad web');
+      expect(web['inquilino_nombre'], 'Inquilino web');
+      expect(web['estado'], 'Pendiente');
+      expect(await local.deleteAlquiler(webId), 0);
+      expect(
+        await local.updateAlquiler(
+          id: webId,
+          propiedadId: 9,
+          inquilinoId: 1,
+          fechaInicio: '2026-11-01',
+          importe: 999,
+          estado: 'Activo',
+        ),
+        0,
+      );
+      expect(await local.getPendingRows('alquileres'), hasLength(1));
+
+      amount = 300;
+      expect(await pull(), 1);
+      expect((await local.getAlquilerById(webId))!['importe'], 300);
+      remoteCompany = 'company-b';
+      amount = 400;
+      expect(await pull(), 0);
+      expect((await local.getAlquilerById(webId))!['importe'], 300);
+      verifyNever(() => api.post<dynamic>(any(), data: any(named: 'data')));
+      verifyNever(() => api.patch<dynamic>(any(), data: any(named: 'data')));
+    },
+  );
 }

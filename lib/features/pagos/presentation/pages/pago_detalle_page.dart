@@ -4,7 +4,6 @@ import '../../../notificaciones/domain/whatsapp_reminder.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../core/shared/widgets/app_button.dart';
@@ -24,6 +23,7 @@ import '../../domain/entities/pago.dart';
 import '../providers/payment_mutations_provider.dart';
 import '../providers/pagos_provider.dart';
 import '../widgets/payment_feedback.dart';
+import '../widgets/payment_form_sheet.dart';
 
 class PagoDetallePage extends ConsumerWidget {
   const PagoDetallePage({super.key, required this.id});
@@ -45,7 +45,7 @@ class PagoDetallePage extends ConsumerWidget {
                     ? const SizedBox.shrink()
                     : IconButton(
                         tooltip: 'Editar pago',
-                        onPressed: () => _showEditSheet(context, ref, pago),
+                        onPressed: () => showPaymentForm(context, pago: pago),
                         icon: const Icon(Icons.edit_rounded),
                       ),
               ) ??
@@ -125,6 +125,19 @@ class PagoDetallePage extends ConsumerWidget {
                       label: 'Estado',
                       value: pago.estado,
                     ),
+                    if (pago.metodoPago case final method?
+                        when method.isNotEmpty)
+                      _InfoRow(
+                        icon: Icons.payments_outlined,
+                        label: 'Forma de pago',
+                        value: method,
+                      ),
+                    if (pago.banco case final bank? when bank.isNotEmpty)
+                      _InfoRow(
+                        icon: Icons.account_balance_outlined,
+                        label: 'Banco',
+                        value: bank,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -239,147 +252,6 @@ class PagoDetallePage extends ConsumerWidget {
         );
       }
     }
-  }
-
-  Future<void> _showEditSheet(
-    BuildContext context,
-    WidgetRef ref,
-    Pago pago,
-  ) async {
-    final idInquilinoController = TextEditingController(text: pago.idInquilino);
-    final fechaPagoController = TextEditingController(text: pago.fechaPago);
-    final montoController = TextEditingController(text: _currency(pago.monto));
-    String estadoSeleccionado = pago.estado;
-    var guardando = false;
-    final mutations = ref.read(paymentMutationsProvider);
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (sheetCtx) => StatefulBuilder(
-        builder: (ctx, setState) => Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const AppSectionHeader(
-                  title: 'Editar pago',
-                  icon: Icons.receipt_long_outlined,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: idInquilinoController,
-                  decoration: const InputDecoration(
-                    labelText: 'ID inquilino',
-                    prefixIcon: Icon(Icons.person_rounded),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: fechaPagoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Fecha de pago',
-                    prefixIcon: Icon(Icons.calendar_month_rounded),
-                    border: OutlineInputBorder(),
-                    hintText: '2026-09-15',
-                  ),
-                  readOnly: true,
-                  onTap: () => _pickDate(context, fechaPagoController),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: montoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Monto',
-                    prefixIcon: Icon(Icons.attach_money_rounded),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: estadoSeleccionado,
-                  decoration: const InputDecoration(
-                    labelText: 'Estado',
-                    prefixIcon: Icon(Icons.flag_rounded),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: ['pendiente', 'pagado', 'vencido']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) => setState(
-                    () => estadoSeleccionado = v ?? estadoSeleccionado,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                AppButton(
-                  text: 'Guardar cambios',
-                  isLoading: guardando,
-                  onPressed: () async {
-                    final monto = _parseCurrency(
-                      montoController.text.trim(),
-                      fallback: pago.monto,
-                    );
-                    setState(() => guardando = true);
-                    final saved = await showPaymentResult(
-                      context,
-                      () => mutations.update(
-                        pago,
-                        idInquilino: idInquilinoController.text.trim(),
-                        fechaPago: fechaPagoController.text.trim(),
-                        monto: monto,
-                        estado: estadoSeleccionado,
-                      ),
-                    );
-                    if (!ctx.mounted || !sheetCtx.mounted) return;
-                    setState(() => guardando = false);
-                    if (saved) Navigator.of(sheetCtx).pop();
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickDate(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.tryParse(controller.text) ?? now,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked == null) return;
-    controller.text = picked.toIso8601String().split('T').first;
-  }
-
-  String _currency(double amount) => NumberFormat.currency(
-    locale: 'es_US',
-    symbol: 'RD\$',
-    decimalDigits: 2,
-  ).format(amount);
-
-  double _parseCurrency(String text, {required double fallback}) {
-    final clean = text.replaceAll(RegExp(r'[^0-9.]'), '');
-    return double.tryParse(clean) ?? fallback;
   }
 
   Future<void> _generarComprobante(

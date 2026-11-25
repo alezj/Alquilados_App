@@ -20,6 +20,9 @@ Pago _rowToPago(Map<String, dynamic> row) => Pago(
   syncedAt: row['synced_at']?.toString(),
   crmRevision: row['crm_revision'] as int?,
   periodo: row['periodo']?.toString(),
+  metodoPago: row['metodo_pago']?.toString(),
+  banco: row['banco']?.toString(),
+  propiedadNombre: row['propiedad_nombre']?.toString(),
 );
 
 // ──────────────────────────────────────────────
