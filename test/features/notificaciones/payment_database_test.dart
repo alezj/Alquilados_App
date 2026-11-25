@@ -62,8 +62,10 @@ void main() {
         'monto': 12000.0,
         'metodo_pago': null,
         'banco': null,
+        'creado_por': null,
+        'editado_por': null,
       });
-      expect(await migrated.getVersion(), 11);
+      expect(await migrated.getVersion(), 12);
     },
   );
 
@@ -77,6 +79,7 @@ void main() {
         estado: 'pendiente',
         alquilerId: 7,
         method: (name: 'Transferencia', bank: 'Banco de prueba'),
+        creadoPor: 'operador.alta',
       );
       await service.updatePago(
         id: payment,
@@ -89,6 +92,8 @@ void main() {
       expect(paid['metodo_pago'], 'Transferencia');
       expect(paid['banco'], 'Banco de prueba');
       expect(paid['id_alquiler'], 7);
+      expect(paid['creado_por'], 'operador.alta');
+      expect(paid['editado_por'], isNull);
 
       await service.updatePago(
         id: payment,
@@ -97,6 +102,7 @@ void main() {
         monto: 250,
         estado: 'pagado',
         method: (name: 'Efectivo', bank: null),
+        editadoPor: 'operador.edicion',
       );
       final updated = (await service.getPagoById(payment))!;
       expect(updated['id_inquilino'], '2');
@@ -104,6 +110,8 @@ void main() {
       expect(updated['alquiler_id'], isNull);
       expect(updated['metodo_pago'], 'Efectivo');
       expect(updated['banco'], isNull);
+      expect(updated['creado_por'], 'operador.alta');
+      expect(updated['editado_por'], 'operador.edicion');
     },
   );
 

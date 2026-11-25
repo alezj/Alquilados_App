@@ -3,6 +3,7 @@ import 'package:alquilados_app/core/errors/app_exception.dart';
 import 'package:alquilados_app/core/network/api_client.dart';
 import 'package:alquilados_app/core/storage/secure_storage_service.dart';
 import 'package:alquilados_app/features/pagos/data/repositories/online_payment_repository.dart';
+import 'package:alquilados_app/features/pagos/domain/entities/pago.dart';
 import 'package:alquilados_app/features/pagos/presentation/providers/payment_mutations_provider.dart';
 import 'package:alquilados_app/features/sync/data/datasources/crm_sync_store.dart';
 import 'package:alquilados_app/features/sync/data/datasources/local_database_service.dart';
@@ -134,6 +135,63 @@ void main() {
       expect(submittedIds, [submittedIds.first, submittedIds.first]);
       expect(await db.query('online_payment_requests'), isEmpty);
       expect(await db.query('pagos'), isEmpty);
+    },
+  );
+
+  test(
+    'registra en SQLite el usuario que crea y el que modifica un pago',
+    () async {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+      final previousBackend = AppConfig.backend;
+      AppConfig.backend = BackendEnvironment.production;
+      addTearDown(() => AppConfig.backend = previousBackend);
+      final local = LocalDatabaseService.forTesting(inMemoryDatabasePath);
+      addTearDown(local.close);
+      final storage = MockPaymentStorage();
+      var operator = 'usuario.alta';
+      when(storage.getSessionContext).thenAnswer(
+        (_) async => {
+          'environment': 'production',
+          'tenant': 'admin',
+          'username': operator,
+        },
+      );
+      final payments = PaymentMutations(
+        local,
+        storage,
+        OnlinePaymentRepository(MockPaymentApi()),
+        refreshAfterWrite: () async {},
+      );
+      await payments.create(
+        idInquilino: '1',
+        fechaPago: '2026-11-25',
+        monto: 125,
+        estado: 'pendiente',
+      );
+      final db = await local.database;
+      final original = (await db.query('pagos')).single;
+      expect(original['creado_por'], 'usuario.alta');
+      expect(original['editado_por'], isNull);
+
+      operator = 'usuario.edicion';
+      final pago = Pago(
+        id: original['id'] as int,
+        idInquilino: '1',
+        inquilinoNombre: 'Cliente',
+        fechaPago: '2026-11-25',
+        monto: 125,
+      );
+      await payments.update(
+        pago,
+        idInquilino: '1',
+        fechaPago: '2026-11-25',
+        monto: 130,
+        estado: 'pendiente',
+      );
+      final edited = (await db.query('pagos')).single;
+      expect(edited['creado_por'], 'usuario.alta');
+      expect(edited['editado_por'], 'usuario.edicion');
     },
   );
 }

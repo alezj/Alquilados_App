@@ -81,12 +81,13 @@ class PaymentMutations {
     required String estado,
     PaymentMethod? method,
   }) => _write(
-    local: () => _database.insertPago(
+    local: (username) => _database.insertPago(
       idInquilino: idInquilino,
       fechaPago: fechaPago,
       monto: monto,
       estado: estado,
       method: method,
+      creadoPor: username,
     ),
     online: (db) async {
       final tenantId = int.tryParse(idInquilino);
@@ -122,12 +123,13 @@ class PaymentMutations {
     required String estado,
     PaymentMethod? method,
   }) => _write(
-    local: () => _database.updatePago(
+    local: (username) => _database.updatePago(
       id: pago.id,
       idInquilino: idInquilino,
       fechaPago: fechaPago,
       monto: monto,
       estado: estado,
+      editadoPor: username,
       method: method,
     ),
     online: (db) async => {
@@ -147,12 +149,13 @@ class PaymentMutations {
   );
 
   Future<String?> changeStatus(Pago pago, String estado) => _write(
-    local: () => _database.updatePago(
+    local: (username) => _database.updatePago(
       id: pago.id,
       idInquilino: pago.idInquilino,
       fechaPago: pago.fechaPago,
       monto: pago.monto,
       estado: estado,
+      editadoPor: username,
     ),
     online: (db) async => {
       'action': 'status',
@@ -165,7 +168,7 @@ class PaymentMutations {
   );
 
   Future<String?> delete(Pago pago) => _write(
-    local: () => _database.deletePago(pago.id),
+    local: (_) => _database.deletePago(pago.id),
     online: (db) async => {
       'action': 'delete',
       ...await _paymentIdentity(db, pago),
@@ -175,7 +178,7 @@ class PaymentMutations {
   );
 
   Future<String?> _write({
-    required Future<int> Function() local,
+    required Future<int> Function(String? username) local,
     required Future<Map<String, Object?>> Function(Database db) online,
     required String onlineMessage,
     required String localMessage,
@@ -184,8 +187,8 @@ class PaymentMutations {
     _saving = true;
     try {
       final useOnline = isOnline;
+      final session = await _storage.getSessionContext();
       if (useOnline) {
-        final session = await _storage.getSessionContext();
         final companyId = session?['companyId'] as String?;
         final tenant = session?['tenant'] as String?;
         if (companyId == null ||
@@ -204,7 +207,12 @@ class PaymentMutations {
         }
         await _requests.submit(db, _online, companyId, command);
       } else {
-        await local();
+        final username =
+            session?['environment'] == 'production' &&
+                session?['tenant'] == _database.tenantKey
+            ? (session?['username'] as String?)?.trim()
+            : null;
+        await local(username == null || username.isEmpty ? null : username);
       }
       await refreshAfterWrite();
       return useOnline ? onlineMessage : localMessage;

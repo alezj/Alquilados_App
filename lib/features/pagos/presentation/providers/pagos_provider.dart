@@ -23,6 +23,8 @@ Pago _rowToPago(Map<String, dynamic> row) => Pago(
   metodoPago: row['metodo_pago']?.toString(),
   banco: row['banco']?.toString(),
   propiedadNombre: row['propiedad_nombre']?.toString(),
+  creadoPor: row['creado_por']?.toString(),
+  editadoPor: row['editado_por']?.toString(),
 );
 
 // ──────────────────────────────────────────────

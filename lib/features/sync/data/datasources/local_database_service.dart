@@ -205,7 +205,7 @@ class LocalDatabaseService {
 
     return openDatabase(
       path,
-      version: 11,
+      version: 12,
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
     );
@@ -273,6 +273,8 @@ class LocalDatabaseService {
         monto REAL,
         metodo_pago TEXT,
         banco TEXT,
+        creado_por TEXT,
+        editado_por TEXT,
         estado TEXT,
         "Origen" TEXT NOT NULL DEFAULT 'movil' CHECK("Origen" IN ('web', 'movil')),
         usuario TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
@@ -465,6 +467,10 @@ class LocalDatabaseService {
       await _addColumnIfNotExists(db, 'pagos', 'metodo_pago', 'TEXT');
       await _addColumnIfNotExists(db, 'pagos', 'banco', 'TEXT');
       await _createPaymentCatalog(db);
+    }
+    if (oldVersion < 12) {
+      await _addColumnIfNotExists(db, 'pagos', 'creado_por', 'TEXT');
+      await _addColumnIfNotExists(db, 'pagos', 'editado_por', 'TEXT');
     }
   }
 
@@ -829,6 +835,7 @@ class LocalDatabaseService {
     int? alquilerId,
     String? periodo,
     PaymentMethod? method,
+    String? creadoPor,
   }) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
@@ -842,6 +849,7 @@ class LocalDatabaseService {
         'fecha_pago': fechaPago,
         'monto': monto,
         'estado': estado,
+        'creado_por': ?creadoPor,
         if (method != null) 'metodo_pago': method.name,
         if (method != null) 'banco': method.bank,
         'updated_at': now,
@@ -1322,6 +1330,7 @@ class LocalDatabaseService {
     required double monto,
     required String estado,
     PaymentMethod? method,
+    String? editadoPor,
   }) async {
     final db = await database;
     return _notify(
@@ -1344,6 +1353,7 @@ class LocalDatabaseService {
             'fecha_pago': fechaPago,
             'monto': monto,
             'estado': estado,
+          'editado_por': ?editadoPor,
             if (method != null) 'metodo_pago': method.name,
             if (method != null) 'banco': method.bank,
             'updated_at': DateTime.now().toIso8601String(),

@@ -304,51 +304,50 @@ class ComprobantePagoService {
               pw.Spacer(),
               pw.Spacer(),
 
-pw.Column(
-  crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-  mainAxisAlignment: pw.MainAxisAlignment.end,
-  children: [
-    pw.Text(
-      '¡Todo listo!',
-      style: pw.TextStyle(
-        fontSize: 14,
-        fontWeight: pw.FontWeight.bold,
-      ),
-      textAlign: pw.TextAlign.center,
-    ),
-    pw.SizedBox(height: 4),
-    pw.Text(
-      'Comprobante de pago de alquiler',
-      style: pw.TextStyle(
-        fontSize: 10,
-        color: PdfColors.grey600,
-      ),
-      textAlign: pw.TextAlign.center,
-    ),
-  ],
-),
-              // pw.Column(
-              //   crossAxisAlignment: pw.CrossAxisAlignment.center,
-              //   children: [
-              //     pw.Text(
-              //       '¡Gracias por su pago!',
-              //       style: pw.TextStyle(
-              //         fontSize: 14,
-              //         fontWeight: pw.FontWeight.bold,
-              //       ),
-              //       textAlign: pw.TextAlign.center,
-              //     ),
-              //     pw.SizedBox(height: 4),
-              //     pw.Text(
-              //       'Comprobante de pago de alquiler',
-              //       style: pw.TextStyle(
-              //         fontSize: 10,
-              //         color: PdfColors.grey600,
-              //       ),
-              //       textAlign: pw.TextAlign.center,
-              //     ),
-              //   ],
-              // ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                mainAxisAlignment: pw.MainAxisAlignment.end,
+                children: [
+                  pw.Text(
+                    '¡Todo listo!',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Comprobante de pago de alquiler',
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  if (data.creadoPor case final autor? when autor.isNotEmpty)
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.only(top: 4),
+                      child: pw.Text(
+                        'Creado por $autor',
+                        style: const pw.TextStyle(
+                          fontSize: 8,
+                          color: PdfColors.grey700,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  if (data.editadoPor case final editor? when editor.isNotEmpty)
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.only(top: 2),
+                      child: pw.Text(
+                        'Última edición por $editor',
+                        style: const pw.TextStyle(
+                          fontSize: 8,
+                          color: PdfColors.grey700,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                ],
+              ),
             ],
           );
         },

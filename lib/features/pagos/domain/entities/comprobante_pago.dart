@@ -17,6 +17,8 @@ class ComprobantePagoData {
     this.subtotal = 0.0,
     this.retaso = 0.0,
     this.isFiscal = false,
+    this.creadoPor,
+    this.editadoPor,
   });
 
   final int idPago;
@@ -31,6 +33,8 @@ class ComprobantePagoData {
   final double subtotal;
   final double retaso;
   final bool isFiscal;
+  final String? creadoPor;
+  final String? editadoPor;
 
   factory ComprobantePagoData.fromPayment(Pago pago, [Inquilino? inquilino]) {
     final parsedDate = DateTime.tryParse(pago.fechaPago);
@@ -64,6 +68,8 @@ class ComprobantePagoData {
       subtotal: pago.monto,
       retaso: 0.0,
       isFiscal: false,
+      creadoPor: pago.creadoPor?.trim(),
+      editadoPor: pago.editadoPor?.trim(),
     );
   }
 

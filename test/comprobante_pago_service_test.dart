@@ -32,6 +32,8 @@ void main() {
     final comprobante = ComprobantePagoData.fromPayment(pago, inquilino);
 
     expect(comprobante.isFiscal, isFalse);
+    expect(comprobante.creadoPor, isNull);
+    expect(comprobante.editadoPor, isNull);
     expect(comprobante.titulo, 'RECIBO DE PAGO');
     expect(comprobante.inquilinoNombre, 'Ana García');
     expect(comprobante.montoFormateado, '\$1,250.00');
@@ -81,6 +83,8 @@ void main() {
       metodoPago: 'Transferencia',
       banco: 'Banco Popular',
       propiedadNombre: 'Residencial Las Palmas',
+      creadoPor: 'operador.alta',
+      editadoPor: 'operador.edicion',
       estado: 'pagado',
       syncState: 'synced',
       syncedAt: '2026-09-15T12:00:00Z',
@@ -97,6 +101,8 @@ void main() {
     );
 
     final comprobante = ComprobantePagoData.fromPayment(pago, inquilino);
+    expect(comprobante.creadoPor, 'operador.alta');
+    expect(comprobante.editadoPor, 'operador.edicion');
     final service = ComprobantePagoService();
     final bytes = await service.generatePdfBytes(comprobante);
 

@@ -15,6 +15,8 @@ class Pago {
     this.metodoPago,
     this.banco,
     this.propiedadNombre,
+    this.creadoPor,
+    this.editadoPor,
   });
   final int id;
   final String idInquilino;
@@ -29,6 +31,8 @@ class Pago {
   final String? metodoPago;
   final String? banco;
   final String? propiedadNombre;
+  final String? creadoPor;
+  final String? editadoPor;
 
   String get estadoNormalizado => switch (estado.trim().toLowerCase()) {
     'pagado' || 'paid' || 'completado' || 'completada' => 'pagado',

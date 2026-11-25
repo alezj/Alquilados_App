@@ -763,6 +763,8 @@ class SyncRepositoryImpl implements SyncRepository {
           'idInquilino': _asInt(row['id_inquilino']),
           'fechaPago': row['fecha_pago'],
           'monto': row['monto'],
+          'creado_por': ?row['creado_por'],
+          'editado_por': ?row['editado_por'],
           if (row['metodo_pago'] != null) 'metodoPago': row['metodo_pago'],
           if (row['metodo_pago'] != null) 'banco': row['banco'],
           'idAlquiler': _asNullableInt(
@@ -850,6 +852,8 @@ class SyncRepositoryImpl implements SyncRepository {
           'periodo': row['periodo']?.toString(),
           'fecha_pago': row['fechaPago']?.toString() ?? '',
           'monto': _asDouble(row['monto']),
+          'creado_por': row['creado_por']?.toString(),
+          'editado_por': row['editado_por']?.toString(),
           'metodo_pago': row['metodoPago']?.toString(),
           'banco': row['banco']?.toString(),
           'estado': row['estado']?.toString() ?? 'Pendiente',

@@ -61,6 +61,13 @@ Este documento registra el estatus actual de todos los procesos y solicitudes en
 **Fecha Fin**: 2026-11-25 14:49:45
 **Comentario**: La lectura autenticada de Supabase confirmó que el contrato 3 de Producción tiene origen web y queda fuera del filtro de alquileres del móvil, que exige origen móvil y usuario legado. La descarga automática de Producción solo consulta inquilinos. La versión instalada carece de una acción para descargar el contrato 3.
 
+### Autoría en los comprobantes de pago
+**Estatus**: `COMPLETED`
+**Fecha Inicio**: 2026-11-25 16:06:51
+**Fecha Fin**: 2026-11-25 16:13:49
+**Comentario**: SQLite v12 y Supabase guardan el creador del pago y el último editor. El PDF muestra los datos registrados en tipografía de 8 puntos al pie. Se aplicó la migración en Producción (20261125201121) y Pruebas (20261125201128).
+**Verificación**: Quince pruebas específicas aprobadas, PDF de muestra revisado y transacciones revertidas comprobaron la persistencia y el feed de Pruebas. Los advisors no señalaron hallazgos sobre el cambio. Suite con 129 pruebas aprobadas y el fallo previo del importe del alquiler. Actualización instalada. La lectura de SQLite del iPhone confirmó la versión 12, los campos de autoría y los cinco pagos existentes.
+
 ### Retiro de accesos administrativos en Acciones
 **Estatus**: `COMPLETED`
 **Fecha Inicio**: 2026-11-25 15:52:52
